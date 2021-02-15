@@ -1,0 +1,22 @@
+measure Dark
+valve open
+wait 300
+valve close
+#measure R G B
+#measure White
+#measure 385
+#measure 260
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275
+measure 275  # 10 minutes
+save settle_tests.root
+quit

@@ -1,0 +1,7 @@
+myMarcusScheduler   MarcusScheduler         configfiles/UnifiedMeasurement/MarcusSchedulerConfig
+myBenPower          BenPower                configfiles/UnifiedMeasurement/PowerConfig
+myValve             Valve                   configfiles/UnifiedMeasurement/ValveConfig
+BenLED              BenLED                  configfiles/UnifiedMeasurement/LEDConfig
+BenSpectrometer     BenSpectrometer         configfiles/UnifiedMeasurement/SpectrometerConfig
+TraceAverage        TraceAverage            configfiles/UnifiedMeasurement/TraceAverageConfig
+SaveTraces          SaveTraces              configfiles/UnifiedMeasurement/SaveTracesConfig

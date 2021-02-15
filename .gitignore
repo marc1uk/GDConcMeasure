@@ -1,0 +1,15 @@
+include/*.h
+lib/*.so
+UserTools/*/*.o
+DataModel/*.o
+ToolDAQ
+main
+RemoteControl
+NodeDaemon
+
+*.d
+*.root
+
+*~
+
+results/

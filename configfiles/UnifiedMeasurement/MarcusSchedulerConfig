@@ -1,0 +1,3 @@
+verbosity 1
+command_file configfiles/UnifiedMeasurement/measurement_commands
+#command_file configfiles/UnifiedMeasurement/measurement_commands_test

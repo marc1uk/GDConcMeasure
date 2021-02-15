@@ -1,0 +1,18 @@
+verbose 5
+
+#Configuration file for LED manager
+#
+
+###################################################
+# these parameters should not be changed that easily
+# resolution is fixed with the PWD driver, but it can be tweaked here
+# in case the driver is changed in the future and so there is no need to recompile
+###################################################
+frequency	800	# Hz, frequency of the PWM scaler [24 Hz ~ 1526 Hz]
+resolution	12	# bit, of the internal counter
+##################################################
+
+voltage_supply	5.0	# V, external supply
+delay		50	# %, delay for turning on LED in duty cycle percentage
+
+map_wiring	configfiles/UnifiedMeasurement/wiring
