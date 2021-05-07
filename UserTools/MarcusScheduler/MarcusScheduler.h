@@ -24,8 +24,8 @@ class MarcusScheduler: public Tool {
 	private:
 	boost::posix_time::time_duration m_period;
 	std::vector<std::string> commands;
-	int current_command;
-	int command_step;
+	int current_command=-1;
+	int command_step=0;
 	std::string command_file;
 	std::string measurement_name;
 	

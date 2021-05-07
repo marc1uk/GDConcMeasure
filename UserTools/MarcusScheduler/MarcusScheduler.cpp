@@ -226,8 +226,12 @@ bool MarcusScheduler::Execute(){
 	}
 	}
 	catch(std::exception& e){
-		std::cerr<<"MarcusScheduler caught exception "<<e.what()<<" during command "<<commands.at(current_command)<<" at step "<<command_step
-			 <<", aborting this command!"<<std::endl;
+		std::cerr<<"MarcusScheduler caught exception "<<e.what()<<" during command "
+			 <<current_command<<" of "<<commands.size()<<" at step "<<command_step<<std::endl;
+		if(current_command<commands.size()){
+			std::cerr<<"Corresponding command is: "<<commands.at(current_command)<<std::endl;
+		}
+		std::cerr<<"Aborting this command!"<<std::endl;
 		// ensure system is in a safe state - turn off all LEDs, close the pump valves
 		std::string json_string = "{\"R\":\"0\",\"G\":\"0\",\"B\":\"0\",\"White\":\"0\",\"385\":\"0\",\"260\":\"0\",\"275\":\"0\",\"LED\":\"Change\",\"Valve\":\"CLOSE\"}";
 		command_step=0;
