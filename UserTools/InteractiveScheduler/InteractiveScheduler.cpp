@@ -79,6 +79,7 @@ bool InteractiveScheduler::Execute(){
       m_data->CStore.JsonParser(commands.at(pos));
     }
     else{
+      std::cout<<"in wait"<<std::endl;
       std::stringstream tmp(commands.at(pos));
       long wait;
       tmp>>wait;
@@ -88,8 +89,10 @@ bool InteractiveScheduler::Execute(){
       boost::posix_time::time_duration lapse(m_period - (current - last));
       
       while(!lapse.is_negative()){
+	std::cout<<"while test="<<!lapse.is_negative()<<std::endl;
+	std::cout<<"lapse="<<lapse<<std::endl;
 	sleep(1);
-	last=boost::posix_time::second_clock::local_time();
+	current=boost::posix_time::second_clock::local_time();
 	lapse=boost::posix_time::time_duration(m_period - (current - last));
       }
       
