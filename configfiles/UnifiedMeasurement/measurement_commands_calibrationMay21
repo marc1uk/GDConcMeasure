@@ -1,0 +1,588 @@
+#wait for spectrometer to warm up
+wait 900
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib0.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib1.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib2.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib3.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib4.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib5.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib6.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib7.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib8.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib9.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib10.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib11.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib12.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib13.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib14.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib15.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib16.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib17.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib18.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib19.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib20.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib21.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib22.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib23.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib24.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib25.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib26.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib27.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib28.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib29.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib30.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib31.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib32.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib33.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib34.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib35.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib36.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib37.root
+#
+wait 60
+#
+valve open
+wait 300
+valve close
+wait 120
+measure None
+measure None
+measure R G B
+measure White 385
+measure None
+measure 260
+measure 275
+save maycalib38.root
+quit

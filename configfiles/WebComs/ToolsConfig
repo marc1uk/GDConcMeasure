@@ -1,10 +1,8 @@
-#test1 DummyTool configfiles/DummyToolConfig
-#test2 DummyTool configfiles/DummyToolConfig
-#webcoms webcoms NULL
-WebScheduler WebScheduler NULL
-BenPower BenPower configfiles/WebComs/PowerConfig
-#Valve Valve configfiles/WebComs/ValveConfig
+#webcoms        webcoms                 NULL
+WebScheduler    WebScheduler            NULL
+BenPower        BenPower                configfiles/WebComs/PowerConfig
+Valve           Valve                   configfiles/WebComs/ValveConfig
 BenLED          BenLED                  configfiles/WebComs/LEDConfig
 BenSpectrometer BenSpectrometer         configfiles/WebComs/SpectrometerConfig
 TraceAverage    TraceAverage            NULL
-SaveTraces SaveTraces NULL
+SaveTraces      SaveTraces              NULL
