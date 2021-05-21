@@ -1,3 +1,4 @@
+myGracefulStop      GracefulStop            configfiles/UnifiedMeasurement/GracefulStopConfig
 myMarcusScheduler   MarcusScheduler         configfiles/UnifiedMeasurement/MarcusSchedulerConfig
 myBenPower          BenPower                configfiles/UnifiedMeasurement/PowerConfig
 myValve             Valve                   configfiles/UnifiedMeasurement/ValveConfig
