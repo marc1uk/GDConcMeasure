@@ -6,6 +6,8 @@
 #include <fstream>
 #include <sstream>
 #include <pthread.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "Tool.h"
 
@@ -29,10 +31,13 @@ class MarcusScheduler: public Tool {
 	std::string command_file;
 	std::string measurement_name;
 	
+	std::string break_loop_flagfile_name="UserTools/MarcusScheduler/breakloop";
+	
 	std::map<std::string,int> LED_states{{"R",0}, {"G",0}, {"B",0}, {"White",0}, {"385",0}, {"260",0}, {"275",0}};
 	const std::map<std::string,int> off_LED_states{{"R",0}, {"G",0}, {"B",0}, {"White",0}, {"385",0}, {"260",0}, {"275",0}};
 	
 	void WaitForDuration(std::string wait_string);
+	bool check_break_loop();
 	
 };
 

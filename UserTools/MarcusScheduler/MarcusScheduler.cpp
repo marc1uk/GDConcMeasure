@@ -69,7 +69,6 @@ bool MarcusScheduler::Execute(){
 		m_data->CStore.JsonParser(tmp.str());
 		current_command=-1;
 	}
-	
 	// otherwise, we're doing an automation step!
 	else {
 		// if we've completed the last command, move to the next one
@@ -77,6 +76,52 @@ bool MarcusScheduler::Execute(){
 		std::cout<<"Processing command "<<current_command<<" step "<<command_step<<std::endl;
 		std::cout<<"current command is "<<the_command<<std::endl;
 		
+		// to allow infinite loops we support the presence of a 'loop' command
+		// but we would also like a mechanism to break such a loop
+		// we'll do this by checking for existence of a flag file, i guess
+		if(check_break_loop()){
+			// hold off until we've finished our current measurement
+			// if we're in the middle of one
+			if(command_step==0){
+				// once we're no longer in the middle of a measurement,
+				// search for the loop point
+				std::string a_command=the_command;
+				int loop_point=current_command;
+				// scan forward until we find the 'loop' command, or the end of the command chain
+				while(loop_point<(commands.size()-1) && a_command.substr(0,a_command.find(' '))!="loop"){
+					a_command = commands.at(++loop_point);
+				}
+				if(loop_point==(commands.size()-1)){
+					if(a_command.substr(0,a_command.find(' '))=="loop"){
+						// if the loop command is the last one in the command file,
+						// return to the main menu
+						std::cout<<"No further actions beyond loop point. "
+							 <<"Returning to Main Menu"<<std::endl;
+				                std::stringstream tmp;
+				                tmp<<"{\"Auto\":\"Stop\"}";
+				                m_data->CStore.JsonParser(tmp.str());
+				                current_command=-1;
+						the_command="dummy"; // avoid triggering anything else in this Execute()
+					} else {
+						// if we didn't find a 'loop' command, ignore the flag file
+						std::cout<<"Did not find a 'loop' command, ignoring break loop"<<std::endl;
+						std::string syscmd="rm -f "+break_loop_flagfile_name;
+						system(syscmd.c_str());
+					}
+				// if we found a 'loop' command and there are other commands after it,
+				// break the loop and carry on from the next command
+				} else {
+					std::cout<<"loop point at command "<<loop_point
+						 <<" of "<<commands.size()<<" commands, "
+						 <<"advancing to command "<<++loop_point<<std::endl;
+					current_command=loop_point;
+					std::string syscmd="rm -f "+break_loop_flagfile_name;
+					system(syscmd.c_str());
+					the_command="dummy"; // avoid triggering anything else in this Execute()
+				}
+			} // else hold off until the current measurement completes
+		}
+
 		// parse the command
 		// if it's a delay
 		if(the_command.substr(0,4)=="wait"){
@@ -128,7 +173,7 @@ bool MarcusScheduler::Execute(){
 					LED_states = off_LED_states;
 					// obtain the list of LEDs starting after 'measure' and ending at first '#' to string any trailing comments
 					std::string led_list = the_command.substr(8,the_command.find('#')-8);
-					while(led_list.back()==' ') led_list.pop_back(); 
+					while(led_list.back()==' ') led_list.pop_back();
 					// split up the list of LEDs and enable all those that appear and are known
 					std::cout<<"parsing LED list: \""<<led_list<<"\""<<std::endl;
 					int last_space=0;
@@ -137,9 +182,10 @@ bool MarcusScheduler::Execute(){
 						std::string next_led_name = led_list.substr(last_space, next_space-last_space);
 						std::cout<<"Setting LED "<<next_led_name<<" to ON for next measurement"<<std::endl;
 						// check this is a valid LED name
+						// compatibility
 						if(LED_states.count(next_led_name)){
 							LED_states.at(next_led_name) = 1; // enable this LED
-						} else if(next_led_name!="Dark"){
+						} else if(next_led_name!="Dark" && next_led_name!="None"){
 							std::cerr<<"Unknown LED "<<next_led_name<<std::endl;
 						}
 						if(next_space!=std::string::npos){
@@ -215,6 +261,11 @@ bool MarcusScheduler::Execute(){
                         std::string json_string("{\"Auto\":\"Stop\",\"Power\":\"OFF\"}");
                         m_data->CStore.JsonParser(json_string);
                         m_data->vars.Set("StopLoop",1);
+		} else if(the_command.substr(0,the_command.find(' '))=="loop"){
+			// for command files containing a series of steps that should be infinitely repeated
+			current_command=0;
+		} else if(the_command.substr(0,the_command.find(' '))=="dummy"){
+			// dummy command, do nothing
 		} else if(the_command[0]=='{'){
 			// handle json style manual commands i guess
 			m_data->CStore.JsonParser(the_command);
@@ -237,6 +288,10 @@ bool MarcusScheduler::Execute(){
 		command_step=0;
 		++current_command;
 	}
+	
+	// for the GracefulStop tool to be able to terminate infinite loops without interrupting
+	// a mutli-loop measurement process, it needs to know when we are in the middle of a measurement
+	m_data->CStore.Set("command_step",std::to_string(command_step));
 	
 	return true;
 	
@@ -279,4 +334,9 @@ bool MarcusScheduler::Finalise(){
 	commands.clear();
 	
 	return true;
+}
+
+bool MarcusScheduler::check_break_loop(){
+  struct stat buffer;
+  return (stat (break_loop_flagfile_name.c_str(), &buffer) == 0);
 }
