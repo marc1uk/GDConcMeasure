@@ -119,7 +119,9 @@ bool BenLED::Execute(){
       //std::cout<<"R="<<R<<" G="<<G<<" B="<<B<<" White="<<White<<" B385="<<B385<<" UV260="<<UV260<<" UV275="<<UV275<<std::endl;
       //delete entries after maybe??
     }
-  } 
+    m_data->CStore.Remove("LED");
+   
+  }
  
 
   ///old
