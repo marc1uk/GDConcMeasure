@@ -1,4 +1,7 @@
 verbosity 1
 #command_file configfiles/UnifiedMeasurement/measurement_commands
-command_file configfiles/UnifiedMeasurement/measurement_commands_calibrationMay21
+#command_file configfiles/UnifiedMeasurement/measurement_commands_calibrationMay21
+command_file configfiles/UnifiedMeasurement/measurement_commands_stability
 #command_file configfiles/UnifiedMeasurement/measurement_commands_test
+#command_file testmeascmds
+command_file configfiles/UnifiedMeasurement/liveplottest 

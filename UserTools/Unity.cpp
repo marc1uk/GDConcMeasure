@@ -28,3 +28,4 @@
 #include "InteractiveScheduler/InteractiveScheduler.cpp"
 #include "MarcusScheduler/MarcusScheduler.cpp"
 #include "GracefulStop/GracefulStop.cpp"
+#include "MatthewAnalysis/MatthewAnalysis.cpp"

@@ -5,4 +5,5 @@ myValve             Valve                   configfiles/UnifiedMeasurement/Valve
 BenLED              BenLED                  configfiles/UnifiedMeasurement/LEDConfig
 BenSpectrometer     BenSpectrometer         configfiles/UnifiedMeasurement/SpectrometerConfig
 TraceAverage        TraceAverage            configfiles/UnifiedMeasurement/TraceAverageConfig
+myMatthewAnalysis   MatthewAnalysis 	    configfiles/UnifiedMeasurement/MatthewAnalysisConfig
 SaveTraces          SaveTraces              configfiles/UnifiedMeasurement/SaveTracesConfig

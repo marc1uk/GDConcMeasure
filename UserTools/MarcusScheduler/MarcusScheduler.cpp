@@ -13,6 +13,7 @@ bool MarcusScheduler::Initialise(std::string configfile, DataModel &data){
 		std::cout<<"no command_file specified in config file!"<<std::endl;
 		return false;
 	}
+	m_variables.Get("overwrite_saves",overwrite_saves);
 	
 	std::string line;
 	std::ifstream myfile (command_file);
@@ -21,6 +22,7 @@ bool MarcusScheduler::Initialise(std::string configfile, DataModel &data){
 			if(line.size()==0) continue;
 			if(line[0]=='#') continue;
 			commands.push_back(line);
+			if(line.substr(0,line.find(' '))=="loop") looping=true; // note this for later
 		}
 		myfile.close();
 	} else {
@@ -230,14 +232,30 @@ bool MarcusScheduler::Execute(){
 			std::cout<<"Queuing action: "<<json_string<<std::endl;
 			// queue the action for this step of the measurement process
 			m_data->CStore.JsonParser(json_string);
+		} else if(the_command.substr(0,7) == "analyse"){
+		  std::cout << "Analysing measurements\n";
+		  std::string ledToAnalyse = the_command.substr(8, std::string::npos);
+		  std::string json_string = "{\"Analyse\":\"Analyse\",\"ledToAnalyse\":\"" + ledToAnalyse + "\"}";
+		  std::cout<<"Queuing action: "<<json_string<<'\n';
+		  m_data->CStore.JsonParser(json_string);	 
+		  ++current_command;
 		} else if(the_command.substr(0,4)=="save"){
-			std::cout<<"Saving measurements"<<std::endl;
+		        std::cout<<"Saving measurements"<<std::endl;
 			// get the filename to save it as
 			std::string filename = the_command.substr(5,std::string::npos);
 			// trim comments & trailing whitespace
 			filename = filename.substr(0,filename.find('#'));
 			filename = filename.substr(0,filename.find(' '));
-			std::string json_string = "{\"Save\":\"Save\",\"Filename\":\""+filename+"\"}";
+			std::string json_string;
+			if(!looping){
+				json_string = "{\"Save\":\"Save\",\"Filename\":\""+filename+"\"}";
+			} else {
+				std::string filenamesub = filename.substr(0,filename.find_last_of('.'));
+				std::string filename_indexed = filenamesub+"_"+std::to_string(loop_count)+".root";
+				json_string = "{\"Save\":\"Save\",\"Filename\":\""+filename_indexed+"\"}";
+			}
+			//std::string json_string = "{\"Save\":\"Save\",\"Filename\":\""+filename
+			//	+"\,\"Overwrite\",\""+std::to_string(overwrite_saves)+"\"}";
 			
 			std::cout<<"Queuing action: "<<json_string<<std::endl;
 			// queue the action for this step of the measurement process
@@ -263,6 +281,7 @@ bool MarcusScheduler::Execute(){
                         m_data->vars.Set("StopLoop",1);
 		} else if(the_command.substr(0,the_command.find(' '))=="loop"){
 			// for command files containing a series of steps that should be infinitely repeated
+			++loop_count;
 			current_command=0;
 		} else if(the_command.substr(0,the_command.find(' '))=="dummy"){
 			// dummy command, do nothing

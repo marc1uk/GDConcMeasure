@@ -1,0 +1,10 @@
+wait 10
+measure Dark
+measure 275
+analyse 275
+measure Dark
+measure 260
+analyse 260
+save testout.root
+quit
+

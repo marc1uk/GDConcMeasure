@@ -51,23 +51,20 @@ bool WebScheduler::Execute(){
     m_data->CStore.JsonParser(iss.str());
     
   }
-
   //m_data->CStore.Print();
   
   std::string tmp="";
   if(m_data->CStore.Get("Auto",tmp)){
-    
     if(tmp=="Start") m_data->mode="Auto";
     else if(tmp=="Stop") m_data->mode="Manual";
     
   }
   
-  
   if(m_data->mode=="Manual"){
     
   }
   /*
-  else if(m_data->mode=="Auto"){    
+    else if(m_data->mode=="Auto"){    
     
     std::cout<<"Last State is "<<m_data->state<<std::endl;
     boost::posix_time::ptime current(boost::posix_time::second_clock::local_time());
