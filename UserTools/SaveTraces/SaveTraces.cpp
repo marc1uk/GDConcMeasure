@@ -17,6 +17,7 @@ bool SaveTraces::Initialise(std::string configfile, DataModel &data){
 bool SaveTraces::Execute(){
   std::string save="";
   std::string name="";
+  int overwrite=1;
     
   if(m_data->CStore.Get("Save",save) && save=="Save"){
 
@@ -24,8 +25,12 @@ bool SaveTraces::Execute(){
     save="";
     m_data->CStore.Set("Save",save);
     m_data->CStore.Get("Filename",name);
+    m_data->CStore.Get("Overwrite",overwrite);
 
     std::cout<<"filename="<<name<<std::endl;
+    std::string overwritestring = (overwrite==1) ? "RECREATE" : "UPDATE";
+    // TODO if update, we need to open the file, retrieve the trees,
+    // match them with the ones in the m_data->m_trees, then transfer our entries...
     TFile file(name.c_str(), "RECREATE");
     file.cd();
     

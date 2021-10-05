@@ -5,4 +5,5 @@ Valve           Valve                   configfiles/WebComs/ValveConfig
 BenLED          BenLED                  configfiles/WebComs/LEDConfig
 BenSpectrometer BenSpectrometer         configfiles/WebComs/SpectrometerConfig
 TraceAverage    TraceAverage            NULL
-SaveTraces      SaveTraces              NULL
+MatthewAnalysis	MatthewAnalysis		NULL	
+SaveTraces      SaveTraces              NULL	

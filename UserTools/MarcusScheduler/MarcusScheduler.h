@@ -30,6 +30,9 @@ class MarcusScheduler: public Tool {
 	int command_step=0;
 	std::string command_file;
 	std::string measurement_name;
+	int overwrite_saves=1;
+	bool looping=false;
+	int loop_count=0;
 	
 	std::string break_loop_flagfile_name="UserTools/MarcusScheduler/breakloop";
 	

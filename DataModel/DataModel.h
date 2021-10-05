@@ -12,6 +12,7 @@
 #include "Logging.h"
 #include "GdTree.h"
 
+#include "TGraphErrors.h"
 #include "TFile.h"
 #include "TF1.h"
 #include "TF2.h"
@@ -130,7 +131,10 @@ public:
   std::vector<std::vector<double> > traceCollect;
   std::vector<double> wavelength;	//can be retrieved from seabreeze
  boost::posix_time::ptime measurment_time;
-  
+
+  TGraphErrors* dark_sub_pure;
+  TF1* pure_fct;
+  TF1* calib_curve;
   
   /*
     state mode;	//state for scheduler

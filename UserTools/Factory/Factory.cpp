@@ -35,6 +35,7 @@ if (tool=="SaveTraces") ret=new SaveTraces;
 if (tool=="InteractiveScheduler") ret=new InteractiveScheduler;
 if (tool=="MarcusScheduler") ret=new MarcusScheduler;
 if (tool=="GracefulStop") ret=new GracefulStop;
+if (tool=="MatthewAnalysis") ret=new MatthewAnalysis;
 return ret;
 }
 
