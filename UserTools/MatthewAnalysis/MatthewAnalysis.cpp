@@ -74,14 +74,17 @@ void MatthewAnalysis::RetrieveCalibrationCurve(){
 
 void MatthewAnalysis::RetrieveDarkSubPure(){
 
-  std::string pure_filename = "pureDarkSubtracted.root";
+  std::string pure_filename;
+  m_variables.Get("pure_filename", pure_filename); 
   
   TFile pure_file(pure_filename.c_str(), "READ");
   if (pure_file.IsOpen()){
     TGraphErrors* dark_subtracted_pure = new TGraphErrors(2068);
     dark_subtracted_pure = (TGraphErrors*) pure_file.Get("Graph");
     m_data->dark_sub_pure = dark_subtracted_pure;
-  
+
+
+    
     const int wave_min = 260, wave_max = 300, numb_of_fitting_parameters = 3;
     TF1* pure_fct = new TF1("pure_fct",
 			    [dark_subtracted_pure](double* x, double* par){
