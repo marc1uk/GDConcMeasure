@@ -1,12 +1,12 @@
 #!/bin/bash
 
-if [ "$1" != "" ] && [ "$2" != "" ]
+if [ "$#" = 2 ]
 then
     old_name="$1"
     new_name="$2"
     if [ ! -d $old_name ]
     then
-	echo "a tool called "$old_name" does not exist."
+	echo "no tool called "$old_name" exists."
     elif [ -d $new_name ]
     then
 	echo "there is already a tool called "$new_name"."
