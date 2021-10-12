@@ -32,6 +32,10 @@ class MatthewAnalysis: public Tool {
   std::vector<double> FindPeakDifference(TGraphErrors&);
   std::vector<double> CalculateConcentration(const std::vector<double>);
   
+  TF1* pure_fct;
+  TF1* calib_curve;
+  TGraphErrors* dark_sub_pure;
+  
 };
 
 
