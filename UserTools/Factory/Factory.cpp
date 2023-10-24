@@ -42,6 +42,7 @@ if (tool=="PGTool") ret=new PGTool;
 if (tool=="LoadOldFiles") ret=new LoadOldFiles;
 if (tool=="MarcusAnalysis") ret=new MarcusAnalysis;
 if (tool=="MatthewTransparency") ret=new MatthewTransparency;
+ if(tool=="MatthewAnalysisStrikesBack") ret=new MatthewAnalysisStrikesBack;
 return ret;
 }
 
