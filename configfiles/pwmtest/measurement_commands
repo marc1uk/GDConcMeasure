@@ -1,13 +1,25 @@
 start
 power up
 #quit
+#wait 3
+#{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+#wait 3
+#{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"1","275_B":"0","LED":"Change"}
+#wait 3
+#{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+#wait 3
+#{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"1","LED":"Change"}
+#wait 3
+#{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+#wait 3
+#quit
 connect
 setFile trash
 measure Dark
-#measure R G B
-measure R
-measure G
-measure B
+measure R G B
+#measure R
+#measure G
+#measure B
 measure White
 measure 275_A
 measure 275_B

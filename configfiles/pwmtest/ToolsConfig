@@ -1,3 +1,4 @@
+myGracefulStop        GracefulStop            configfiles/pwmtest/GracefulStopConfig
 myMarcusScheduler     MarcusScheduler         configfiles/pwmtest/MarcusSchedulerConfig
 myBenPower            BenPower                configfiles/pwmtest/PowerConfig
 myBenLED              BenLED                  configfiles/pwmtest/LEDConfig

@@ -1,0 +1,10 @@
+start
+power up
+setFile flashme
+measure Dark
+wait 3
+measure 275_A
+#{"Measure":"Start","Trace":"lamp"}
+save
+power down
+quit

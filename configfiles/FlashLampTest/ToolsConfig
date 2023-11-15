@@ -1,0 +1,6 @@
+myGracefulStop      GracefulStop            configfiles/FlashLampTest/GracefulStopConfig
+myMarcusScheduler   MarcusScheduler         configfiles/FlashLampTest/MarcusSchedulerConfig
+myBenPower          BenPower                configfiles/FlashLampTest/PowerConfig
+BenSpectrometer     BenSpectrometer         configfiles/FlashLampTest/SpectrometerConfig
+TraceAverage        TraceAverage            configfiles/FlashLampTest/TraceAverageConfig
+SaveTraces          SaveTraces              configfiles/FlashLampTest/SaveTracesConfig

@@ -1,0 +1,3 @@
+verbosity 10
+# override DB
+command_file configfiles/FlashLampTest/measurement_commands

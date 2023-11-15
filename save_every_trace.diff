@@ -1,0 +1,37 @@
+pi@raspberrypi:~/GDConcMeasure $ git diff UserTools/TraceAverage/TraceAverage.cpp
+diff --git a/UserTools/TraceAverage/TraceAverage.cpp b/UserTools/TraceAverage/TraceAverage.cpp
+index 446b58b..ce4b2ee 100644
+--- a/UserTools/TraceAverage/TraceAverage.cpp
++++ b/UserTools/TraceAverage/TraceAverage.cpp
+@@ -95,6 +95,7 @@ bool TraceAverage::Execute(){
+     }
+     
+     // retrieve data from datamodel, averaging over spectrometer acquisitions
++    /*
+     for(int i=0;i<m_data->wavelength.size(); i++){
+       double valsum=0;
+       double errorsum=0;
+@@ -112,13 +113,22 @@ bool TraceAverage::Execute(){
+       value.push_back(valsum);
+       error.push_back(errorsum);
+     }
++    */
++    for(int trace=0;trace<m_data->traceCollect.size(); trace++){
++      //for(int i=0;i<m_data->wavelength.size(); i++){
++        value = m_data->traceCollect.at(trace);
++        tree->Fill();
++      //}
++    }
+     
+     // fill TTree
++    /*
+     int nbytes = tree->Fill();
+     if(nbytes<=0){
+       Log("TraceAverage::Execute error calling TTree::Fill, returned "+std::to_string(nbytes),0,0);
+       // don't return, is it better that we at least make a graph for the website...?
+     }
++    */
+     // we should reset the branch addresses as they are currently pointed at local
+     // variables that will soon go out of scope.
+     // if later tools call 'm_data->trees[this_tree]->GetEntry()'
+
