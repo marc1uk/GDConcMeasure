@@ -12,8 +12,6 @@ boostflag=1
 zmq=1
 final=1
 rootflag=1
-eigen=1
-seabreeze=1
 libpqxx=1
 
 while [ ! $# -eq 0 ]
@@ -121,22 +119,6 @@ then
     cd ../
 fi
 
-if [ $eigen -eq 1 ]
-then
-    cd ${TOPDIR}/ToolDAQ
-    wget https://gitlab.com/libeigen/eigen/-/archive/3.3.7/eigen-3.3.7.tar.gz
-    tar -zxf eigen-3.3.7.tar.gz
-    rm eigen-3.3.7.tar.gz
-fi
-
-if [ $seabreeze -eq 1 ]
-then
-    cd ${TOPDIR}/ToolDAQ
-    git clone git@github.com:GDconcentration/SeaBreeze.git seabreeze-3.0.11
-    cd seabreeze-3.0.11/SeaBreeze
-    make
-fi
-
 if [ $libpqxx -eq 1 ]
 then
     cd ${TOPDIR}/ToolDAQ
@@ -177,18 +159,22 @@ if [ $rootflag -eq 1 ]
 then
     
     cd ${TOPDIR}/ToolDAQ
-    wget https://root.cern.ch/download/root_v6.14.06.source.tar.gz
-    tar zxf root_v6.14.06.source.tar.gz
-    rm -rf root_v6.14.06.source.tar.gz
-    cd root-6.14.06
+    #ROOTVER=6.14.06
+    ROOTVER=6.28.06
+    wget https://root.cern.ch/download/root_v${ROOTVER}.source.tar.gz
+    tar zxf root_v${ROOTVER}.source.tar.gz
+    rm -rf root_v${ROOTVER}.source.tar.gz
+    cd root-${ROOTVER}
+    
     mkdir install
     cd install
-    cmake ../ -Dcxx14=OFF -Dcxx11=ON -Dxml=ON -Dmt=ON -Dmathmore=ON -Dx11=ON -Dimt=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -Dbuiltin_gsl=ON -Dfftw3=ON -DCMAKE_SHARED_LINKER_FLAGS='-latomic'
-    # note latomic flag required by gcc8!
-    # https://root-forum.cern.ch/t/root-6-18-04-fails-to-compile-on-raspbian-10-with-solution/36514
-    make -j4
+    #cmake ../ -Dcxx14=OFF -Dcxx11=ON -Dxml=ON -Dmt=ON -Dmathmore=ON -Dx11=ON -Dimt=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -Dbuiltin_gsl=ON -Dfftw3=ON
+    cmake -Dgminimal=ON ../
+    make -j$(nproc)
     make install
     source bin/thisroot.sh
+    sed -i '/thisroot.sh/d' ${TOPDIR}/Setup.sh
+    echo ". ${PWD}/bin/thisroot.sh" >> ${TOPDIR}/Setup.sh
     
     cd ../
     
