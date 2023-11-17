@@ -1,4 +1,5 @@
 #!/bin/bash
+. /home/pi/GDConcMeasure/setup_db.sh
 
 APPLICATION_NAME="GAD_ToolChain"
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -38,6 +39,11 @@ psql -U postgres -d rundb -c "INSERT INTO webpage ( name, timestamp, values ) VA
 # let's actually do it once a minute, for fidelity. In that case to store the last 24 hours
 # we need (24*60) = 1440 samples. Samples older than this we'll delete.
 psql -U postgres -d rundb -c "DELETE FROM webpage WHERE name='gpio_status' AND timestamp < now()-'24 hours'::interval"
+
+#####################################################
+# uncomment this to disable the valve safety check! #
+#####################################################
+#exit 0
 
 # while we're doing this we can do some safety checks -
 # check that the valves have not been open for the last 30 consecutive measurements

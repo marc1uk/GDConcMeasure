@@ -783,7 +783,9 @@ void MarcusScheduler::SetFile(std::string the_command){
 	char monthchr[3];
 	snprintf(yearchr,5,"%04d",year);
 	snprintf(monthchr,3,"%02d",month);
-	std::string outputdir = std::string("data/")+yearchr+"/"+monthchr;
+	std::string datadir="/mnt/data/";
+	m_variables.Get("datadir",datadir);
+	std::string outputdir = std::string(datadir)+yearchr+"/"+monthchr;
 	// make the directory in case it doesn't already exist.
 	// there appears to be no c++ equivalent to `mkdir -p`, so we'll just call that.
 	std::string cmd = std::string("mkdir -p ") + outputdir;
