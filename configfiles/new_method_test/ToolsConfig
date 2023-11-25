@@ -1,0 +1,3 @@
+test1 DummyTool configfiles/DummyToolConfig
+test2 DummyTool configfiles/DummyToolConfig
+my_MatthewAnalysisStrikesBack MatthewAnalysisStrikesBack configfiles/new_method_test/MatthewAnalysisStrikesBackConfig

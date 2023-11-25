@@ -1,0 +1,16 @@
+verbosity 10
+savedebug 1
+pure_fname /mnt/data/2023/04/00184_17Apr_EGADS_Calibration_00000.root
+pure_offset 9
+highconc_fname /mnt/data/2023/04/00184_17Apr_EGADS_Calibration_00050.root
+highconc_offset 9
+
+calib_curve_275_A cal_a.root
+cal_tf1_name_275_A led_a_calcurve
+calib_curve_275_B cal_b.root
+cal_tf1_name_275_B led_b_calcurve
+
+# TODO migrate these to the db:
+#pureref_ver ?
+#highconcref_ver ?#
+#calibcurve_ver ?

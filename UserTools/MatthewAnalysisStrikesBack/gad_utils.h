@@ -20,14 +20,28 @@
 #include "TMultiGraph.h"
 #include "TF1.h"
 #include "TFitResult.h"
+#include "TFitResultPtr.h"
 #include "TCanvas.h"
 
 [[maybe_unused]] static int number_of_points = 2068;
-[[maybe_unused]] static int wave_min = 260;
-[[maybe_unused]] static int wave_max = 290;
+[[maybe_unused]] static int wave_min = 265;     // region suitable for fitting
+[[maybe_unused]] static int wave_max = 290;     // (including absorption region)
+[[maybe_unused]] static int wave_middle = 275;
 
 [[maybe_unused]] static double abs_region_low = 270;
 [[maybe_unused]] static double abs_region_high = 280;
+
+[[maybe_unused]] static double sideband_region_low = 260;
+[[maybe_unused]] static double sideband_region_high = 300;
+
+[[maybe_unused]] static int abs_region_low_index = 0;
+[[maybe_unused]] static int abs_region_high_index = 0;
+[[maybe_unused]] static int abs_region_npoints = 0;
+
+[[maybe_unused]] static int sideband_region_low_index = 0;
+[[maybe_unused]] static int sideband_region_high_index = 0;
+[[maybe_unused]] static int sideband_region_npoints = 0;
+
 
 static std::string dark_name = "Dark";
 
@@ -41,8 +55,8 @@ public:
 };
 
 class SimplePureFunc : public Func {
-  TGraph pure_dark_subtracted;  
 public:
+  TGraph pure_dark_subtracted;
 
   const int PURE_SCALING = n_fit++;
   const int PURE_FIRST_ORDER_CORRECTION = n_fit++;
@@ -55,9 +69,9 @@ public:
 };
 
 class CombinedGdPureFunc : public Func {
+public:
   TGraph pure_dark_subtracted;
   TGraph spec_abs;
-public:
 
   const int PURE_SCALING = n_fit++;
   const int PURE_FIRST_ORDER_CORRECTION = n_fit++;
@@ -72,9 +86,9 @@ public:
 };
 
 class CombinedGdPureFunc_DATA : public Func {
+public:
   TGraph pure_dark_subtracted;
   TGraph rat_abs;
-public:
 
   const int PURE_SCALING = n_fit++;
   //const int PURE_FIRST_ORDER_CORRECTION = n_fit++;
@@ -96,8 +110,8 @@ public:
 
 
 class AbsFunc : public Func {
-  TGraph abs_ds;
 public:
+  TGraph abs_ds;
 
   const int ABS_SCALING = n_fit++;
   const int ABS_TRANSLATION = n_fit++;
@@ -111,19 +125,17 @@ public:
 };
 
 class FunctionalFit {
-private:
+public:
   TF1 fit_funct;
   std::string fit_name = "";
   TGraph example;
   bool fitted = false;
-  
-public:
 
   FunctionalFit(Func*, const std::string&);
   FunctionalFit() = default;
   void SetFitParameters(const std::vector<double>&);
   void SetFitParameterRanges(const std::vector<std::pair<double, double>>&);
-  void PerformFitOnData(TGraph, bool i = false);
+  TFitResultPtr PerformFitOnData(TGraph, bool i = false);
   void SetExampleGraph(const TGraph&);
   double GetParameterValue(const int&) const;
   double GetChiSquared() const ;
@@ -131,6 +143,31 @@ public:
   TGraph GetGraphOfJust(const std::vector<int>&) const;
   TGraph GetGraphExcluding(const std::vector<int>&) const;
 
+};
+
+class LEDInfo {
+  public:
+  LEDInfo();
+  ~LEDInfo();
+  LEDInfo(LEDInfo&& rhs); // move constructor
+  LEDInfo(LEDInfo& rhs) = delete;  // copy constructor
+  // Matthew i don't know what you're up to with these shared pointers
+  // so to be safe i'm gonna delete the copy constructor; feel free
+  // to implement it if needed.
+  //  std::string name = "";
+  std::string calib_fname = "";
+  std::string calib_curve_name = "";
+  int dark_offset = 0;
+  //TGraph pure_ds;
+  //TGraph high_conc_ds;
+  //std::vector<double> initial_combined_fit_param_values;
+  //std::vector<std::pair<double, double>> fit_param_ranges;#
+  
+  std::shared_ptr<CombinedGdPureFunc_DATA> combined_func;
+  std::shared_ptr<AbsFunc> abs_func;
+  FunctionalFit combined_fit;
+  FunctionalFit absorbtion_fit;
+  TF1* calibration_curve_ptr;
 };
 
 TGraph DarkSubtractFromTreePtrs(TTree*, TTree*, const int);

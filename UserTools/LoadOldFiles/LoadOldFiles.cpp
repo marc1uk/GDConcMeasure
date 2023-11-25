@@ -9,16 +9,17 @@ bool LoadOldFiles::Initialise(std::string configfile, DataModel &data){
 	//m_variables.Print();
 	
 	m_variables.Get("verbosity",verbosity);
+	
 	std::string file_list="";
 	m_variables.Get("file_list",file_list);
-	
-	// version of calibration curve to use
-	int calib_version=0;
-	m_variables.Get("calib_version",calib_version);
-	m_data->CStore.Set("calib_version",calib_version);
-	
-	int n_files = ParseFileList(file_list);
-	if(n_files==0) return false;
+	int max_files=-1;
+	m_variables.Get("max_files",max_files);
+	int n_files = ParseFileList(file_list, max_files);
+	if(n_files==0){
+		Log(m_unique_name+" No files in files list "+file_list,v_error,verbosity);
+		m_data->vars.Set("StopLoop",1);
+		return false;
+	}
 	
 	next_file_iter = files.begin();
 	
@@ -45,7 +46,7 @@ bool LoadOldFiles::Execute(){
 		
 		++next_file_iter;
 		if(next_file_iter==files.end()){
-			Log("LoadOldFiles: no more files",v_warning,verbosity);
+			Log("LoadOldFiles: last file, setting StopLoop",v_message,verbosity);
 			m_data->vars.Set("StopLoop",1);
 		}
 		
@@ -85,6 +86,12 @@ bool LoadOldFiles::Execute(){
 	// check we managed to load a file successfully
 	if(!got_file) return false;
 	
+	// arbitrary measurement number to uniquely identify a measurement
+	// we should probably retrieve this from the database when re-analysing old data
+	// so that we can match the new results to the old results.... TODO
+	++measurementnum;
+	get_ok = m_data->CStore.Get("dbmeasurementnum",measurementnum);
+	
 	// while each LED gets saved to a different file, the dark traces for all LED measurements are currently saved
 	// in one common file. It is also the case that several unused dark traces are taken between measurements
 	// to warm up the spectrometer. The result of this is that the MatthewAnalysis takes the last (most recent)
@@ -122,7 +129,7 @@ bool LoadOldFiles::Execute(){
 	m_data->CStore.Set("dbtimestamp",dbtimestampstring);
 	
 	// get the dark tree
-	Log("LoadOldFiles: geting dark tree",v_debug,verbosity);
+	Log("LoadOldFiles: getting dark tree",v_debug,verbosity);
 	darkTree = (TTree*)nextfile->Get("Dark");
 	if(darkTree==nullptr){
 		// hack because of inconsistencies in old data
@@ -192,6 +199,9 @@ bool LoadOldFiles::Execute(){
 	m_data->m_trees["dark"] = darkTreeNew;
 	m_data->m_trees[treename] = ledTree;
 	
+	std::pair<int,int> treeentrynums{0,darkentry}; // light then dark
+	get_ok = m_data->CStore.Get("dbtreeentries",treeentrynums);
+	
 	m_data->CStore.Set("ledToAnalyse",treename);
 	m_data->CStore.Set("Filename",filename);
 	
@@ -215,7 +225,7 @@ bool LoadOldFiles::Finalise(){
 	return true;
 }
 
-int LoadOldFiles::ParseFileList(std::string file_list){
+int LoadOldFiles::ParseFileList(std::string file_list, int max_files){
 	std::ifstream files_list(file_list.c_str());
 	if(!files_list.is_open()){
 		Log(std::string("LoadOldFiles Failed to load file list '")+file_list+"'",v_error,verbosity);
@@ -237,6 +247,7 @@ int LoadOldFiles::ParseFileList(std::string file_list){
 			continue;
 		}
 		files.push_back(anoldfile);
+		if(max_files>0 && files.size()==max_files) break;
 	}
 	files_list.close();
 	

@@ -278,9 +278,9 @@ bool MarcusAnalysis::GetPureRefDB(int pureref_ver){
 	// psql -U postgres -d "rundb" -c "INSERT INTO data (timestamp, name, ledname, values) VALUES ('now()', 'pure_curve', '275_A', '{\"version\":0, \"xvals\":[200.0, ..., 800.0], \"yvals\":[0.0079581671, ..., -29982.759] }' );"
 	
 	std::string query_string = "SELECT values->'yvals' FROM data WHERE name='pure_curve'"
-	                           " AND values->'yvals' IS NOT NULL AND ledname IS NOT NULL"
-	                           " AND values->'version' IS NOT NULL"
 	                           " AND ledname="+m_data->postgres.pqxx_quote(ledToAnalyse)+
+	                           " AND values->'yvals' IS NOT NULL"
+	                           " AND values->'version' IS NOT NULL"
 	                           " AND values->'version'="+ m_data->postgres.pqxx_quote(pureref_ver);
 	std::string pureref_json="";
 	get_ok = m_data->postgres.ExecuteQuery(query_string, pureref_json);
@@ -314,9 +314,9 @@ bool MarcusAnalysis::GetPureRefDB(int pureref_ver){
 	
 	// repeat for the x-values
 	query_string = "SELECT values->'xvals' FROM data WHERE name='pure_curve'"
-	               " AND values->'xvals' IS NOT NULL AND ledname IS NOT NULL"
-	               " AND values->'version' IS NOT NULL"
 	               " AND ledname="+m_data->postgres.pqxx_quote(ledToAnalyse)+
+	               " AND values->'xvals' IS NOT NULL"
+	               " AND values->'version' IS NOT NULL"
 	               " AND values->'version'="+ m_data->postgres.pqxx_quote(pureref_ver);
 	pureref_json="";
 	get_ok = m_data->postgres.ExecuteQuery(query_string, pureref_json);
@@ -553,9 +553,10 @@ bool MarcusAnalysis::GetCalCurveDB(std::string method, std::string calibID){
 	// use version number to lookup formula from database
 	std::string formula_str="";
 	std::string query_string = "SELECT values->>'formula' FROM data WHERE name='calibration_curve'"
-	                           " AND values->'formula' IS NOT NULL AND ledname IS NOT NULL"
-	                           " AND values->'method' IS NOT NULL AND values->'version' IS NOT NULL"
+	                           " AND tool='MarcusAnalysis'"
 	                           " AND ledname="+m_data->postgres.pqxx_quote(ledToAnalyse)+
+	                           " AND values->'formula' IS NOT NULL"
+	                           " AND values->'method' IS NOT NULL AND values->'version' IS NOT NULL"
 	                           " AND values->>'method'="+m_data->postgres.pqxx_quote(method)+
 	                           " AND values->'version'="+m_data->postgres.pqxx_quote(calibID);
 	get_ok = m_data->postgres.ExecuteQuery(query_string, formula_str);
@@ -571,9 +572,10 @@ bool MarcusAnalysis::GetCalCurveDB(std::string method, std::string calibID){
 	// when querying attributes from JSON fields, we need to explicitly ensure the checked
 	// attributes exist, or exclude the entry from the search, or the query will fail.
 	query_string = " SELECT values->'params' FROM data WHERE name='calibration_curve'"
-	               " AND values->'params' IS NOT NULL AND ledname IS NOT NULL"
-	               " AND values->'method' IS NOT NULL AND values->'version' IS NOT NULL"
+	               " AND tool='MarcusAnalysis'"
 	               " AND ledname="+m_data->postgres.pqxx_quote(ledToAnalyse)+
+	               " AND values->'params' IS NOT NULL"
+	               " AND values->'method' IS NOT NULL AND values->'version' IS NOT NULL"
 	               " AND values->>'method'="+m_data->postgres.pqxx_quote(method)+
 	               " AND values->'version'=" + m_data->postgres.pqxx_quote(calibID);
 	std::string params_str;

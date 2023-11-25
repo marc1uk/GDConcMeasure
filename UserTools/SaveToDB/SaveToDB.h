@@ -21,6 +21,7 @@ class SaveToDB: public Tool {
 	// one method per Tool to put that Tool's results into the DB
 	bool MatthewAnalysis();
 	bool MarcusAnalysis();
+	bool NewMatthewAnalysis();
 	bool BenPower();
 	bool Valve();
 	bool BenLED();
@@ -32,8 +33,7 @@ class SaveToDB: public Tool {
 	bool MatthewTransparency();
 	
 	// helper functions for converting data into json arrays / objects to store in DB
-	std::string BuildJson(TGraphErrors* gr, std::pair<double, double> range, bool inside_data);
-	std::string BuildJson(TGraphErrors* gr);
+	std::string BuildJson(TGraph* gr, std::pair<double, double> range, bool inside_data);
 	std::string BuildJson(TGraph* gr);
 	std::string BuildJson(double* arr, double* err, int n);
 	std::string BuildJson(double* arr, int n);

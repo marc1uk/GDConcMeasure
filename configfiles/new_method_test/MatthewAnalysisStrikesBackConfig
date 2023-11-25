@@ -1,0 +1,5 @@
+#pure_fname /home/pi/GDConcMeasure/data/2023/04/00184_17Apr_EGADS_Calibration_00000.root
+pure_fname /home/pi/matthew_dev/00184_17Apr_EGADS_Calibration_00000.root
+pure_offset 9
+highconc_fname /home/pi/matthew_dev/00184_17Apr_EGADS_Calibration_00050.root
+highconc_offset 9

@@ -24,7 +24,7 @@ class LoadOldFiles: public Tool {
   bool Finalise();
 
  private:
-  int ParseFileList(std::string file_list);
+  int ParseFileList(std::string file_list, int max_files=-1);
   
   std::vector<oldfile> files;
   std::vector<oldfile>::iterator next_file_iter;
@@ -33,6 +33,7 @@ class LoadOldFiles: public Tool {
   TTree* ledTree=nullptr;
   TFile* nextfile=nullptr;
   TFile* tmpfile=nullptr;
+  int measurementnum=0;
   
   int get_ok = 0;
   int verbosity=1;

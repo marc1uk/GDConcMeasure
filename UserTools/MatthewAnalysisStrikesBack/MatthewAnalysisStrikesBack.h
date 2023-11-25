@@ -12,23 +12,6 @@
 #include "Tool.h"
 #include "gad_utils.h"
 
-struct LEDInfo {
-  //  std::string name = "";
-  std::string calib_fname = "";
-  std::string calib_curve_name = "";
-  int dark_offset = 0;
-  //TGraph pure_ds;
-  //TGraph high_conc_ds;
-  //std::vector<double> initial_combined_fit_param_values;
-  //std::vector<std::pair<double, double>> fit_param_ranges;#
-
-  std::shared_ptr<CombinedGdPureFunc_DATA> combined_func;
-  std::shared_ptr<AbsFunc> abs_func;
-  FunctionalFit combined_fit;
-  FunctionalFit absorbtion_fit;
-  TF1* calibration_curve_ptr;  
-};
-
 class MatthewAnalysisStrikesBack: public Tool {
 
  public:
@@ -45,14 +28,47 @@ class MatthewAnalysisStrikesBack: public Tool {
   TTree* led_tree_ptr = nullptr;
   TTree* dark_tree_ptr = nullptr;
   
+  
+  TGraph dark_subtracted_data_in;
+  TGraph dark_subtracted_data_out;
+  TGraph purefitgraph;
+  TGraph absfitgraph;
+  // yeah this is a bit messy
+  TFitResult datafitres;
+  TFitResult absfitres;
+  TFitResultPtr datafitresp;
+  TFitResultPtr absfitresp;
+  
+  // although it isn't *required*, I do still think it's helpful
+  // to name your function parameters in the declaration....
   TGraph GetPure(const std::string& name);
   TGraph GetPureFromDB(const int&, const std::string&) const;
   TGraph GetHighConc(const std::string& name);
   TGraph GetHighConcFromDB(const int&, const std::string&) const;
   TF1* GetCalibrationCurve(const std::string&);
+  TF1* GetCalibCurveFromDB(const int& calibID, const std::string& ledToAnalyse);
   void GetCurrentLED();
   void GetDarkAndLEDTrees();
   bool ReadyToAnalyse() const;
+  bool UpdateDataModel(double metric, double conc);
+  bool ReinitDataModel();
+  void GetWavelengthIndices(const TGraph& g);
+  void GetAbsRegion(const TGraph& datagraph, TGraph& absgraph);
+  void GetSidebandRegion(const TGraph& datagraph, TGraph& absgraph);
+  void GetRawMinMax(double& raw_min, double& raw_max);
+  void GetDarkTraceParams(double& mean, double& sigma);
+  
+  // debugging
+  TFile* fdebug = nullptr;
+  int SaveDebug(const TObject* obj, const std::string& name);
+  int SaveDebug(const TObject& obj, const std::string& name);
+  
+  int get_ok;
+  int m_verbose=1;
+  int v_error=0;
+  int v_warning=1;
+  int v_message=2;
+  int v_debug=3;
 };
 
 
