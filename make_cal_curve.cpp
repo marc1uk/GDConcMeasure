@@ -53,8 +53,8 @@ int main(int argc, char* argv[]){
 	}
 	
 	// this script just generates the psql command, it doesn't run it.
-	std::cout<<"This script generates the appropriate psql commands, but does not run them.\n"
-	         <<"Please verify the following commands, and if acceptable, run them.\n"<<std::endl;
+	std::cerr<<"# This script generates the appropriate psql commands, but does not run them.\n"
+	         <<"# Please verify the following commands, and if acceptable, run them.\n"<<std::endl;
 	
 	std::string psqlstring = "psql -c \"INSERT INTO data (timestamp, name, tool, ledname, values ) "
 	                           "VALUES ( '"+caldate+"', 'calibration_curve', 'MarcusAnalysis', '"+ledname+"', "

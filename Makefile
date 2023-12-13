@@ -104,8 +104,11 @@ update:
 	cd $(ToolDAQPath)/zeromq-4.0.7; git pull
 	git pull
 
-make_pureref_DB_entry: make_pure_ref.cpp
-	g++ -std=c++11 $^ `root-config --cflags --libs` -o $@
+make_pureref_DB_entry: make_pure_ref.cpp plotter.h plotter.cpp
+	g++ -g -std=c++11 $< plotter.cpp -I./ `root-config --cflags --libs` -o $@
 
 make_calcurve_DB_entry: make_cal_curve.cpp
-	g++ -std=c++11 $^ `root-config --cflags --libs` -o $@
+	g++ -g -std=c++11 $^ `root-config --cflags --libs` -o $@
+	
+make_calcurve_DB_entry2: make_cal_curve2.cpp
+	g++ -g -std=c++11 $^ `root-config --cflags --libs` -o $@
