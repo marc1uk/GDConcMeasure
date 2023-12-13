@@ -150,7 +150,8 @@ class LEDInfo {
   LEDInfo();
   ~LEDInfo();
   LEDInfo(LEDInfo&& rhs); // move constructor
-  LEDInfo(LEDInfo& rhs) = delete;  // copy constructor
+  LEDInfo(const LEDInfo& rhs) = delete;  // copy constructor
+  LEDInfo& operator=(const LEDInfo&) = delete; // copy assignment
   // Matthew i don't know what you're up to with these shared pointers
   // so to be safe i'm gonna delete the copy constructor; feel free
   // to implement it if needed.
@@ -179,6 +180,7 @@ TGraph BinaryOperation(const TGraph&, const TGraph&, const std::string&, const L
 
 TGraph CalculateGdAbs(const TGraph&, const TGraph&);
 TGraph PWRatio(const TGraph&, const TGraph&);
+TGraph PWLogRatio(const TGraph&, const TGraph&);
 TGraph PWPercentageDiff(const TGraph&, const TGraph&);
 TGraph PWDifference(const TGraph&, const TGraph&);
 TGraph PWMultiply(const TGraph&, const TGraph&);

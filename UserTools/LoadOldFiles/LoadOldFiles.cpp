@@ -35,7 +35,7 @@ bool LoadOldFiles::Execute(){
 	bool got_file=false;
 	std::string filename;
 	std::string treename;
-	while(true){
+	while(next_file_iter!=files.end()){
 		filename = next_file_iter->filename;
 		treename = next_file_iter->treename;
 		int runnum = next_file_iter->runnum;

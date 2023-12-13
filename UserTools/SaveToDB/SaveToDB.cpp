@@ -133,53 +133,68 @@ bool SaveToDB::Execute(){
 	
 	// the following tools ONLY populate the webpage table with transient information
 	// about the current sate of the measurement.
+	// TODO FIXME
+	// these tools may not be in the toolchain! in initialise scan the list of tools
+	// and only call the function if the tool is active
 	try{
+		Log(m_unique_name+" checking MarcusScheduler for DB results",v_debug,verbosity);
 		get_ok = MarcusScheduler();
 	} catch(...){ std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking BenPower for DB results",v_debug,verbosity);
 		get_ok = BenPower();
 	} catch(...){ std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking Valve for DB results",v_debug,verbosity);
 		get_ok = Valve();
 	} catch(...){ std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking BenLED for DB results",v_debug,verbosity);
 		get_ok = BenLED();
 	} catch(...){ std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking BenSpectrometer for DB results",v_debug,verbosity);
 		get_ok = BenSpectrometer();
 	} catch(...){ std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking TraceAverage for DB results",v_debug,verbosity);
 		get_ok = TraceAverage();
 	} catch(...){ std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking MatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = MatthewAnalysis();
 	} catch(...){ std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking SaveTraces for DB results",v_debug,verbosity);
 		get_ok = SaveTraces();
 	} catch(...){ std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking RoutineCalibration for DB results",v_debug,verbosity);
 		get_ok = RoutineCalibration();  // placeholder, Tool TODO
 	} catch(...){ std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
 	
 	// the following tools store information persistently into the database 'data' table
 	try{
+		Log(m_unique_name+" checking MarcusAnalysis for DB results",v_debug,verbosity);
 		get_ok = MarcusAnalysis();
 	} catch(...){ std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking MatthewTransparency for DB results",v_debug,verbosity);
 		get_ok = MatthewTransparency();
 	} catch(...){ std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
 	try{
+		Log(m_unique_name+" checking NewMatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = NewMatthewAnalysis();
 	} catch(...){ std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
@@ -323,10 +338,10 @@ bool SaveToDB::MatthewAnalysis(){
 		// points inside the absorption region and those outside it.
 		std::pair<double,double> fit_range;
 		get_ok = m_data->CStore.Get("gd_fit_range", fit_range);
-		if(not get_ok){
+		if(not get_ok || dark_subtracted_gd_p==0){
 			Log("SaveToDB::MatthewAnalysis did not find gd fit range in CStore!",v_error,verbosity);
 		}
-		if(get_ok && dark_subtracted_gd_p!=0){
+		if(get_ok){
 			Log("SaveToDB::MatthewAnalysis saving dark-subtracted trace",v_debug,verbosity);
 			TGraphErrors* dark_subtracted_gd = reinterpret_cast<TGraphErrors*>(dark_subtracted_gd_p);
 			
@@ -432,7 +447,7 @@ bool SaveToDB::MatthewAnalysis(){
 		Log("SaveToDB::MatthewAnalysis saving scaled pure reference trace",v_debug,verbosity);
 		intptr_t pure_scaled_p;
 		get_ok = m_data->CStore.Get("pure_scaled",pure_scaled_p);
-		if(!get_ok){
+		if(!get_ok || pure_scaled_p==0){
 			Log("SaveToDB::MatthewAnalysis failed to get scaled pure function from CStore!",
 			    v_error,verbosity);
 		} else {
@@ -496,7 +511,7 @@ bool SaveToDB::MatthewAnalysis(){
 		Log("SaveToDB::MatthewAnalysis pure fit result",v_debug,verbosity);
 		intptr_t fitresptr_p;
 		get_ok = m_data->CStore.Get("data_fitresptr",fitresptr_p);
-		if(not get_ok){
+		if(!get_ok || fitresptr_p==0){
 			Log("SaveToDB::MatthewAnalysis failed to get pure water fit result from CStore!",
 			    v_error,verbosity);
 		} else {
@@ -524,7 +539,7 @@ bool SaveToDB::MatthewAnalysis(){
 		Log("SaveToDB::MatthewAnalysis saving absorbance trace",v_debug,verbosity);
 		intptr_t absorbance_p;
 		get_ok = m_data->CStore.Get("absorbance",absorbance_p);
-		if(not get_ok){
+		if(!get_ok || absorbance_p==0){
 			Log("SaveToDB::MatthewAnalysis failed to get absorbance data from CStore!",v_error,verbosity);
 		} else {
 			TGraphErrors* absorbance = reinterpret_cast<TGraphErrors*>(absorbance_p);
@@ -565,7 +580,7 @@ bool SaveToDB::MatthewAnalysis(){
 		get_ok &= m_data->CStore.Get("RightPeakFitFunc",right_peak_p);
 		get_ok &= m_data->CStore.Get("LeftPeakFitResult",lpf_p);
 		get_ok &= m_data->CStore.Get("RightPeakFitResult",rpf_p);
-		if(not get_ok){
+		if(!get_ok || left_peak_p==0 || right_peak_p==0 || lpf_p==0 || rpf_p==0){
 			Log("SaveToDB::MatthewAnalysis failed to get absorption peak fits from CStore!",
 			    v_error,verbosity);
 		} else {
@@ -967,7 +982,7 @@ bool SaveToDB::MarcusAnalysis(){
 		get_ok = m_data->CStore.Get("dark_subtracted_data_in",dark_subtracted_data_in_p);
 		intptr_t dark_subtracted_data_out_p=0;
 		get_ok &= m_data->CStore.Get("dark_subtracted_data_out",dark_subtracted_data_out_p);
-		if(not get_ok){
+		if(!get_ok || dark_subtracted_data_in_p==0 || dark_subtracted_data_out_p==0){
 			Log("SaveToDB::MarcusAnalysis did not find dark subtracted data in CStore!",v_error,verbosity);
 		} else {
 			Log("SaveToDB::MarcusAnalysis saving dark-subtracted trace",v_debug,verbosity);
@@ -1057,37 +1072,41 @@ bool SaveToDB::MarcusAnalysis(){
 		std::string datakey = "purerefData_"+ledname;
 		intptr_t dark_sub_purep;
 		get_ok = m_data->CStore.Get(datakey, dark_sub_purep);
-		TGraph* dark_subtracted_pure = reinterpret_cast<TGraph*>(dark_sub_purep);
-		// convert to json
-		std::string dark_sub_pure = BuildJson(dark_subtracted_pure);
-		// delete any existing entry so we don't keep accumulating them
-		query_string = "DELETE FROM webpage WHERE name = 'dark_subtracted_pure' AND data = '"+ledname+"'";
-		get_ok = m_data->postgres.ExecuteQuery(query_string);
-		if(not get_ok){
-			Log("SaveToDB::MarcusAnalysis failed to delete existing dark_subtracted_pure record "
-			    "from webpage table",v_error,verbosity);
+		if(!get_ok || dark_sub_purep==0){
+			Log("SaveToDB::MarcusAnalysis failed to get 'purerefData_"+ledname+"' from CStore!",
+			    v_error,verbosity);
+		} else {
+			TGraph* dark_subtracted_pure = reinterpret_cast<TGraph*>(dark_sub_purep);
+			// convert to json
+			std::string dark_sub_pure = BuildJson(dark_subtracted_pure);
+			// delete any existing entry so we don't keep accumulating them
+			query_string = "DELETE FROM webpage WHERE name = 'dark_subtracted_pure' AND data = '"+ledname+"'";
+			get_ok = m_data->postgres.ExecuteQuery(query_string);
+			if(not get_ok){
+				Log("SaveToDB::MarcusAnalysis failed to delete existing dark_subtracted_pure record "
+					"from webpage table",v_error,verbosity);
+			}
+			// insert a new record
+			field_names = std::vector<std::string>{"timestamp","name","values","data"};
+			error_ret="";
+			get_ok = m_data->postgres.Insert("webpage",
+			                                 field_names,
+			                                 &error_ret,
+			                                 dbtimestamp,
+			                                 "dark_subtracted_pure",
+			                                 dark_sub_pure,
+			                                 ledname);
+			if(!get_ok){
+				Log("SaveToDB::MarcusAnalysis failed to insert new 'dark_subtracted_pure' "
+				    "record into webpage table with error "+error_ret,v_error,verbosity);
+			}
 		}
-		// insert a new record
-		field_names = std::vector<std::string>{"timestamp","name","values","data"};
-		error_ret="";
-		get_ok = m_data->postgres.Insert("webpage",
-		                                 field_names,
-		                                 &error_ret,
-		                                 dbtimestamp,
-		                                 "dark_subtracted_pure",
-		                                 dark_sub_pure,
-		                                 ledname);
-		if(!get_ok){
-			Log("SaveToDB::MarcusAnalysis failed to insert new 'dark_subtracted_pure' "
-			    "record into webpage table with error "+error_ret,v_error,verbosity);
-		}
-		
 		
 		// store reference pure trace after scaling to fit the Gd data in the lobes of the LED peak
 		Log("SaveToDB::MarcusAnalysis saving scaled pure reference trace",v_debug,verbosity);
 		intptr_t pure_scaled_p;
 		get_ok = m_data->CStore.Get("purefit",pure_scaled_p);
-		if(!get_ok){
+		if(!get_ok || pure_scaled_p==0){
 			Log("SaveToDB::MarcusAnalysis failed to get scaled pure function from CStore!",
 			    v_error,verbosity);
 		} else {
@@ -1121,7 +1140,7 @@ bool SaveToDB::MarcusAnalysis(){
 		// get the pure fit TFitResultPtr, for parameters and errors
 		intptr_t purefitresptrp;
 		get_ok = m_data->CStore.Get("purefitresptr",purefitresptrp);
-		if(!get_ok){
+		if(!get_ok || purefitresptrp==0){
 			Log("SaveToDB::MarcusAnalysis failed to get pure fit result pointer from CStore",
 			    v_error,verbosity);
 			all_ok = false;
@@ -1182,7 +1201,7 @@ bool SaveToDB::MarcusAnalysis(){
 		Log("SaveToDB::MarcusAnalysis saving absorbance trace",v_debug,verbosity);
 		intptr_t absorbance_p;
 		get_ok = m_data->CStore.Get("absorbance",absorbance_p);
-		if(not get_ok){
+		if(!get_ok || absorbance_p==0){
 			Log("SaveToDB::MarcusAnalysis failed to get absorbance data from CStore!",v_error,verbosity);
 		} else {
 			TGraphErrors* absorbance = reinterpret_cast<TGraphErrors*>(absorbance_p);
@@ -1219,7 +1238,7 @@ bool SaveToDB::MarcusAnalysis(){
 		intptr_t resultsp;
 		Log("SaveToDB::MarcusAnalysis getting absorbance fit",v_debug,verbosity);
 		get_ok = m_data->CStore.Get("results",resultsp);
-		if(!get_ok){
+		if(!get_ok || resultsp==0){
 			Log("SaveToDB::MarcusAnalysis found no results in CStore",v_error,verbosity);
 			all_ok = false;
 		} else {
@@ -1272,7 +1291,7 @@ bool SaveToDB::MarcusAnalysis(){
 				}
 				
 				// store results of individual absorption fits (may have more than one contributing fit)
-				if(!got_fit_results){
+				if(!got_fit_results || fitinfop==0){
 					Log("SaveToDB::MarcusAnalysis failed to get fit results for method "+methodname
 					    +", led "+ledname,v_error,verbosity);
 					all_ok = false;
@@ -1648,7 +1667,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		get_ok = m_data->CStore.Get("dark_subtracted_data_in",dark_subtracted_data_in_p);
 		intptr_t dark_subtracted_data_out_p=0;
 		get_ok &= m_data->CStore.Get("dark_subtracted_data_out",dark_subtracted_data_out_p);
-		if(not get_ok){
+		if(not get_ok || dark_subtracted_data_in_p==0 || dark_subtracted_data_out_p==0){
 			Log("SaveToDB::NewMatthewAnalysis did not find dark subtracted data in CStore!",v_error,verbosity);
 		} else {
 			Log("SaveToDB::NewMatthewAnalysis saving dark-subtracted trace",v_debug,verbosity);
@@ -1769,7 +1788,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		Log("SaveToDB::NewMatthewAnalysis saving scaled pure reference trace",v_debug,verbosity);
 		intptr_t pure_scaled_p;
 		get_ok = m_data->CStore.Get("purefit",pure_scaled_p);
-		if(!get_ok){
+		if(!get_ok || pure_scaled_p==0){
 			Log("SaveToDB::NewMatthewAnalysis failed to get extracted pure from CStore!",
 			    v_error,verbosity);
 		} else {
@@ -1803,7 +1822,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		// get the corresponding data fit TFitResultPtr, for parameters and errors
 		intptr_t datafitresptrp;
 		get_ok = m_data->CStore.Get("datafitresptr",datafitresptrp);
-		if(!get_ok){
+		if(!get_ok || datafitresptrp==0){
 			Log("SaveToDB::NewMatthewAnalysis failed to get data fit result pointer from CStore",
 			    v_error,verbosity);
 			all_ok = false;
@@ -1864,7 +1883,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		Log("SaveToDB::NewMatthewAnalysis saving absorbance trace",v_debug,verbosity);
 		intptr_t absorbance_p;
 		get_ok = m_data->CStore.Get("absorbance",absorbance_p);
-		if(not get_ok){
+		if(not get_ok || absorbance_p==0){
 			Log("SaveToDB::NewMatthewAnalysis failed to get absorbance data from CStore!",v_error,verbosity);
 		} else {
 			TGraph* absorbance = reinterpret_cast<TGraph*>(absorbance_p);
@@ -1900,7 +1919,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		Log("SaveToDB::NewMatthewAnalysis saving extracted absorbance trace",v_debug,verbosity);
 		intptr_t absfit_p;
 		get_ok = m_data->CStore.Get("absfit",absfit_p);
-		if(!get_ok){
+		if(!get_ok || absfit_p==0){
 			Log("SaveToDB::NewMatthewAnalysis failed to get absorbance fit from CStore!",
 			    v_error,verbosity);
 		} else {
@@ -1934,7 +1953,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		// get the corresponding aborption fit TFitResultPtr, for parameters and errors
 		intptr_t absfitresptrp;
 		get_ok = m_data->CStore.Get("absfitresptr",absfitresptrp);
-		if(!get_ok){
+		if(!get_ok || absfitresptrp==0){
 			Log("SaveToDB::NewMatthewAnalysis failed to get abs fit result pointer from CStore",
 			    v_error,verbosity);
 			all_ok = false;
@@ -2629,10 +2648,14 @@ bool SaveToDB::MarcusScheduler(){
 	int current_command;
 	int command_step;
 	std::vector<int> loop_counts;
-	m_data->CStore.Get("MarcusSchedulerCommands",commands);
-	m_data->CStore.Get("MarcusSchedulerCurrentCommand",current_command);
-	m_data->CStore.Get("MarcusSchedulerCommandStep",command_step);
-	m_data->CStore.Get("MarcusSchedulerLoopCounts",loop_counts);
+	all_ok &= m_data->CStore.Get("MarcusSchedulerCommands",commands);
+	all_ok &= m_data->CStore.Get("MarcusSchedulerCurrentCommand",current_command);
+	all_ok &= m_data->CStore.Get("MarcusSchedulerCommandStep",command_step);
+	all_ok &= m_data->CStore.Get("MarcusSchedulerLoopCounts",loop_counts);
+	if(all_ok){
+		Log(m_unique_name+"MarcusScheduler failed to get scheduler commands!",v_error,verbosity);
+		return all_ok;
+	}
 	
 	// TODO scan commands and add loop counters
 	
@@ -2704,6 +2727,10 @@ bool SaveToDB::RoutineCalibration(){
 // helper functions for converting data to JSON
 
 std::string SaveToDB::BuildJson(TGraph* gr, std::pair<double, double> range, bool inside_data){
+	if(gr==nullptr){
+		Log(m_unique_name+"::BuildJson called with null graph pointer!",v_error,verbosity);
+		return "";
+	}
 	// convert TGraphErrors to json object, but selecting data only inside or outside a given range
 	int npoints = gr->GetN();
 	double* xvals = gr->GetX();
@@ -2743,6 +2770,10 @@ std::string SaveToDB::BuildJson(TGraph* gr, std::pair<double, double> range, boo
 }
 
 std::string SaveToDB::BuildJson(TGraph* gr){
+	if(gr==nullptr){
+		Log(m_unique_name+"::BuildJson called with null graph pointer!",v_error,verbosity);
+		return "";
+	}
 	int npoints = gr->GetN();
 	double* xvals = gr->GetX();
 	double* yvals = gr->GetY();
@@ -2753,8 +2784,8 @@ std::string SaveToDB::BuildJson(TGraph* gr){
 		xerrs = gr->GetEX();
 		yerrs = gr->GetEY();
 	}
-	if(xerrs==nullptr) std::cerr<<"no x errors on graph "<<gr->GetName()<<std::endl;
-	if(yerrs==nullptr) std::cerr<<"no y errors on graph "<<gr->GetName()<<std::endl;
+	//if(xerrs==nullptr) std::cerr<<"no x errors on graph "<<gr->GetName()<<std::endl;
+	//if(yerrs==nullptr) std::cerr<<"no y errors on graph "<<gr->GetName()<<std::endl;
 	std::string jsonstring = "{\"xvals\":" + BuildJson(xvals, npoints)
 	                       + ",\"yvals\":" + BuildJson(yvals, npoints);
 	if(xerrs)  jsonstring += ",\"xerrs\":" + BuildJson(xerrs, npoints);
@@ -2770,7 +2801,10 @@ std::string SaveToDB::BuildJson(double* arr, double* err, int n){
 }
 
 std::string SaveToDB::BuildJson(double* arr, int n){
-	if(arr==nullptr) return "[]";
+	if(arr==nullptr){
+		Log(m_unique_name+"::BuildJson called with null double*!",v_error,verbosity);
+		return "[]";
+	}
 	std::string jsonstring = "[";
 	for(int i=0; i<n; ++i){
 		if(i>0) jsonstring+=",";
@@ -2781,6 +2815,10 @@ std::string SaveToDB::BuildJson(double* arr, int n){
 }
 
 std::string SaveToDB::BuildJson(int* arr, int n){
+	if(arr==nullptr){
+		Log(m_unique_name+"::BuildJson called with null int*!",v_error,verbosity);
+		return "[]";
+	}
 	std::string jsonstring = "[";
 	for(int i=0; i<n; ++i){
 		if(i>0) jsonstring+=",";

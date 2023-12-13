@@ -32,6 +32,7 @@ class MatthewAnalysisStrikesBack: public Tool {
   TGraph dark_subtracted_data_in;
   TGraph dark_subtracted_data_out;
   TGraph purefitgraph;
+  TGraph current_ratio_absorbtion;
   TGraph absfitgraph;
   // yeah this is a bit messy
   TFitResult datafitres;
@@ -62,6 +63,7 @@ class MatthewAnalysisStrikesBack: public Tool {
   TFile* fdebug = nullptr;
   int SaveDebug(const TObject* obj, const std::string& name);
   int SaveDebug(const TObject& obj, const std::string& name);
+  std::string GetCurrentTimestamp();
   
   int get_ok;
   int m_verbose=1;

@@ -19,8 +19,8 @@ SimplePureFunc::SimplePureFunc(const TGraph& pds)
 }
 
 double SimplePureFunc::Evaluate(double* x, double* p){
-  return (p[PURE_SCALING] + p[PURE_FIRST_ORDER_CORRECTION] * (x[0]-wave_middle) ) * (pure_dark_subtracted.Eval(x[0] - p[PURE_TRANSLATION])) +
-          p[LINEAR_BACKGROUND_GRADIENT] * (x[0]-wave_middle)
+  return (p[PURE_SCALING] + p[PURE_FIRST_ORDER_CORRECTION] * (x[0]-276) ) * (pure_dark_subtracted.Eval(x[0] - p[PURE_TRANSLATION])) +
+          p[LINEAR_BACKGROUND_GRADIENT] * (x[0]-276)
           + p[LINEAR_BACKGROUND_OFFSET];
 }
 
@@ -32,9 +32,9 @@ CombinedGdPureFunc::CombinedGdPureFunc(const TGraph& pds, const TGraph& a)
 }
 
 double CombinedGdPureFunc::Evaluate(double* x, double* p){
-  return (p[PURE_SCALING] + p[PURE_FIRST_ORDER_CORRECTION] * (x[0]-wave_middle)) * pure_dark_subtracted.Eval(x[0] - p[PURE_TRANSLATION]) +
+  return (p[PURE_SCALING] + p[PURE_FIRST_ORDER_CORRECTION] * (x[0]-276)) * pure_dark_subtracted.Eval(x[0] - p[PURE_TRANSLATION]) +
     p[ABS_SCALING] * spec_abs.Eval(x[0] - p[ABS_TRANSLATION]) +
-    p[FIRST_ORDER_BACKGROUND] * (x[0]-wave_middle) +
+    p[FIRST_ORDER_BACKGROUND] * (x[0]-276) +
     p[ZEROTH_ORDER_BACKGROUND];
 }
 
@@ -45,11 +45,21 @@ CombinedGdPureFunc_DATA::CombinedGdPureFunc_DATA(const TGraph& pds, const TGraph
 }
  
 double CombinedGdPureFunc_DATA::Evaluate(double* x, double* p){
-  return (p[PURE_SCALING])  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
-    * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - wave_middle) + wave_middle - p[PURE_TRANSLATION]) * (std::max(0.0, (1-p[ABS_SCALING]*rat_abs.Eval(x[0]))) +
-                                p[SECOND_ORDER_BACKGROUND] *  (x[0]-wave_middle) * (x[0]-wave_middle) +
-                                p[FIRST_ORDER_BACKGROUND] * (x[0]-wave_middle) +
-                                p[ZEROTH_ORDER_BACKGROUND]);
+  return p[PURE_SCALING]  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
+    * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - 276) + 276 - p[PURE_TRANSLATION])
+    * (std::max(0.0, (1-p[ABS_SCALING]*rat_abs.Eval(x[0]))) +
+       p[SECOND_ORDER_BACKGROUND] *  (x[0]-276) * (x[0]-276) +
+       p[FIRST_ORDER_BACKGROUND] * (x[0]-276) +
+       p[ZEROTH_ORDER_BACKGROUND]);
+//  return p[PURE_SCALING]  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
+//    * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - 276) + 276 - p[PURE_TRANSLATION])
+//    * ( 1 + p[SECOND_ORDER_BACKGROUND] *  (x[0]-276) * (x[0]-276)
+//          + p[FIRST_ORDER_BACKGROUND] * (x[0]-276)
+//          + p[ZEROTH_ORDER_BACKGROUND] )
+//    * std::max(0.0, (1-p[ABS_SCALING]*rat_abs.Eval(x[0])));
+      
+      
+
 }
   
 // pure + abs that spec sees (0 outside of abs region) + pol1 - wiggled (non-trivial / impossible)
@@ -66,9 +76,9 @@ AbsFunc::AbsFunc(const TGraph& a)
 
 double AbsFunc::Evaluate(double* x, double* p){
   return p[ABS_SCALING] * abs_ds.Eval(x[0] - p[ABS_TRANSLATION]) +
-         p[THIRD_BACKGROUND]  * x[0] * x[0] * x[0] + 
-         p[SECOND_BACKGROUND] * x[0] * x[0] + 
-         p[FIRST_BACKGROUND]  * x[0] +
+         p[THIRD_BACKGROUND]  * (x[0]-276) * (x[0]-276) * (x[0]-276) + 
+         p[SECOND_BACKGROUND] * (x[0]-276) * (x[0]-276) + 
+         p[FIRST_BACKGROUND]  * (x[0]-276) +
          p[ZEROTH_BACKGROUND];
 }
 
@@ -110,12 +120,19 @@ void FunctionalFit::SetFitParameterRanges(const std::vector<std::pair<double, do
 TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
   fit_funct.SetNpx(10000);
   TFitResultPtr res;
-  /*
+  
   if (interactive){
-    static TApplication app = TApplication("app", 0, 0);
-    TCanvas c1 = TCanvas("fiddle_canv", "fiddle", 1280, 1024);
-    data.Draw("A*L");
-    TFitResultPtr res = data.Fit(&fit_funct, "RSQ"); // keep this one
+    int argc=0;
+    char* argv=nullptr;
+    static TApplication app("app", &argc, &argv);
+    TCanvas c1("fiddle_canv", "fiddle", 1280, 1024);
+    fit_funct.Draw();
+    data.Draw("*L same");
+    c1.Modified();
+    c1.Update();
+    gSystem->ProcessEvents();
+    gPad->WaitPrimitive();
+    res = data.Fit(&fit_funct, "NRS"); // keep this one
     while(gROOT->FindObject("fiddle_canv") != 0){
       c1.Modified();
       c1.Update();
@@ -124,19 +141,16 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
     }
   }
   else {
-  */
-    TDirectory* cwd = gDirectory;
-    TFile* fsav=new TFile("fsav.root","RECREATE");
-    data.Write("absgraph_beingfit");
-    fit_funct.Write("fitfunc_beforefit");
-    res = data.Fit(&fit_funct, "NRS"); // keep this one
-    fit_funct.Write("fitfunc_afterfit");
-    fsav->Close();
-    delete fsav;
-    cwd->cd();
-  /*
+//    TDirectory* cwd = gDirectory;
+//    TFile* fsav=new TFile("fsav.root","RECREATE");
+//    data.Write("absgraph_beingfit");
+//    fit_funct.Write("fitfunc_beforefit");
+    res = data.Fit(&fit_funct, "NRSQ"); // keep this one
+//    fit_funct.Write("fitfunc_afterfit");
+//    fsav->Close();
+//    delete fsav;
+//    cwd->cd();
   }
-  */
   
 //  if (res->IsEmpty() || !res->IsValid() || res->Status() != 0){
 //    throw std::runtime_error("FunctionalFit::PerformFitOnData: FIT NOT SUCCESSFUL!!!\n");
@@ -340,6 +354,17 @@ TGraph PWRatio(const TGraph& n, const TGraph& d){
                            _d.GetPoint(_i, x, y);
                            double dy = y;
                            return ny / dy;});
+}
+
+TGraph PWLogRatio(const TGraph& n, const TGraph& d){
+  return BinaryOperation(n, d, "Point-Wise Ratio",
+                         [](const TGraph& _n, const TGraph& _d, int _i){
+                           double x = 0, y = 0;
+                           _n.GetPoint(_i, x, y);
+                           double ny = y;
+                           _d.GetPoint(_i, x, y);
+                           double dy = y;
+                           return log10(ny / dy);});
 }
 
 TGraph PWMultiply(const TGraph& n, const TGraph& d){
