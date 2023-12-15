@@ -63,7 +63,7 @@ private:
   unsigned int resolution;
   double fVin, fDelay, frequencyPWM;
   unsigned long lastTime;
-  bool pushpullmode; // true = push/pull, false=open drain
+  int pushpullmode; // true = push/pull, false=open drain
   
   //counting and flags
   int file_descript;

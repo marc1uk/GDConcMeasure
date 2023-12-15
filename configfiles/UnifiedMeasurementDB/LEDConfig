@@ -1,5 +1,4 @@
-verbosity 5
+verbosity 1
 
 #map_wiring /home/pi/GDConcMeasure/adjust_led_voltages.txt
 map_wiring /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring
-PushPull        0       # open drain mode for new LED nodule

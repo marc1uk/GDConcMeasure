@@ -15,5 +15,4 @@ resolution	12	# bit, of the internal counter
 voltage_supply	5.0	# V, external supply
 delay		50	# %, delay for turning on LED in duty cycle percentage
 
-map_wiring	configfiles/UnifiedMeasurementDB/wiring
-PushPull 0
+map_wiring	configfiles/UnifiedMeasurement/wiring

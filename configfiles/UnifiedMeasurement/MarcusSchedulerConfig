@@ -4,8 +4,8 @@ verbosity 2
 #command_file configfiles/UnifiedMeasurement/measurement_commands_stability
 #command_file configfiles/UnifiedMeasurement/measurement_commands_test
 #command_file testmeascmds
-#command_file configfiles/UnifiedMeasurement/liveplottest 
-command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads
+command_file configfiles/UnifiedMeasurement/liveplottest 
+#command_file configfiles/UnifiedMeasurement/measurement_commands_egads
 outfilebase Nov_2023_EGADS_Purep3
 overwrite_saves 0
 datadir /mnt/data/

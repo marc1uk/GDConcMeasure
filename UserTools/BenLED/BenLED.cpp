@@ -32,6 +32,11 @@ bool BenLED::Initialise(std::string configfile, DataModel &data){
     
   }
   
+  // for safety, we only let PushPull be specified in the local override
+  // because it is different depending on which GAD module you have
+  // and an incorrect value could potentially damage the module
+  m_variables.Set("PushPull",99);
+  
   /* - old method, read config from local file - */
   if(configfile!="")  m_variables.Initialise(configfile);
   
@@ -51,8 +56,17 @@ bool BenLED::Initialise(std::string configfile, DataModel &data){
   // (i.e. let local file override database)
   MapLED(m_variables.Has("map_wiring"));
   
-  pushpullmode = true; // true = push/pull, false = open drain
+  pushpullmode = 99; // true = push/pull, false = open drain
   m_variables.Get("PushPull", pushpullmode);
+  if(pushpullmode==99){
+    std::string msg = m_unique_name+" Please specify PushPull in local config override.\n"
+                      "Use value 0 for the new GAD module, use 1 for the old GAD module";
+    Log(msg, v_error,verbosity);
+    m_data->vars.Set("StopLoop",1);
+    exit(1);  // don't execute at all until this is fixed
+    return 0;
+  }
+  
   
   //lastTime = newTime;
   power="OFF";
