@@ -72,8 +72,16 @@ bool BenPower::Execute(){
   
   if(m_data->CStore.Get("Power",Power) && Power!=power){
     
+    Log("BenPower setting power to "+Power,v_debug,verbosity);
+    m_data->CStore.Set("Power",power);
+    
     if(Power=="ON") ok = TurnOn();
     else if (Power=="OFF") ok = TurnOff();
+    
+    if(ok){
+        m_data->CStore.Set("Power",power);
+        Log("Power is now "+power,v_debug,verbosity);
+    }
     
   }
   

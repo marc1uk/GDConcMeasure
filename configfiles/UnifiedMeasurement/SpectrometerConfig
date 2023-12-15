@@ -1,11 +1,12 @@
 # configuration for spectrometer
-verbosity 1
+verbosity 10
 traces 2000                     #number of traces to take each measurement
 integration 25000               # integration time in microseconds
 #SpectrometerModel Jaz
 SpectrometerModel Blaze
 #SpectrometerPort 7654          # for the Jaz
 SpectrometerPort 57357          # for the Blaze
-SpectrometerIP 192.168.50.2     # old gad rig spectrometer
+#SpectrometerIP 192.168.50.2    # old gad rig spectrometer
 #SpectrometerIP 192.168.50.4    # new gad rig spectrometer
-wakedelay 4                     # wait this many s after powerup before trying to connect
+SpectrometerIP 192.168.50.135   # new EGADS setup
+wakedelay 6                     # wait this many s after powerup before trying to connect

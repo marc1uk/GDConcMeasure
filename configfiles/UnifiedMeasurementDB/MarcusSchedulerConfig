@@ -7,8 +7,14 @@ verbosity 1
 #command_file configfiles/UnifiedMeasurementDB/02JunStability
 #command_file configfiles/UnifiedMeasurementDB/06JunCalib
 #command_file configfiles/UnifiedMeasurementDB/08JunCalib
-#command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads   # disabled wait
 #command_file configfiles/UnifiedMeasurementDB/pwm_test
+command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same as db commands 19-jul-2023
 
 # now taken from database
-outfilebase 24MarPureStability
+#outfilebase 24MarPureStability
+#outfilebase 17Apr_EGADS_Calibration
+#outfilebase 25_Apr_2023_EGADS_Run
+#outfilebase 27_Jun_2023_EGADS_Run
+#outfilebase 19_Jul_2023_EGADS_Flush
+outfilebase Nov_2023_EGADS_Purep3
+datadir /mnt/data/

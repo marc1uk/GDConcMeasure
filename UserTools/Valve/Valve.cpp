@@ -85,6 +85,10 @@ bool Valve::Execute(){
   bool ok = true;
   
   if(m_data->CStore.Get(CStoreKey,Valve) && Valve!=valve){
+    
+    // set the CStore status to what the actual valve state is
+    m_data->CStore.Set(CStoreKey,valve);
+    
     if(Valve=="OPEN"){
       Log(CStoreKey+"::Execute got OPEN",v_debug,verbosity);
       ok = ValveOpen();
@@ -93,6 +97,8 @@ bool Valve::Execute(){
       Log(CStoreKey+"::Execute got CLOSE",v_debug,verbosity);
       ok = ValveClose();
     }
+    if(ok) m_data->CStore.Set(CStoreKey,valve);
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
   

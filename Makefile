@@ -18,8 +18,15 @@ PostgresInclude= -I $(ToolDAQPath)/libpqxx-6.4.7/install/include
 DataModelInclude= $(RootInclude) -I  ToolDAQ/eigen-3.3.7/
 DataModelLib=  $(RootLib)
 
-MyToolsInclude= $(RootInclude) -isystem ToolDAQ/seabreeze-3.0.11/SeaBreeze/include/ $(PostgresInclude)
-MyToolsLib= $(RootLib) -lwiringPi -L/usr/lib/arm-linux-gnueabihf/ -lusb -L ToolDAQ/seabreeze-3.0.11/SeaBreeze/lib/ -lseabreeze $(PostgresLib)
+# 64-bit location
+LIBUSBPATH:=/usr/lib/aarch64-linux-gnu
+ifeq ($(wildcard $(LIBUSBPATH)/.),)
+  # if not present try 32-bit location
+  LIBUSBPATH:=/usr/lib/arm-linux-gnueabihf
+endif
+
+MyToolsInclude= $(RootInclude) -isystem ToolDAQ/seabreeze-3.0.11/SeaBreeze/include/ $(PostgresInclude) -I $(ToolDAQPath)/WiringPi/wiringPi/
+MyToolsLib= $(RootLib) -L $(ToolDAQPath)/WiringPi/wiringPi/ -lwiringPi -L ToolDAQ/seabreeze-3.0.11/SeaBreeze/lib/ -lseabreeze $(PostgresLib) -L$(LIBUSBPATH) -lusb
 
 all: lib/libStore.so lib/libLogging.so lib/libDataModel.so include/Tool.h lib/libMyTools.so lib/libServiceDiscovery.so lib/libToolChain.so GAD_ToolChain RemoteControl  NodeDaemon
 

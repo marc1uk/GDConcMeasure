@@ -1,0 +1,14 @@
+#LED list wired up to the raspPI
+#name		channel	voltage
+# duty cycles are calculated from ratio of voltage here to vsupply in LEDConfig
+LED385L         11      4.0  # sometimes saturates at 100% duty cycle
+LEDW            8       5.0
+LEDRGBAnnode	12	3.0   # not connected to PWM for open drain
+LEDR		13	5.0
+LEDB		14	5.0
+LEDG		15	5.0
+# Note: the PMW output to the 275nm LEDs is upscaled from 5V to 12V line voltage,
+# while maintaining the same duty cycle. So the actual voltage applied to the LEDs
+# is the voltage given here multiplied by (12/5).
+LED275J_A       0       5.0   # 4.2 for no clipping in pure
+LED275J_B       10      5.0
