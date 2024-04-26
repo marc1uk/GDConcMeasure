@@ -259,7 +259,7 @@ void MarcusScheduler::MainMenu(){
 	// Main Menu - propt user for action
 	std::string command;
 	std::cout<<"Type Up to power up, Down to power down, Quit to exit, "
-	         <<"or Start to begin automation: "<<std::endl;
+	         <<", Start to begin automation, or a measurement command: "<<std::endl;
 	
 	// read input from user
 	std::cin>>command;
@@ -285,8 +285,19 @@ void MarcusScheduler::MainMenu(){
 		current_command=0;
 	
 	} else if(command!=""){
-		// on anything else, remain at main menu
-		std::cout<<"Unknown command '"<<command<<"'"<<std::endl;
+		// on anything else, try to carry out that action
+		// since actions may be multiple words we need to read in the rest
+		std::string tmp;
+		getline(std::cin, tmp);
+		command += tmp;
+		// this may throw, so we should catch... probably
+		try {
+			ProcessCommand(command);
+		} catch(std::exception& e){
+			Log(std::string{"MarcusScheduler::ProcessCommand threw "}+e.what(),v_error,verbosity);
+		}
+		// then go back to main menu... not sure how this interacts with
+		// multi-step commands tbh. Maybe we shouldn't do this?
 		current_command=-1;
 	}
 }
@@ -443,6 +454,14 @@ void MarcusScheduler::ProcessCommand(std::string& the_command){
 	} else if(the_command.substr(0,4)=="wait"){
 		// wait for a specified time
 		DoWait(the_command);
+		
+	} else if(the_command.substr(0,8)=="keywait"){
+		// wait for a user keypress
+		DoKeyWait(the_command);
+		
+	} else if(the_command.substr(0,4)=="echo"){
+		// print user-specified message
+		DoEcho(the_command);
 		
 	} else if(the_command.substr(0,7)=="measure"){
 		// take a spectrometer measurement
@@ -612,6 +631,11 @@ void MarcusScheduler::WaitForDuration(std::string wait_string){
 	char lapse_buffer[100];
 	// determine how many characters out number needs to be, and form a suitable
 	// printf format string. we'll pad with 0's.
+	
+	// trim comments & trailing whitespace
+	wait_string = wait_string.substr(0,wait_string.find('#'));
+	wait_string = wait_string.substr(0,wait_string.find(' '));
+	
 	int string_length = wait_string.length();
 	std::string string_length_string = std::to_string(string_length);
 	std::string lapse_buffer_format = "%0"+string_length_string+"ld";
@@ -640,6 +664,28 @@ void MarcusScheduler::WaitForDuration(std::string wait_string){
 		current=boost::posix_time::second_clock::local_time();
 		lapse=boost::posix_time::time_duration(m_period - (current - last));
 	}
+}
+
+// ««-------------- ≪ °◇◆◇° ≫ --------------»»
+
+void MarcusScheduler::DoKeyWait(std::string the_command){
+	std::cout<<">>> Press a key to continue..."<<std::endl;
+	while(!kbhit()){
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		std::cout<<"."<<std::flush;
+	}
+	getch(); // don't actually care but we need to call this to read key
+	std::cout<<">>> Continuing"<<std::endl;
+	// advance to the next command
+	current_command++;
+}
+
+// ««-------------- ≪ °◇◆◇° ≫ --------------»»
+
+void MarcusScheduler::DoEcho(std::string the_command){
+	std::cout<<">>> "<<the_command.substr(5,std::string::npos)<<std::endl;
+	// advance to the next command
+	current_command++;
 }
 
 // ««-------------- ≪ °◇◆◇° ≫ --------------»»
@@ -934,6 +980,10 @@ void MarcusScheduler::StartLoop(std::string the_command){
 }
 
 void MarcusScheduler::EndLoop(std::string the_command){
+	if(loop_counts.size()==0){
+		Log("'loop' without 'start_loop' in measurement commands!",v_error,verbosity);
+		return;
+	}
 	// found the end of a segment to loop
 	// increment flattened loop counter used for unique output file names
 	Log("incrementing flattened loop count "+std::to_string(loop_count),v_debug,verbosity);

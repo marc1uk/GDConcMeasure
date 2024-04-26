@@ -8,6 +8,7 @@ if [ -d ${ToolDAQapp}/ToolDAQ/root-6.28.06 ]; then
 else
 	. ${ToolDAQapp}/ToolDAQ/root-6.14.06/install/bin/thisroot.sh
 fi
+alias root='root -l'
 
 export LD_LIBRARY_PATH=${ToolDAQapp}/lib:${ToolDAQapp}/ToolDAQ/zeromq-4.0.7/lib:${ToolDAQapp}/ToolDAQ/boost_1_66_0/install/lib:${ToolDAQapp}/ToolDAQ/seabreeze-3.0.11/SeaBreeze/lib:${ToolDAQapp}/ToolDAQ/libpqxx-6.4.7/install/lib:$LD_LIBRARY_PATH
 
