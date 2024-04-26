@@ -1,5 +1,5 @@
 #!/bin/bash
-. /home/pi/GDConcMeasure/setup_db.sh
+. /home/pi/GDConcMeasure/Setup.sh
 
 APPLICATION_NAME="GAD_ToolChain"
 SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

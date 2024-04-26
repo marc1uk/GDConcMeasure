@@ -1,6 +1,6 @@
 ToolDAQPath=ToolDAQ
 
-CPPFLAGS= -Wno-psabi -std=c++14
+CPPFLAGS= -Wno-psabi -std=c++14 #-fsanitize=address -O1 -fno-omit-frame-pointer -g
 
 ZMQLib= -L $(ToolDAQPath)/zeromq-4.0.7/lib -lzmq
 ZMQInclude= -I $(ToolDAQPath)/zeromq-4.0.7/include/

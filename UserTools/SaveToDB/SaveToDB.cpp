@@ -1514,7 +1514,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			ledTree->SetBranchAddress("min",&mn);
 			ledTree->SetBranchAddress("sec",&sc);
 			Log("SaveToDB::NewMatthewAnalysis getting last entry timestamp",v_debug,verbosity);
-			ledTree->GetEntry(ledTree->GetEntries()-1);
+			ledTree->GetEntry(ledTree->GetEntries()-1); // we only have 1 entry ... usually. but just in case.
 			// reset the addresses now that we have the data, since theese variables
 			// will soon go out of scope
 			ledTree->ResetBranchAddresses();
@@ -1544,6 +1544,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			dbtimestamp="now()";
 		}
 		Log("SaveToDB::NewMatthewAnalysis timestamp for this measurement will be "+dbtimestamp,v_debug,verbosity);
+		m_data->CStore.Set("last_measurement_timestamp",dbtimestamp);
 		
 		// the filename and tree entry numbers of the raw data will be mapped to a unique measurement number.
 		// As always, allow this to be specified by the user if desired.
@@ -1558,6 +1559,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		}
 		Log("SaveToDB::NewMatthewAnalysis measurement number for this measurement database entry: "
 		    +std::to_string(measurementnum),v_debug,verbosity);
+		m_data->CStore.Set("last_measurement_num",measurementnum);
 		
 		// make the DB entry that maps the measurement number to root file and tree entry numbers
 		std::string rawfile_json = "{\"rawfile\": \""+rawfilename+"\", "
@@ -1675,7 +1677,9 @@ bool SaveToDB::NewMatthewAnalysis(){
 			TGraph* dark_subtracted_data_out = reinterpret_cast<TGraph*>(dark_subtracted_data_out_p);
 			
 			// to store in database we need to convert to json array.
+			Log("SaveToDB::NewMatthewAnalysis building dark json data in",v_debug,verbosity);
 			std::string gd_data_inside_absregion =  BuildJson(dark_subtracted_data_in);
+			Log("SaveToDB::NewMatthewAnalysis building dark json data out",v_debug,verbosity);
 			std::string gd_data_outside_absregion = BuildJson(dark_subtracted_data_out);
 			
 			// store in temporary db
@@ -1784,6 +1788,43 @@ bool SaveToDB::NewMatthewAnalysis(){
 			}
 		}
 		
+		// for website we'll temporarily store the pure water trace itself, for plotting
+		// N.B. we could move this to an Initialise call, since the pure trace doesn't change.
+		Log("SaveToDB::NewMatthewAnalysis saving pure reference trace",v_debug,verbosity);
+		std::string datakey = "purerefData_"+ledname;
+		intptr_t dark_sub_purep;
+		get_ok = m_data->CStore.Get(datakey, dark_sub_purep);
+		if(!get_ok || dark_sub_purep==0){
+			Log("SaveToDB::NewMatthewAnalysis failed to get 'purerefData_"+ledname+"' from CStore!",
+			    v_error,verbosity);
+		} else {
+			TGraph* dark_subtracted_pure = reinterpret_cast<TGraph*>(dark_sub_purep);
+			// convert to json
+			Log("SaveToDB::NewMatthewAnalysis building darksubpure",v_debug,verbosity);
+			std::string dark_sub_pure = BuildJson(dark_subtracted_pure);
+			// delete any existing entry so we don't keep accumulating them
+			query_string = "DELETE FROM webpage WHERE name = 'dark_subtracted_pure' AND data = '"+ledname+"'";
+			get_ok = m_data->postgres.ExecuteQuery(query_string);
+			if(not get_ok){
+				Log("SaveToDB::NewMatthewAnalysis failed to delete existing dark_subtracted_pure record "
+					"from webpage table",v_error,verbosity);
+			}
+			// insert a new record
+			field_names = std::vector<std::string>{"timestamp","name","values","data"};
+			error_ret="";
+			get_ok = m_data->postgres.Insert("webpage",
+			                                 field_names,
+			                                 &error_ret,
+			                                 dbtimestamp,
+			                                 "dark_subtracted_pure",
+			                                 dark_sub_pure,
+			                                 ledname);
+			if(!get_ok){
+				Log("SaveToDB::NewMatthewAnalysis failed to insert new 'dark_subtracted_pure' "
+				    "record into webpage table with error "+error_ret,v_error,verbosity);
+			}
+		}
+		
 		// store fit to the data with absorption component zeroe'd out ("pure fit")
 		Log("SaveToDB::NewMatthewAnalysis saving scaled pure reference trace",v_debug,verbosity);
 		intptr_t pure_scaled_p;
@@ -1794,6 +1835,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		} else {
 			TGraph* pure_scaled = reinterpret_cast<TGraph*>(pure_scaled_p);
 			// convert to json
+			Log("SaveToDB::NewMatthewAnalysis building pure scaled",v_debug,verbosity);
 			std::string pure_scaled_json = BuildJson(pure_scaled);
 			// delete any existing entry so we don't keep accumulating them
 			query_string = "DELETE FROM webpage WHERE name = 'pure_scaled' AND data = '"+ledname+"'";
@@ -1817,7 +1859,33 @@ bool SaveToDB::NewMatthewAnalysis(){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert new scaled pure data "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
 			}
+			
+			
+			// also persistently store the extracted LED intensity
+			Log("SaveToDB::NewMatthewAnalysis saving LED intensity",v_debug,verbosity);
+			std::string ledIntensity=std::to_string(*std::max_element(pure_scaled->GetY(),pure_scaled->GetY()+pure_scaled->GetN()));
+			field_names = std::vector<std::string>
+			             {"run","measurement","timestamp","ledname","tool","name","values"};
+			error_ret="";
+			get_ok = m_data->postgres.Insert("data",                      // table name
+			                                 field_names,                 // field names
+			                                 &error_ret,                  // error return string
+			                                 // variadic argument list of field values
+			                                 runnum,                      // run
+			                                 measurementnum,              // measurement
+			                                 dbtimestamp,                 // timestamp
+			                                 ledname,                     // ledname
+			                                 "MatthewAnalysisStrikesBack",        // tool
+			                                 "led_intensity",             // name
+			                                 ledIntensity);               // values (jsonb)
+			if(!get_ok){
+				Log("SaveToDB::NewMatthewAnalysis failed to insert new data fit status "
+				    "into database with error '"+error_ret+"'",v_error,verbosity);
+				all_ok = false;
+			}
 		}
+		
+		
 		
 		// get the corresponding data fit TFitResultPtr, for parameters and errors
 		intptr_t datafitresptrp;
@@ -1888,6 +1956,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		} else {
 			TGraph* absorbance = reinterpret_cast<TGraph*>(absorbance_p);
 			// convert to json
+			Log("SaveToDB::NewMatthewAnalysis building absorbance",v_debug,verbosity);
 			std::string absorbance_json = BuildJson(absorbance);
 			// delete any existing entry so we don't keep accumulating them
 			field_names = std::vector<std::string>{"timestamp","name","values","data"};
@@ -1925,6 +1994,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		} else {
 			TGraph* absfit = reinterpret_cast<TGraph*>(absfit_p);
 			// convert to json
+			Log("SaveToDB::NewMatthewAnalysis building absorbance fit",v_debug,verbosity);
 			std::string absfit_json = BuildJson(absfit);
 			// delete any existing entry so we don't keep accumulating them
 			query_string = "DELETE FROM webpage WHERE name = 'absfit' AND data = '"+ledname+"'";
@@ -2652,7 +2722,7 @@ bool SaveToDB::MarcusScheduler(){
 	all_ok &= m_data->CStore.Get("MarcusSchedulerCurrentCommand",current_command);
 	all_ok &= m_data->CStore.Get("MarcusSchedulerCommandStep",command_step);
 	all_ok &= m_data->CStore.Get("MarcusSchedulerLoopCounts",loop_counts);
-	if(all_ok){
+	if(!all_ok){
 		Log(m_unique_name+"MarcusScheduler failed to get scheduler commands!",v_error,verbosity);
 		return all_ok;
 	}
@@ -2795,8 +2865,9 @@ std::string SaveToDB::BuildJson(TGraph* gr){
 }
 
 std::string SaveToDB::BuildJson(double* arr, double* err, int n){
-	std::string jsonstring = "{\"values\":"+BuildJson(arr,n)
-	                         +",\"errors\":"+BuildJson(err,n)+"}";
+	if(arr==nullptr && err==nullptr) return "";
+	std::string jsonstring = "{\"values\":"  + BuildJson(arr,n)
+	                       + ",\"errors\":" + BuildJson(err,n) + "}";
 	return jsonstring;
 }
 

@@ -135,7 +135,7 @@ public:
   FunctionalFit() = default;
   void SetFitParameters(const std::vector<double>&);
   void SetFitParameterRanges(const std::vector<std::pair<double, double>>&);
-  TFitResultPtr PerformFitOnData(TGraph, bool i = false);
+  TFitResultPtr PerformFitOnData(TGraph, bool i = false, bool savefit=false);
   void SetExampleGraph(const TGraph&);
   double GetParameterValue(const int&) const;
   double GetChiSquared() const ;

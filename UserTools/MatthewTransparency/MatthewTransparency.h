@@ -34,7 +34,7 @@ class MatthewTransparency: public Tool {
   std::array<double, N> PopulateWavelength(TTree*) const ;
   std::array<double, N> RetrievePureValues(const int, const std::string) const;
   std::array<double, N> RetrievePureValuesFromFile(const std::string&, const std::string&) const;
-  void SaveToMonthlyFile(const Transparency&) const;
+  void SaveToMonthlyFile(const Transparency&);
   std::array<int, 6> GetDateTimeVec() const;
   bool Ready() const;
   double GetValAtWavelength(const Transparency&, const double) const;

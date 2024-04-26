@@ -43,7 +43,7 @@ CombinedGdPureFunc_DATA::CombinedGdPureFunc_DATA(const TGraph& pds, const TGraph
   fit_min = wave_min;
   fit_max = wave_max;
 }
- 
+
 double CombinedGdPureFunc_DATA::Evaluate(double* x, double* p){
   return p[PURE_SCALING]  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
     * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - 276) + 276 - p[PURE_TRANSLATION])
@@ -58,10 +58,8 @@ double CombinedGdPureFunc_DATA::Evaluate(double* x, double* p){
 //          + p[ZEROTH_ORDER_BACKGROUND] )
 //    * std::max(0.0, (1-p[ABS_SCALING]*rat_abs.Eval(x[0])));
       
-      
-
 }
-  
+
 // pure + abs that spec sees (0 outside of abs region) + pol1 - wiggled (non-trivial / impossible)
 
 // pure * ratio absorbance (physics) + pol1 (wiggling all of this)
@@ -117,7 +115,7 @@ void FunctionalFit::SetFitParameterRanges(const std::vector<std::pair<double, do
 }
 
 
-TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
+TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive, bool savefit){
   fit_funct.SetNpx(10000);
   TFitResultPtr res;
   
@@ -141,15 +139,20 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
     }
   }
   else {
-//    TDirectory* cwd = gDirectory;
-//    TFile* fsav=new TFile("fsav.root","RECREATE");
-//    data.Write("absgraph_beingfit");
-//    fit_funct.Write("fitfunc_beforefit");
+    TDirectory* cwd = gDirectory;
+    TFile* fsav=nullptr;
+    if(savefit){
+      fsav=new TFile("fsav.root","RECREATE");
+      data.Write("absgraph_beingfit");
+      fit_funct.Write("fitfunc_beforefit");
+    }
     res = data.Fit(&fit_funct, "NRSQ"); // keep this one
-//    fit_funct.Write("fitfunc_afterfit");
-//    fsav->Close();
-//    delete fsav;
-//    cwd->cd();
+    if(fsav){
+      fit_funct.Write("fitfunc_afterfit");
+      fsav->Close();
+      delete fsav;
+    }
+    cwd->cd();
   }
   
 //  if (res->IsEmpty() || !res->IsValid() || res->Status() != 0){
@@ -232,7 +235,7 @@ TGraph FunctionalFit::GetGraphExcluding(const std::vector<int>& p) const {
     throw std::runtime_error("FunctionalFit::GetGraph - NO EXAMPLE FOR POPULATING SET!!!\n");
   }
   for (const auto param : p){
-    if (param > fit_funct.GetNpar() || param < 0){
+    if (param >= fit_funct.GetNpar() || param < 0){
       throw std::invalid_argument("FunctionalFit::GetGraphExcluding - INVALID PARAMETER CHOICE!!!\n");
     }
   }

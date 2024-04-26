@@ -1,0 +1,12 @@
+start
+power on
+connect
+start_loop
+setFile
+measure 275_B
+measure 275_A
+measure R G B
+measure White 385
+save
+loop
+quit

@@ -1,0 +1,7 @@
+verbosity 1
+savedebug 1
+
+calib_curve_275_A cal_a_new.root
+cal_tf1_name_275_A led_a_calcurve
+calib_curve_275_B cal_b_new.root
+cal_tf1_name_275_B led_b_calcurve

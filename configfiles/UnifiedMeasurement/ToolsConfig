@@ -7,7 +7,9 @@ myValve2             Valve                   configfiles/UnifiedMeasurement/Valv
 BenLED              BenLED                  configfiles/UnifiedMeasurement/LEDConfig
 BenSpectrometer     BenSpectrometer         configfiles/UnifiedMeasurement/SpectrometerConfig
 TraceAverage        TraceAverage            configfiles/UnifiedMeasurement/TraceAverageConfig
-myMatthewAnalysis   MatthewAnalysis         configfiles/UnifiedMeasurement/MatthewAnalysisConfig
-myLivePlotter       LivePlotter             configfiles/UnifiedMeasurement/LivePlotterConfig
+#myMatthewAnalysis   MatthewAnalysis         configfiles/UnifiedMeasurement/MatthewAnalysisConfig
+MarcusAnalysisLEDA  MarcusAnalysis          configfiles/UnifiedMeasurement/MarcusAnalysisConfigLEDA
+MarcusAnalysisLEDB  MarcusAnalysis          configfiles/UnifiedMeasurement/MarcusAnalysisConfigLEDB
+#myLivePlotter       LivePlotter             configfiles/UnifiedMeasurement/LivePlotterConfig
 SaveTraces          SaveTraces              configfiles/UnifiedMeasurement/SaveTracesConfig
-mySaveToDB          SaveToDB                configfiles/UnifiedMeasurement/SaveToDBConfig
+#mySaveToDB          SaveToDB                configfiles/UnifiedMeasurement/SaveToDBConfig
