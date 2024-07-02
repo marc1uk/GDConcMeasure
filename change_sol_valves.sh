@@ -3,7 +3,7 @@
 if [ ! -d /sys/class/gpio/gpio15 ]; then
 	echo "15" > /sys/class/gpio/export
 fi
-if [ ! -d /sys/class/gpio/gpio15 ]; then
+if [ ! -d /sys/class/gpio/gpio18 ]; then
 	echo "18" > /sys/class/gpio/export
 fi
 

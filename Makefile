@@ -6,7 +6,7 @@ ZMQLib= -L $(ToolDAQPath)/zeromq-4.0.7/lib -lzmq
 ZMQInclude= -I $(ToolDAQPath)/zeromq-4.0.7/include/
 
 RootLib = `root-config --libs`
-RootInclude = `root-config --cflags`
+RootInclude = -I`root-config --incdir`
 
 BoostLib= -L $(ToolDAQPath)/boost_1_66_0/install/lib -lboost_date_time -lboost_serialization -lboost_iostreams -lboost_system
 BoostInclude= -I $(ToolDAQPath)/boost_1_66_0/install/include
@@ -15,7 +15,19 @@ BoostInclude= -I $(ToolDAQPath)/boost_1_66_0/install/include
 PostgresLib= -L $(ToolDAQPath)/libpqxx-6.4.7/install/lib -lpqxx -lpq
 PostgresInclude= -I $(ToolDAQPath)/libpqxx-6.4.7/install/include
 
-DataModelInclude= $(RootInclude) -I  ToolDAQ/eigen-3.3.7/
+# simple c++ serial comms library
+SerialLib = -L $(ToolDAQPath)/serialcomms -lserial
+SerialInclude = -I $(ToolDAQPath)/serialcomms
+
+# pi wiring library for gpio
+WiringPiLib = -L $(ToolDAQPath)/WiringPi/wiringPi -lwiringPi
+WiringPiInclude = -I $(ToolDAQPath)/WiringPi/wiringPi
+
+# spectrometer
+SeaBreezeLib = -L $(ToolDAQPath)/seabreeze-3.0.11/SeaBreeze/lib/ -lseabreeze
+SeaBreezeInclude = -isystem ToolDAQ/seabreeze-3.0.11/SeaBreeze/include
+
+DataModelInclude= $(RootInclude)
 DataModelLib=  $(RootLib)
 
 # 64-bit location
@@ -25,8 +37,8 @@ ifeq ($(wildcard $(LIBUSBPATH)/.),)
   LIBUSBPATH:=/usr/lib/arm-linux-gnueabihf
 endif
 
-MyToolsInclude= $(RootInclude) -isystem ToolDAQ/seabreeze-3.0.11/SeaBreeze/include/ $(PostgresInclude) -I $(ToolDAQPath)/WiringPi/wiringPi/
-MyToolsLib= $(RootLib) -L $(ToolDAQPath)/WiringPi/wiringPi/ -lwiringPi -L ToolDAQ/seabreeze-3.0.11/SeaBreeze/lib/ -lseabreeze $(PostgresLib) -L$(LIBUSBPATH) -lusb
+MyToolsInclude= $(RootInclude) $(SeaBreezeInclude) $(PostgresInclude) $(WiringPiInclude) $(SerialInclude)
+MyToolsLib= $(RootLib) $(WiringPiLib) $(SeaBreezeLib) $(PostgresLib) -L$(LIBUSBPATH) -lusb
 
 all: lib/libStore.so lib/libLogging.so lib/libDataModel.so include/Tool.h lib/libMyTools.so lib/libServiceDiscovery.so lib/libToolChain.so GAD_ToolChain RemoteControl  NodeDaemon
 

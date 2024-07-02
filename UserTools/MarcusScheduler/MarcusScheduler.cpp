@@ -1,4 +1,5 @@
 #include "MarcusScheduler.h"
+#include <locale> // std::toupper
 
 MarcusScheduler::MarcusScheduler():Tool(){}
 
@@ -74,6 +75,9 @@ bool MarcusScheduler::Initialise(std::string configfile, DataModel &data){
 		current_command=-1;
 	}
 	
+	// init variables related to the state of everything being off.
+	InitLightStates();
+	
 	// some input commands require several Execute loops
 	// (e.g. a 'measure 275' command requires steps to turn on the LEDs, take the measurement,
 	// and turn the LEDs off again).
@@ -120,6 +124,12 @@ bool MarcusScheduler::Execute(){
 			
 			// get the command being executed.
 			std::string the_command = commands.at(current_command);
+			
+			/*
+			// for consistency convert command to one case?
+			std::locale loc;
+			for(char& achar : cmd) achar = std::toupper(achar, loc);
+			*/
 			
 			// print, for tracking progress
 			Log(std::string("Processing command ")+std::to_string(current_command)
@@ -305,8 +315,12 @@ void MarcusScheduler::MainMenu(){
 // ««-------------- ≪ °◇◆◇° ≫ --------------»»
 
 void MarcusScheduler::PutSystemInSafeState(){
-	// ensure all the LEDs are off and valves are closed
-	std::string json_string = "{\"R\":\"0\",\"G\":\"0\",\"B\":\"0\",\"White\":\"0\",\"385\":\"0\",\"275_A\":\"0\",\"275_B\":\"0\",\"LED\":\"Change\",\"Valve_inlet\":\"CLOSE\",\"Valve_outlet\":\"CLOSE\",\"Valve_pump\":\"CLOSE\"}";
+	// ensure all the LEDs are off...
+	std::string json_string = leds_off_string;
+	// removing closing '}'
+	json_string.pop_back();
+	// and make sure valves and shutters are closed
+	json_string += ",\"Valve_inlet\":\"CLOSE\",\"Valve_outlet\":\"CLOSE\",\"Valve_pump\":\"CLOSE\",\"Shutter_lamp\":\"CLOSE\",\"Shutter_gad\":\"CLOSE\",\"Shutter_ref\":\"CLOSE\"}";
 	m_data->CStore.JsonParser(json_string);
 }
 
@@ -467,6 +481,10 @@ void MarcusScheduler::ProcessCommand(std::string& the_command){
 		// take a spectrometer measurement
 		DoMeasure(the_command);
 		
+	} else if(the_command.substr(0,7)=="measure2"){
+		// take a spectrometer measurement
+		DoMeasureWRef(the_command);
+		
 	} else if(the_command.substr(0,7) == "analyse"){
 		// calculate gd concentration from a given LED trace
 		DoAnalyse(the_command);
@@ -474,8 +492,8 @@ void MarcusScheduler::ProcessCommand(std::string& the_command){
 	} else if(the_command.substr(0,3) == "pwm"){
 		// update the PWM duty cycle of LEDs
 		DoPWM(the_command);
-	 	
-   	} else if(the_command.substr(0,12) == "transparency"){
+		
+	} else if(the_command.substr(0,12) == "transparency"){
 		// calculate transparency from all LED traces
 		DoTransparency(the_command);
 		
@@ -490,6 +508,10 @@ void MarcusScheduler::ProcessCommand(std::string& the_command){
 	} else if(the_command.substr(0,5)=="valve"){
 		// open or close the inlet/outlet valves
 		DoValves(the_command);
+		
+	} else if(the_command.substr(0,4)=="shutter"){
+		// send command to arduino to control shutters
+		DoShutter(the_command);
 		
 	} else if(the_command.substr(0,10)=="start_loop"){
 		// the start of a section to loop
@@ -831,6 +853,7 @@ void MarcusScheduler::SetFile(std::string the_command){
 	snprintf(monthchr,3,"%02d",month);
 	std::string datadir="/mnt/data/";
 	m_variables.Get("datadir",datadir);
+	if(datadir.back()!='/') datadir += "/";
 	std::string outputdir = std::string(datadir)+yearchr+"/"+monthchr;
 	// make the directory in case it doesn't already exist.
 	// there appears to be no c++ equivalent to `mkdir -p`, so we'll just call that.
@@ -949,6 +972,46 @@ void MarcusScheduler::DoPump(std::string the_command){
 
 // ««-------------- ≪ °◇◆◇° ≫ --------------»»
 
+void MarcusScheduler::DoShutter(std::string the_command){
+	// control optical shutters via arduino
+	
+	// command should be '<shutter> <type> <state>' - split into fields
+	std::stringstream ss(the_command);
+	std::string prefix, type, open_or_close;
+	if(!(ss >> prefix >> type >> open_or_close)){
+		Log("MarcusScheduler::DoShutter - missing parameter to 'shutter' command; "
+		    "<shutter> <type> <open/close> (got '"+the_command+"')",v_error,verbosity);
+		++current_command;
+		return;
+	}
+	
+	if(open_or_close!="OPEN" && open_or_close!="CLOSE"){
+		Log("MarcusScheduler::DoShutter - Unknown state '"+open_or_close
+		   +"' for shutter '"+type+"'",v_error,verbosity);
+		++current_command;
+		return;
+	}
+	
+	// sanity check; type should be 'inlet' or 'outlet'
+	if(type!="lamp" && type=="gad" && type!="ref"){
+		Log("MarcusScheduler::DoShutter - Unknown shutter type '"+type+"'",v_error,verbosity);
+		++current_command;
+		return;
+	}
+	
+	// form the json string
+	Log(std::string("setting ")+type+" shutter to: \""+open_or_close+"\"",v_debug,verbosity);
+	std::string json_string = "{\"Shutter_"+type+"\":\""+open_or_close+"\"}";
+	
+	// queue up the action
+	m_data->CStore.JsonParser(json_string);
+	
+	// advance to the next command
+	++current_command;
+}
+
+// ««-------------- ≪ °◇◆◇° ≫ --------------»»
+
 void MarcusScheduler::StartLoop(std::string the_command){
 	// note the start location of a segment to loop
 	// we use vectors to permit nested loops
@@ -1033,7 +1096,10 @@ void MarcusScheduler::DoMeasure(std::string the_command){
 			{
 			// first thing, ensure all LEDs are off
 			// ====================================
-			json_string = "{\"R\":\"0\",\"G\":\"0\",\"B\":\"0\",\"White\":\"0\",\"385\":\"0\",\"275_A\":\"0\",\"275_B\":\"0\",\"LED\":\"Change\"}";
+			json_string = leds_off_string;
+			// we can also close the shutters
+			json_string.pop_back(); // remove trailing '}'
+			json_string += ", \"Shutter_gad\":\"CLOSE\",\"Shutter_ref\":\"CLOSE\"}";
 			++command_step;
 			//break;  // XXX
 			}
@@ -1099,7 +1165,11 @@ void MarcusScheduler::DoMeasure(std::string the_command){
 			// use same measurement name as for Dark, but remove initial 'Dark_'
 			measurement_name = measurement_name.substr(5,std::string::npos);
 			// add the LED change command
-			json_string += "\"LED\":\"Change\"}";
+			json_string += "\"LED\":\"Change\"";
+			
+			// open the relevant shutter
+			json_string += ", \"Shutter_gad\":\"CLOSE\",\"Shutter_ref\":\"CLOSE\"}";
+			
 			++command_step;
 			break;
 			}
@@ -1117,7 +1187,7 @@ void MarcusScheduler::DoMeasure(std::string the_command){
 			{
 			// finally, disable the LEDs. VERY IMPORTANT.
 			// ==========================================
-			json_string = "{\"R\":\"0\",\"G\":\"0\",\"B\":\"0\",\"White\":\"0\",\"385\":\"0\",\"275_A\":\"0\",\"275_B\":\"0\",\"LED\":\"Change\"}";
+			json_string = leds_off_string;
 			// time to move to the next command
 			command_step=0;
 			++current_command;
@@ -1133,4 +1203,60 @@ void MarcusScheduler::DoMeasure(std::string the_command){
 	// queue the action for this step of the measurement process
 	Log(std::string("Queuing action: ")+json_string,v_debug,verbosity);
 	m_data->CStore.JsonParser(json_string);
+}
+
+// ««-------------- ≪ °◇◆◇° ≫ --------------»»
+
+void MarcusScheduler::DoMeasureWRef(std::string the_command){
+	// perform a spectrometer measurement, first through the reference arm, then through GAD.
+	// i think the simplest thing to do is just effectively pretend the measurement file did:
+	// > open ref
+	// > measure <LED>
+	// > close ref
+	// > measure Dark
+	// > open gad
+	// > measure <LED>
+	// > close gad
+	Log("Performing measurement with reference", v_debug,verbosity);
+	
+	// so right now `commands.at(current_command);` says "MeasureWref <LED>"
+	std::string led_list = the_command.substr(8,the_command.find('#')-8);
+	
+	// remove that element
+	commands.erase(commands.begin()+current_command);
+	
+	std::cout<<"command set before: [\n";
+	for(auto&& cmd : commands) std::cout<<cmd<<"\n";
+	std::cout<<"\n]"<<std::endl;
+	
+	// form the set of replacement commands
+	std::vector<std::string> newcmds{ {"measure Dark"},
+	                                  {"shutter ref open"},
+	                                  {"measure "+led_list},
+	                                  {"shutter ref close"},
+	                                  {"measure Dark"},
+	                                  {"shutter gad open"},
+	                                  {"measure "+led_list},
+	                                  {"shutter gad close"}};
+	
+	// insert them in place
+	commands.insert(commands.begin()+current_command, newcmds.begin(), newcmds.end());
+	
+	std::cout<<"command set after: [\n";
+	for(auto&& cmd : commands) std::cout<<cmd<<"\n";
+	std::cout<<"\n]"<<std::endl;
+	
+	// don't increment current_command - we'll pick up the new set of expanded commands on next loop
+	return;
+}
+
+void MarcusScheduler::InitLightStates(){
+	// try to minimise the number of things that need to change when changing light sources
+	LED_states = off_LED_states;
+	leds_off_string="{";
+	for(const std::pair<const std::string, int>& asource : LED_states){
+		if(leds_off_string.length()>1) leds_off_string += ", ";
+		leds_off_string += "\""+asource.first+"\":\"0\"";
+	}
+	leds_off_string += ",\"LED\":\"Change\"}";
 }

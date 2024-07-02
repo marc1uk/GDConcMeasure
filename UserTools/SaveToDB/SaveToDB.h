@@ -22,6 +22,7 @@ class SaveToDB: public Tool {
 	bool MatthewAnalysis();
 	bool MarcusAnalysis();
 	bool NewMatthewAnalysis();
+	bool NewMarcusAnalysis();
 	bool BenPower();
 	bool Valve();
 	bool BenLED();

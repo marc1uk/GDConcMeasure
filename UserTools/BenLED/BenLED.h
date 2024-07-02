@@ -57,9 +57,8 @@ public:
   bool UpdatePWM();
   
 private:
-  std::string m_configfile;
   //set up by configure
-  std::string wiringLED, configLED;
+  std::string wiringLED;
   unsigned int resolution;
   double fVin, fDelay, frequencyPWM;
   unsigned long lastTime;

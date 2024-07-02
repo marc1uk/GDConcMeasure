@@ -41,14 +41,15 @@ class MarcusScheduler: public Tool {
 	int loop_count=0;                   // flattened loop iteration counter, unused
 	std::string break_loop_flagfile_name;
 	
-	std::map<std::string,int> LED_states{{"R",0}, {"G",0}, {"B",0}, {"White",0}, {"385",0}, {"275_A",0}, {"275_B",0}};
 	const std::map<std::string,int> off_LED_states{{"R",0}, {"G",0}, {"B",0}, {"White",0}, {"385",0}, {"275_A",0}, {"275_B",0}};
-	
+	std::map<std::string,int> LED_states;
+	std::string leds_off_string;
 	
 	bool ReadCommandFile();
 	bool ReadCommandEntry();
 	void MainMenu();
 	void PutSystemInSafeState();
+	void InitLightStates();
 	
 	// handle all the automation commands
 	void ProcessCommand(std::string& the_command);
@@ -62,7 +63,9 @@ class MarcusScheduler: public Tool {
 	void DoConnect(std::string the_command);
 	void DoPump(std::string the_command);
 	void DoValves(std::string the_command);
+	void DoShutter(std::string the_command);
 	void DoMeasure(std::string the_command);
+	void DoMeasureWRef(std::string the_command);
 	void DoWait(std::string the_command);
 	void SimpleWaitForDuration(std::string wait_string);
 	void WaitForDuration(std::string wait_string);

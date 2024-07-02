@@ -42,7 +42,9 @@ if (tool=="PGTool") ret=new PGTool;
 if (tool=="LoadOldFiles") ret=new LoadOldFiles;
 if (tool=="MarcusAnalysis") ret=new MarcusAnalysis;
 if (tool=="MatthewTransparency") ret=new MatthewTransparency;
- if(tool=="MatthewAnalysisStrikesBack") ret=new MatthewAnalysisStrikesBack;
+if (tool=="MatthewAnalysisStrikesBack") ret=new MatthewAnalysisStrikesBack;
+if (tool=="ArduinoControl") ret=new ArduinoControl;
+if (tool=="ReturnOfTheMarcusAnalysis") ret=new ReturnOfTheMarcusAnalysis;
 return ret;
 }
 

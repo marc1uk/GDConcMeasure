@@ -37,3 +37,5 @@
 #include "MatthewTransparency/MatthewTransparency.cpp"
 #include "MatthewAnalysisStrikesBack/gad_utils.cpp"
 #include "MatthewAnalysisStrikesBack/MatthewAnalysisStrikesBack.cpp"
+#include "ArduinoControl/ArduinoControl.cpp"
+#include "ReturnOfTheMarcusAnalysis/ReturnOfTheMarcusAnalysis.cpp"
