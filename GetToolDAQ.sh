@@ -12,9 +12,13 @@ boostflag=1
 zmq=1
 final=1
 rootflag=1
-eigen=1
+eigen=0
 seabreeze=1
 libpqxx=1
+serialcomms=1
+
+# basic essentials
+sudo dnf install -y git gcc g++ cmake binutils
 
 while [ ! $# -eq 0 ]
 do
@@ -54,6 +58,11 @@ do
             final=0
             ;;
 
+	--no_serial )
+	    echo "Installing without RS232 library"
+	    serialcomms=0
+	    ;;
+
 	--ToolDAQ_ZMQ )
             echo "Installing ToolDAQ & ZMQ"
 	    boostflag=0
@@ -79,6 +88,14 @@ do
 	    final=0
             ;;
 	
+	--Serial )
+	    echo "installing RS232 library"
+	    init=0
+	    tooldaq=0
+	    boostflag=0
+	    zmq=0
+	    final=0
+	    serialcomms=1
 	
 	--Final )
             echo "Compiling ToolDAQ"
@@ -102,7 +119,9 @@ fi
 if [ $tooldaq -eq 1 ]
 then
     cd ${TOPDIR}/ToolDAQ
-    git clone https://github.com/ToolDAQ/ToolDAQFramework.git
+    #git clone https://github.com/ToolDAQ/ToolDAQFramework.git
+    git clone https://github.com/marc1uk/ToolDAQFramework.git
+    git checkout GAD
 fi
 
 if [ $zmq -eq 1 ]
@@ -131,6 +150,7 @@ fi
 
 if [ $seabreeze -eq 1 ]
 then
+    sudo dnf --enablerepo=crb install libusb-devel
     cd ${TOPDIR}/ToolDAQ
     git clone git@github.com:GDconcentration/SeaBreeze.git seabreeze-3.0.11
     cd seabreeze-3.0.11/SeaBreeze
@@ -139,6 +159,8 @@ fi
 
 if [ $libpqxx -eq 1 ]
 then
+    sudo dnf install -y postgresql postgresql-server libpq
+    sudo dnf --enablerepo=crb install libpq-devel
     cd ${TOPDIR}/ToolDAQ
     wget https://github.com/jtv/libpqxx/archive/refs/tags/6.4.7.tar.gz
     tar -xzf 6.4.7.tar.gz
@@ -175,7 +197,7 @@ fi
 
 if [ $rootflag -eq 1 ]
 then
-    
+    sudo dnf install -y libX11-devel libXpm-devel libXft-devel libXext-devel python python-devel openssl-devel
     cd ${TOPDIR}/ToolDAQ
     wget https://root.cern.ch/download/root_v6.14.06.source.tar.gz
     tar zxf root_v6.14.06.source.tar.gz
@@ -192,6 +214,12 @@ then
     
     cd ../
     
+fi
+
+if [ $serialflag -eq 1 ]; then
+	cd ${TOPDIR}/ToolDAQ
+	git clone git@github.com:marc1uk/SerialCpp.git
+	cd ../
 fi
 
 cd ${TOPDIR}

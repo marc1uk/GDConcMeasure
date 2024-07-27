@@ -20,8 +20,8 @@ SerialLib = -L $(ToolDAQPath)/serialcomms -lserial
 SerialInclude = -I $(ToolDAQPath)/serialcomms
 
 # pi wiring library for gpio
-WiringPiLib = -L $(ToolDAQPath)/WiringPi/wiringPi -lwiringPi
-WiringPiInclude = -I $(ToolDAQPath)/WiringPi/wiringPi
+#WiringPiLib = -L $(ToolDAQPath)/WiringPi/wiringPi -lwiringPi
+#WiringPiInclude = -I $(ToolDAQPath)/WiringPi/wiringPi
 
 # spectrometer
 SeaBreezeLib = -L $(ToolDAQPath)/seabreeze-3.0.11/SeaBreeze/lib/ -lseabreeze

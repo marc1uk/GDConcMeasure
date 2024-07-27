@@ -1,5 +1,6 @@
 #include "MarcusScheduler.h"
 #include <locale> // std::toupper
+#include <thread>
 
 MarcusScheduler::MarcusScheduler():Tool(){}
 
