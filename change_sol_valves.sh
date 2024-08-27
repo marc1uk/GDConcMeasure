@@ -3,7 +3,7 @@
 if [ ! -d /sys/class/gpio/gpio15 ]; then
 	echo "15" > /sys/class/gpio/export
 fi
-if [ ! -d /sys/class/gpio/gpio15 ]; then
+if [ ! -d /sys/class/gpio/gpio18 ]; then
 	echo "18" > /sys/class/gpio/export
 fi
 
@@ -30,9 +30,11 @@ fi
 if [ $powerison -eq 0 ]; then
 	echo "power does not appear to be on, therefore valves closed"
 	echo "setting valve state to closed to prevent simultaneous closing on powerup"
+	# switching valve
 	echo "0" > /sys/class/gpio/gpio15/value
 	# just in case
 	sleep 1
+	# holding valve
 	echo "0" > /sys/class/gpio/gpio18/value
 fi
 
@@ -41,12 +43,12 @@ echo "ensuring power is on"
 /home/pi/poweron.sh
 
 if grep -Fxq "0" /sys/class/gpio/gpio18/value && grep -Fxq "0" /sys/class/gpio/gpio15/value; then
-    echo 1 > /sys/class/gpio/gpio18/value
+    #echo 1 > /sys/class/gpio/gpio18/value
     sleep 1
     echo 1 > /sys/class/gpio/gpio15/value
     echo "valves opened"
 elif grep -Fxq "1" /sys/class/gpio/gpio18/value && grep -Fxq "1" /sys/class/gpio/gpio15/value; then
-    echo 0 > /sys/class/gpio/gpio18/value
+    #echo 0 > /sys/class/gpio/gpio18/value
     sleep 1
     echo 0 > /sys/class/gpio/gpio15/value
     echo "valve closed"

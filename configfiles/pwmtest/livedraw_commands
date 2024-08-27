@@ -1,0 +1,16 @@
+start
+power up
+connect
+setFile trash
+measure Dark
+measure R G B
+#measure R
+#measure G
+#measure B
+measure White
+measure 275_A
+measure 275_B
+#measure 385
+save
+power down
+quit

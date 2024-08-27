@@ -9,6 +9,7 @@ verbosity 1
 #command_file configfiles/UnifiedMeasurementDB/08JunCalib
 #command_file configfiles/UnifiedMeasurementDB/pwm_test
 command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same as db commands 19-jul-2023
+#command_file configfiles/UnifiedMeasurementDB/test_led
 
 # now taken from database
 #outfilebase 24MarPureStability
@@ -16,5 +17,9 @@ command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same
 #outfilebase 25_Apr_2023_EGADS_Run
 #outfilebase 27_Jun_2023_EGADS_Run
 #outfilebase 19_Jul_2023_EGADS_Flush
-outfilebase Nov_2023_EGADS_Purep3
+#outfilebase Nov_2023_EGADS_Purep3
+#outfilebase Feb_2024_EGADS_conc_nouvleds
+#outfilebase May_2024_EGADS_newbox
+outfilebase May_2024_EGADS_oldbox_no24VDC
+#outfilebase test_led
 datadir /mnt/data/

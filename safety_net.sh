@@ -14,6 +14,7 @@ fi
 # initial sanity check that the safety net control file exists and contains either 'ON' or 'OFF'
 if ! grep -wq "OFF\|ON" /home/pi/safety_net/safety_net_active.txt; then
     curl -X POST -H 'Content-type: application/json' --data '{"text":" :warning: :warning: :warning: GAD SAFETY NET ACTIVE FLAG IS NEITHER ON OR OFF - CHECK `/home/pi/GDConcMeasure/safety_net/safety_net_active.txt` FILE :warning: :warning: :warning:"}' ${SAFETYNETWEBHOOK}
+    wall "SAFETY NET ACTIVE FLAG INVALID"
 
 # assuming this is the case, if safety net is not intentionally disabled...
 elif grep -wq "ON" /home/pi/safety_net/safety_net_active.txt; then

@@ -1,1 +1,10 @@
 verbosity 100
+
+# local overrides to use version 2 of DB pure ref and calib curves
+pureref_ver 2
+Method_0 raw
+Calib_0 2
+Method_1 simple
+Calib_1 2
+Method_2 complex
+Calib_2 2

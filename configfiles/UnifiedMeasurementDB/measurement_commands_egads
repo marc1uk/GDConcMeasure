@@ -1,18 +1,18 @@
 start
 power on
 connect
-wait 900
+#wait 900
 start_loop
 setFile
-valve outlet open
-valve inlet open
+# valve outlet open
+# valve inlet open
 measure Dark
 measure Dark
 measure Dark
 measure Dark
 measure Dark
-valve inlet close
-valve outlet close
+#valve inlet close
+#valve outlet close
 wait 30
 measure Dark
 measure Dark
