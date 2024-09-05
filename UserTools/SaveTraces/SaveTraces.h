@@ -18,6 +18,9 @@ class SaveTraces: public Tool {
 
 
  private:
+ 
+  TFile* file=nullptr;
+  std::string lastname="";
   int verbosity=1;
   int v_error=0;
   int v_warning=1;

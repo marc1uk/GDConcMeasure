@@ -40,37 +40,50 @@ bool SaveTraces::Execute(){
   Log("SaveTraces Executing...",v_debug,verbosity);
   
   std::string save="";
-  std::string name="";
   int overwrite=1;
+  
+  std::string name="";
+  if(m_data->CStore.Get("Filename",name) && name!=lastname){
+    Log(m_unique_name+" making new file '"+name+"'",v_debug,verbosity);
+    std::string overwritestring = (overwrite==1) ? "RECREATE" : "UPDATE";
+    // TODO if update, we need to open the file, retrieve the trees,
+    // match them with the ones in the m_data->m_trees, then transfer our entries...
+    if(file){
+    	Log(m_unique_name+" deleting file that wasn't saved? '"+file->GetName()+"'",v_warning,verbosity);
+    	file->Close();
+    	delete file;
+    }
+    file = new TFile(name.c_str(), "RECREATE");
+    file->cd();
+    lastname=name;
+  }
     
   if(m_data->CStore.Get("Save",save) && save=="Save"){
     
     //m_data->CStore.Print();
     save="";
     m_data->CStore.Set("Save",save);
-    m_data->CStore.Get("Filename",name);
+    //m_data->CStore.Get("Filename",name);
     m_data->CStore.Get("Overwrite",overwrite);
     
-    Log("SaveTraces saving to filename: "+name,v_message,verbosity);
+    Log("SaveTraces saving to filename: '"+name+"'",v_message,verbosity);
     
-    std::string overwritestring = (overwrite==1) ? "RECREATE" : "UPDATE";
-    // TODO if update, we need to open the file, retrieve the trees,
-    // match them with the ones in the m_data->m_trees, then transfer our entries...
-    TFile file(name.c_str(), "RECREATE");
-    file.cd();
     
     for (std::map<std::string,TTree*>::iterator it=m_data->m_trees.begin(); it!=m_data->m_trees.end(); ++it){
       it->second->Write();
     }
     
-    file.Save();
-    file.Close();
+    file->Save();
+    file->Close();
+    delete file;
+    file=nullptr;
     
-    
+    /*  automatically deleted when file is closed now
     for (std::map<std::string,TTree*>::iterator it=m_data->m_trees.begin(); it!=m_data->m_trees.end(); ++it){
       delete it->second;
       it->second=0;
     }
+    */
     
     m_data->m_trees.clear();
     

@@ -1,0 +1,12 @@
+start
+power up
+start_loop
+valve parallel open
+valve gad close
+wait 6
+valve gad open
+valve parallel close
+wait 6
+loop
+power down
+quit

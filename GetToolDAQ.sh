@@ -219,6 +219,8 @@ fi
 if [ $serialflag -eq 1 ]; then
 	cd ${TOPDIR}/ToolDAQ
 	git clone git@github.com:marc1uk/SerialCpp.git
+	cd SerialCpp
+	make
 	cd ../
 fi
 

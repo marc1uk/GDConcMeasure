@@ -66,7 +66,7 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	void ReInit();
 	void SetGraphTitles();
 	bool GetTrees();
-	bool ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>*& values);
+	bool ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>* values);
 	bool ReadValues();
 	bool GetROI();
 	bool CalculateAbsorbance();
@@ -77,7 +77,7 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	std::string ledToAnalyse;
 	
 	// filled during initialise
-	TGraph g_pure_transparency;
+	TGraph g_pure_absorbance;    // absorbance of pure water (ideally normalised)
 	TGraph g_absorption_ref;
 	TF1 calib_curve;
 	TF1* abs_fct;
@@ -96,13 +96,11 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	TGraph g_absfit;
 	TFitResultPtr absfitresptr;
 	bool absfit_success = false; // our own metric as we can't trust the status of TFitResultPtr
+	double metric, gd_conc;
 	std::pair<double,double> metric_and_err;
 	std::pair<double,double> conc_and_err;
 	
 	std::vector<double> absfunc_init_params; // TODO populate - read from config? fit limits?
-	
-	TTree* led_tree = nullptr;
-	TTree* dark_tree = nullptr;
 	
 	// indices of ROI
 	size_t npoints_all = 0;
@@ -110,7 +108,11 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	size_t start_gd = 0;
 	size_t end_gd = 0;
 	
-	// for getting data from trees
+	// input trees
+	TTree* led_tree = nullptr;
+	TTree* dark_tree = nullptr;
+	
+	// for getting data from input trees
 	std::vector<double> gad_values, ref_values, gad_dark, ref_dark, wavelengths;
 	
 	std::vector<double>* gad_valuesp= nullptr;
@@ -125,6 +127,14 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	double gad_max, gad_min;
 	double gad_fitted_max;
 	
+	// to save traces to output file (for debug, for now?)
+	bool save_trees=false;
+	TTree* outtree=nullptr;
+	// branches
+	std::vector<double> ref_corr_values, absorbances, absfitvalues;
+	std::vector<double>* ref_corr_valuesp=nullptr;
+	std::vector<double>* absorbancesp=nullptr;
+	std::vector<double>* absfitvaluesp=nullptr;
 	
 	// for logging
 	int verbosity=1;

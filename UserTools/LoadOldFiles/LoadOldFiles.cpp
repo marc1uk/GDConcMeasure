@@ -63,6 +63,14 @@ bool LoadOldFiles::Execute(){
 		// get the led-on tree
 		Log("LoadOldFiles: getting ledtree",v_debug,verbosity);
 		ledTree = (TTree*)nextfile->Get(treename.c_str());
+		
+		// if we couldn't find it and the given treename starts with a digit, try again with an 'LED' prefix.
+		// this was later added to make tree names nicer in files.
+		if(ledTree==nullptr && isdigit(treename.front())){
+			std::string filetreename = "LED"+treename;
+			ledTree = (TTree*)nextfile->Get(filetreename.c_str());
+		}
+		
 		if(ledTree==nullptr){
 			Log("LoadOldFiles failed to find specified tree '"+treename+"' in file '"+filename+"'",v_error,verbosity);
 			continue;

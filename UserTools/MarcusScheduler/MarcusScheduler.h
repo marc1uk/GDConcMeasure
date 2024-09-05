@@ -31,6 +31,7 @@ class MarcusScheduler: public Tool {
 	int command_step=0;
 	std::string command_file;
 	std::string measurement_name;
+	std::string datadir="/mnt/data";    // output directory. note subdirectories will be made based on current date
 	std::string outputbasename;         // base name for output file
 	int overwrite_saves=0;
 	bool looping=false;
@@ -41,7 +42,7 @@ class MarcusScheduler: public Tool {
 	int loop_count=0;                   // flattened loop iteration counter, unused
 	std::string break_loop_flagfile_name;
 	
-	const std::map<std::string,int> off_LED_states{{"R",0}, {"G",0}, {"B",0}, {"White",0}, {"385",0}, {"275_A",0}, {"275_B",0}};
+	const std::map<std::string,int> off_LED_states{{"R",0}, {"G",0}, {"B",0}, {"White",0}, {"385",0}, {"275_A",0}, {"275_B",0}, {"Deuterium",0}, {"Tungsten",0}};
 	std::map<std::string,int> LED_states;
 	std::string leds_off_string;
 	
@@ -61,6 +62,7 @@ class MarcusScheduler: public Tool {
 	void DoTransparency(std::string the_command);
 	void DoPower(std::string the_command);
 	void DoConnect(std::string the_command);
+	void DoIntegrationTime(std::string the_command);
 	void DoPump(std::string the_command);
 	void DoValves(std::string the_command);
 	void DoShutter(std::string the_command);
@@ -74,6 +76,7 @@ class MarcusScheduler: public Tool {
 	void StartLoop(std::string the_command);
 	void EndLoop(std::string the_command);
 	void SetFile(std::string the_command);
+	void SetDir(std::string the_command);
   
 	// helper functions
 	bool check_break_loop(std::string& the_command);

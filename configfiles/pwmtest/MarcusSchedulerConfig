@@ -1,2 +1,7 @@
-verbosity 10
-command_file configfiles/pwmtest/measurement_commands
+verbosity 1
+#command_file configfiles/pwmtest/measurement_commands
+command_file configfiles/pwmtest/newgad2
+#command_file configfiles/pwmtest/valve_test
+#command_file configfiles/pwmtest/livedraw_commands
+#command_file configfiles/pwmtest/takepureref
+#command_file configfiles/pwmtest/anatest

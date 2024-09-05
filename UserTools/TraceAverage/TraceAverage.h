@@ -30,9 +30,15 @@ class TraceAverage: public Tool {
   bool InitTTree(TTree* tree);
   
   bool livedraw=false;
+  bool hold_max_plot=false;
+  bool hold_max_range=false;
+  bool plot_gd_region=false;
+  double held_max=0;
+  bool live_darksub=false;
+  std::vector<double> darkvals;
+  bool normalise_livedraw=false;
   TCanvas* cspec=nullptr;
   TGraphErrors* ge=nullptr;
-  double maxvalue=0;
   Color_t linecol = kRed;
 
   int verbosity=1;

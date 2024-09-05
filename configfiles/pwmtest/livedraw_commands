@@ -1,0 +1,41 @@
+start
+power up
+connect
+
+# even if we don't want it, we need a file to store the trees
+# note a file is generated for every loop, which generates a lot of files!
+# FIXME! at the least just keep adding entries to the same trees.....
+# quick hack - dump the files to temporary storage
+setDir /tmp
+setFile tmp
+
+###################################################
+# remember to set SpectrometerConfig traces to 1! #
+#     and enable livedraw in TraceAverage!        #
+###################################################
+
+# open shutter
+#{"Shutter_ref":"OPEN"}
+{"Shutter_gad":"OPEN"}
+
+# shorten integration time. 1000ms minimum. doesn't make much difference tbh.
+#integrationTime 1000
+
+# turn on LED
+#{"White":"1","LED":"Change"}
+#{"275_A":"1","LED":"Change"}
+# relays numbered 0-3
+{"Relay3":"1","LED":"Change"}
+
+start_loop
+
+{"Measure":"Start","Trace":"White"}
+
+# ugh, save and setFile are needed or it segs. FIXME.
+save
+setFile
+
+loop
+
+power down
+quit

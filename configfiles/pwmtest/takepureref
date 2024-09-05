@@ -1,0 +1,11 @@
+start
+power up
+connect
+setFile pure_16_aug_m275l4
+# N.B. measure2 includes Darks
+measure2 White
+#measure2 275_A
+measure2 275_B
+save
+power down
+quit

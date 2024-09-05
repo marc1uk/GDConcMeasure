@@ -1,0 +1,25 @@
+start
+power up
+connect
+setFile newgadtest_m275l4
+#start_loop
+valve gad open
+valve parallel close
+# mixing time in seconds
+wait 60
+valve parallel open
+valve gad close
+# settling time in seconds
+wait 10
+# N.B. measure2 includes Darks
+measure2 White
+#measure2 275_A
+measure2 275_B
+analyse 275_B
+# if saving in a loop we must call the next 2 commands before loop
+# FIXME in MarcusScheduler
+save
+setFile
+#loop
+power down
+quit

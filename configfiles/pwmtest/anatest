@@ -1,0 +1,14 @@
+start
+power up
+connect
+setFile ana_viosys4
+# N.B. measure2 includes Darks
+measure2 White
+analyse White
+#measure2 275_A
+#analyse 275_A
+measure2 275_B
+analyse 275_B
+save
+power down
+quit

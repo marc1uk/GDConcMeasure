@@ -27,13 +27,14 @@ class ArduinoControl: public Tool {
 	bool Execute();
 	bool Finalise();
 	
+	int DeviceNameToNumber(std::string str);
 	bool Connect();
 	bool ShutItDown();  // turn off lights, valves, close shutters
 	bool Disconnect();
 	
 	std::string SerialRead(int timeout_ms=1000);
 	bool SerialWrite(std::string msg);
-	bool SendAndReceive(std::string msg, std::string& response, int timeout=1000);
+	bool SendAndReceive(std::string msg, std::string& response, int timeout=3000);
 	
 	bool Disable(const std::string& name);
 	bool Enable(const std::string& name);

@@ -16,8 +16,8 @@ PostgresLib= -L $(ToolDAQPath)/libpqxx-6.4.7/install/lib -lpqxx -lpq
 PostgresInclude= -I $(ToolDAQPath)/libpqxx-6.4.7/install/include
 
 # simple c++ serial comms library
-SerialLib = -L $(ToolDAQPath)/serialcomms -lserial
-SerialInclude = -I $(ToolDAQPath)/serialcomms
+SerialLib = -L $(ToolDAQPath)/SerialCpp -lserial
+SerialInclude = -I $(ToolDAQPath)/SerialCpp
 
 # pi wiring library for gpio
 #WiringPiLib = -L $(ToolDAQPath)/WiringPi/wiringPi -lwiringPi
@@ -38,7 +38,7 @@ ifeq ($(wildcard $(LIBUSBPATH)/.),)
 endif
 
 MyToolsInclude= $(RootInclude) $(SeaBreezeInclude) $(PostgresInclude) $(WiringPiInclude) $(SerialInclude)
-MyToolsLib= $(RootLib) $(WiringPiLib) $(SeaBreezeLib) $(PostgresLib) -L$(LIBUSBPATH) -lusb
+MyToolsLib= $(RootLib) $(WiringPiLib) $(SeaBreezeLib) $(PostgresLib) $(SerialLib) -L$(LIBUSBPATH) -lusb
 
 all: lib/libStore.so lib/libLogging.so lib/libDataModel.so include/Tool.h lib/libMyTools.so lib/libServiceDiscovery.so lib/libToolChain.so GAD_ToolChain RemoteControl  NodeDaemon
 

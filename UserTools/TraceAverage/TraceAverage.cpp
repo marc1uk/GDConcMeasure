@@ -49,8 +49,13 @@ bool TraceAverage::Initialise(std::string configfile, DataModel &data){
 	    m_data->CStore.Set("tapp_users",tapp_users);
 	  }
 	  // make canvas to draw it on
-          Log("TraceAverage: making live plot canvas",v_debug,verbosity);
+	  Log("TraceAverage: making live plot canvas",v_debug,verbosity);
 	  cspec = new TCanvas("cspec","cspec",1200,700);
+	  m_variables.Get("hold_max_plot",hold_max_plot);
+	  m_variables.Get("hold_max_range",hold_max_range);
+	  m_variables.Get("plot_gd_region",plot_gd_region);
+	  m_variables.Get("normalise_livedraw",normalise_livedraw);
+	  m_variables.Get("live_darksub",live_darksub);
   }
   
   return true;
@@ -85,12 +90,18 @@ bool TraceAverage::Execute(){
     std::string name="";
     m_data->CStore.Get("Trace",name);
     if(name=="") name="test";
+    // c++ variable names can't start with numbers, so if we save a ROOT tree with a name
+    // starting with a number, we can't automatically just use it without having to explicitly
+    // get it from the tree and assigning it to a user-created variable.
+    // so let's ensure stored Tree names all start with letters.
+    std::string keyname = name;
+    if(isdigit(keyname.front())) keyname = "LED"+name;
     
     // see if we have this TTree in the datamodel, or build one if not
     TTree* tree=0;
     tree=m_data->GetTTree(name);
     if(tree==0){
-      tree=new TTree(name.c_str(),name.c_str());
+      tree=new TTree(keyname.c_str(),name.c_str());
       m_data->AddTTree(name,tree);
       bool ok = InitTTree(tree);
       //if(!ok) return false;  // XXX is it better that we at least make a graph for the website...?
@@ -154,17 +165,49 @@ bool TraceAverage::Execute(){
     //gr.SetMarkerStyle(21);
     
     // for live viewing
-    if(livedraw){
+    static size_t start_index=0;
+    static size_t end_index=wavelength.size();
+    if(plot_gd_region && start_index==0){
+    	for(int i=0; i<wavelength.size(); ++i){
+    		if(wavelength.at(i)<260) start_index=i;
+    		else if(wavelength.at(i)<300) end_index=i;
+    		else break;
+    	}
+    }
+    
+    // do dark subtraction based on last dark if requested
+    if(livedraw && live_darksub){
+      if(name=="Dark") darkvals=value;
+      else if(darkvals.size()==wavelength.size()){
+        for(int i=0; i<wavelength.size(); ++i) value.at(i) -= darkvals.at(i);
+      } else {
+        std::cerr<<"TraceAverage::Execute error doing darksubtraction;"
+                   " vectors are different sizes! Did you take a dark first?"<<std::endl;
+      }
+    }
+    
+    double this_max = *std::max_element(value.begin()+start_index,value.begin()+end_index);
+    bool new_max=false;
+    if(this_max>held_max){
+    	new_max=true;
+    	held_max=this_max;
+    }
+    if(livedraw && (!hold_max_plot || new_max) && (!live_darksub || name!="Dark")){
 	    if(ge) delete ge;
 	    ge = new TGraphErrors(value.size(), wavelength.data(), value.data(), nullptr, error.data());
 	    cspec->cd();
 	    if(linecol==kRed) linecol=kBlue;
 	    else linecol=kRed;
 	    ge->SetLineColor(linecol);
-	    if(*std::max_element(value.begin(), value.end())>maxvalue){
-	    	maxvalue=*std::max_element(value.begin(), value.end());
+	    if(hold_max_range) ge->GetHistogram()->GetYaxis()->SetRangeUser(-50,held_max*1.1);
+	    if(plot_gd_region) ge->GetHistogram()->GetXaxis()->SetRangeUser(260,300);
+	    if(normalise_livedraw){
+	    	for(int i=0; i<ge->GetN(); ++i){
+	    		ge->GetY()[i] = ge->GetY()[i] / this_max;
+	    		ge->GetEY()[i] = ge->GetEY()[i] / this_max;
+	    	}
+	    	ge->GetHistogram()->GetYaxis()->SetRangeUser(0.,1.);
 	    }
-	    ge->GetHistogram()->GetYaxis()->SetRangeUser(-50,maxvalue*1.1);
 	    ge->Draw("AL");
 	    cspec->Modified();
 	    cspec->Update();

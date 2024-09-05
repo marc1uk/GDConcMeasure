@@ -51,7 +51,7 @@ bool BenSpectrometer::Execute(){
   std::string connect="";
   if(m_data->CStore.Get("Connect",connect)){
     if(connected){
-      Log("spectrometer already connected",v_message,verbosity);
+      Log("spectrometer already connected",v_debug,verbosity);
     } else {
       
       Log("spectrometer on",v_message,verbosity);
@@ -97,6 +97,12 @@ bool BenSpectrometer::Execute(){
       m_data->CStore.Set("SpectrometerConnected",false);
   }
   
+  // update integration time if a new one given
+  if(m_data->CStore.Get("IntegrationTime",intTime)){
+    Log("updating integration time to "+std::to_string(intTime),v_debug,verbosity);
+    m_data->CStore.Remove("IntegrationTime");
+  }
+  
   // check if we have a flag in the DataModel to start a measurement
   std::string tmp="";
   if(m_data->CStore.Get("Measure",tmp) && tmp=="Start"){
@@ -110,7 +116,8 @@ bool BenSpectrometer::Execute(){
       m_data->CStore.Remove("Measure");
       return ok;
     }
-  
+    m_data->measurment_time= boost::posix_time::ptime(boost::posix_time::second_clock::local_time());
+      
   }
   
   
@@ -393,7 +400,8 @@ bool BenSpectrometer::GetData(){
   sbapi_spectrometer_set_integration_time_micros(device_ids[0], spectrometer_ids[0],&error, intTime);
   if(error){
     Log("BenSpectrometer::GetData sbapi_spectrometer_set_integration_time_micros returned error "
-       +std::to_string(error)+std::string(": ")+sbapi_get_error_string(error),v_error,verbosity);
+       +std::to_string(error)+std::string(": ")+sbapi_get_error_string(error)
+       +" setting time to "+std::to_string(intTime),v_error,verbosity);
     return 0;
   }
   

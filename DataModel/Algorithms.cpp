@@ -30,7 +30,7 @@ int SystemCall(std::string cmd, std::string& retstring){
       if (fgets(buffer, bufsize, stream) != NULL) retstring.append(buffer);
     }
     // pop off trailing newline
-    if(std::isspace(retstring.back())) retstring.pop_back();
+    if(retstring.size() && std::isspace(retstring.back())) retstring.pop_back();
     // close the pipe, and capture command return value
     int stat = pclose(stream);
     retstatus = (WIFEXITED(stat)) ? WEXITSTATUS(stat) : WTERMSIG(stat);

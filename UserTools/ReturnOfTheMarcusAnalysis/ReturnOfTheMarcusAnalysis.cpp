@@ -43,6 +43,12 @@ bool ReturnOfTheMarcusAnalysis::Initialise(std::string configfile, DataModel &da
 	// the reference arm to what would be expected for the GAD arm with no Gd or contaminants
 	GetPureWaterTransparency();
 	
+	// get reference Gd absorption shape
+	GetAbsorptionRef();
+	
+	// turn reference graph into functional TF1 fit
+	GetAbsFunc();
+	
 	// get calibration cofficients for converting absorbance to gd concentration
 	GetCalibrationCurve();
 	
@@ -52,6 +58,14 @@ bool ReturnOfTheMarcusAnalysis::Initialise(std::string configfile, DataModel &da
 	ref_valuesp= &ref_values;
 	gad_darkp= &gad_dark;
 	ref_darkp= &ref_dark;
+	
+	// see if saving traces to ROOT file (debug)
+	m_variables.Get("save_trees",save_trees);
+	
+	// pointers for writing data output to Trees
+	ref_corr_valuesp = &ref_corr_values;
+	absorbancesp = &absorbances;
+	absfitvaluesp = &absfitvalues;
 	
 	// probably not strictly necessary
 	SetGraphTitles();
@@ -87,6 +101,10 @@ bool ReturnOfTheMarcusAnalysis::Execute(){
 			// calculate absorbance from log10(transmitted / received) light
 			Log(m_unique_name+" calculating absorbance",v_debug,verbosity);
 			CalculateAbsorbance();
+			
+			// fit absorbance trace with reference Gd absorbance shape
+			Log(m_unique_name+" fitting absorbance",v_debug,verbosity);
+			FitAbsorbance();
 			
 			// fit absorption peaks to obtain difference and convert to concentration.
 			// for each fitting method, calculate the difference in absorbtion peak heights
@@ -176,15 +194,15 @@ bool ReturnOfTheMarcusAnalysis::GetPureWaterTransparency(){
 	
 	// set name and title
 	std::string purename="g_pureref_"+ledToAnalyse;
-	g_pure_transparency.SetName(purename.c_str());
-	g_pure_transparency.SetTitle(purename.c_str());
+	g_pure_absorbance.SetName(purename.c_str());
+	g_pure_absorbance.SetTitle(purename.c_str());
 	
 	// also store a pointer to the graph for plotting on the webpage
-	intptr_t puregraphp = reinterpret_cast<intptr_t>(&g_pure_transparency);
+	intptr_t puregraphp = reinterpret_cast<intptr_t>(&g_pure_absorbance);
 	std::string key = "purerefData_"+ledToAnalyse;
 	m_data->CStore.Set(key, puregraphp);
 	
-	Log(m_unique_name+" loaded pure reference trace of "+g_pure_transparency.GetN()
+	Log(m_unique_name+" loaded pure reference trace of "+g_pure_absorbance.GetN()
 	    +" points",v_debug,verbosity);
 	
 	return true;
@@ -270,7 +288,7 @@ bool ReturnOfTheMarcusAnalysis::GetPureWaterTransparency(int pureref_ver){
 		                         +ledToAnalyse+" version "+std::to_string(pureref_ver));
 	}
 	
-	g_pure_transparency = TGraph(pureref_xvals.size(), pureref_xvals.data(), pureref_yvals.data());
+	g_pure_absorbance = TGraph(pureref_xvals.size(), pureref_xvals.data(), pureref_yvals.data());
 	
 	// put the version number used in the CStore for later tools
 	std::string key = "purerefID_"+ledToAnalyse;
@@ -292,7 +310,15 @@ bool ReturnOfTheMarcusAnalysis::GetPureWaterTransparency(std::string filename){
 		}
 		
 		// returns number of bytes read
-		get_ok = puref->ReadTObject(&g_pure_transparency,"Graph");
+		get_ok = puref->ReadTObject(&g_pure_absorbance,"Graph");
+		
+		// ensure normalised TODO just do this in the creation
+		double puremax = *std::max_element(g_pure_absorbance.GetY(),g_pure_absorbance.GetY()+g_pure_absorbance.GetN());
+		if(puremax!=1){
+			for(int i=0; i<g_pure_absorbance.GetN(); ++i){
+				g_pure_absorbance.GetY()[i] = g_pure_absorbance.GetY()[i] / puremax;
+			}
+		}
 		
 		if(get_ok<=0){
 			throw std::runtime_error(m_unique_name+" failed to read pure reference TGraph 'Graph' from file "
@@ -332,15 +358,15 @@ bool ReturnOfTheMarcusAnalysis::GetTrees(){
 		if(led_tree && dark_tree) break;
 	}
 	
-	if(!led_tree) Log(m_unique_name+" Failed to find led tree!",v_error,verbosity);
-	if(!dark_tree) Log(m_unique_name+" Failed to find dark tree!",v_error,verbosity);
+	if(!led_tree) throw std::runtime_error(m_unique_name+" Failed to find led tree!");
+	if(!dark_tree) throw std::runtime_error(m_unique_name+" Failed to find dark tree!");
 	
 	return bool(led_tree) && bool(dark_tree);
 }
 
-bool ReturnOfTheMarcusAnalysis::ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>*& values){
+bool ReturnOfTheMarcusAnalysis::ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>* values){
 	get_ok = ((tree->SetBranchAddress(branch.c_str(), &values)) >= 0);
-	if(get_ok){
+	if(!get_ok){
 		throw std::runtime_error(m_unique_name+" failed to set address for tree "+tree->GetName()
 		      +", branch "+branch);
 	}
@@ -376,8 +402,8 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 	}
 	ReadBranch(led_tree, "value", led_tree->GetEntries()-2, ref_valuesp);
 	ReadBranch(led_tree, "value", led_tree->GetEntries()-1, gad_valuesp);
-	ReadBranch(led_tree, "value", dark_tree->GetEntries()-1, ref_darkp);
-	ReadBranch(led_tree, "value", dark_tree->GetEntries()-2, gad_darkp);
+	ReadBranch(dark_tree, "value", dark_tree->GetEntries()-2, ref_darkp);
+	ReadBranch(dark_tree, "value", dark_tree->GetEntries()-1, gad_darkp);
 	
 	if(g_ref.GetN()==0) g_ref.Set(wavelengths.size());
 	if(g_gad.GetN()==0) g_gad.Set(wavelengths.size());
@@ -388,7 +414,9 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 			gad_values.at(i) -= gad_dark.at(i);
 			ref_values.at(i) -= ref_dark.at(i);
 			
-			if(TMath::IsNaN(gad_values.at(i)) || TMath::IsNaN(ref_values.at(i))){
+			if(TMath::IsNaN(gad_values.at(i)) || TMath::IsNaN(ref_values.at(i)) ||
+			  !TMath::Finite(gad_values.at(i)) || !TMath::Finite(ref_values.at(i)) ){
+				std::cout<<"gad: "<<gad_values.at(i)<<", ref: "<<ref_values.at(i)<<std::endl;
 				throw std::runtime_error(m_unique_name+" NaN value in trace point "+std::to_string(i));
 			}
 			
@@ -406,7 +434,6 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 		Log(ss.str(),v_error,verbosity);
 		throw std::runtime_error(m_unique_name+" Error getting data from trees");
 	}
-	
 	
 	// for stability monitoring we'll record some characteristic information about the raw data
 	// in the database. The dark trace should be pretty flat, so we'll histogram it,
@@ -428,6 +455,9 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 	gad_max = *std::max_element(gad_values.begin(), gad_values.end());
 	gad_min = *std::min_element(gad_values.begin(), gad_values.end());
 	
+	Log(m_unique_name+" ref arm max: "+std::to_string(ref_max)
+	   +", gad arm max: "+std::to_string(gad_max),v_debug,verbosity);
+	
 	return true;
 }
 
@@ -445,22 +475,67 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	if(g_ref_corr.GetN()==0) g_ref_corr.Set(wavelengths.size());
 	if(g_abs.GetN()==0) g_abs.Set(wavelengths.size());
 	if(g_gadfit.GetN()==0) g_gadfit.Set(wavelengths.size());
+	if(ref_corr_values.size()==0) ref_corr_values.resize(wavelengths.size());
+	if(absorbances.size()==0) absorbances.resize(wavelengths.size());
 	
 	for(size_t i=0; i<wavelengths.size(); ++i){
 		// correct reference arm values for water transparency (and other GAD optical path elements)
 		// to obtain expected GAD arm measurement for pure water
-		double ref_value_corr = ref_values.at(i) / g_pure_transparency.GetY()[i];
+		double ref_value_corr = ref_values.at(i) * g_pure_absorbance.GetY()[i];
+		ref_corr_values[i]=ref_value_corr;
 		g_ref_corr.SetPoint(i, wavelengths.at(i), ref_value_corr);
-		double absval = log10(gad_values.at(i)/ref_value_corr);
-		if(TMath::IsNaN(absval)){
-			throw std::runtime_error(m_unique_name+" NaN absorbance for datapoint "+ std::to_string(i)
+		// we'll get NaN if the argument to log10 is negative; i.e. if either value in the ratio is negative
+		// while technically we cannot have negative light, after dark subtraction we can get negative vlaues.
+		// if ref arm is <=0, call absorbance 0. If gad arm is <=0, set gad value to 1*
+		// if gad arm is > ref arm, this is probably noise, so also set absorbance to 0
+		// *a gad value of 0 means ref/gad is inf, so set to 1 ADC count.
+		if(gad_values.at(i)<=0) gad_values.at(i)=1.;
+		double absval=-1;
+		if(ref_value_corr<=0) absval=0;
+		else if(gad_values.at(i)>ref_value_corr) absval=0; // FIXME sanity check that ref value is very small?
+		else absval = ref_value_corr/gad_values.at(i); //log10(ref_value_corr/gad_values.at(i));
+		if(TMath::IsNaN(absval) || !TMath::Finite(absval)){
+			throw std::runtime_error(m_unique_name+" NaN absorbance value "+std::to_string(absval)
+			                        +" for datapoint "+ std::to_string(i)
 			                        +" from gad value "+std::to_string(gad_values.at(i))+", ref value: "
 			                        +std::to_string(ref_values.at(i))+", corrected for pure water: "
 			                        + std::to_string(ref_value_corr));
 		}
+		absorbances[i]=absval;
 		g_abs.SetPoint(i, wavelengths.at(i), absval);
 	}
 	corrected_ref_max = *std::max_element(g_ref_corr.GetY(),g_ref_corr.GetY()+g_ref_corr.GetN());
+	
+	if(!save_trees) return true;
+	
+	// save calculated traces to output tree if requested
+	outtree = new TTree("rotma","Return of the Marcus Analysis");
+	m_data->m_trees.emplace("rotma",outtree);
+	// XXX SaveTraces deletes all entries of m_data->m_trees when save is called!
+	TBranch* bptr = nullptr;
+	bptr = outtree->Branch("wavelength",&wavelengthsp);
+	bptr->Fill();
+	bptr = outtree->Branch("gad_values",&gad_valuesp);
+	bptr->Fill();
+	bptr = outtree->Branch("ref_values",&ref_valuesp);
+	bptr->Fill();
+	static std::vector<double> puretranspvals(g_pure_absorbance.GetY(),g_pure_absorbance.GetY()+g_pure_absorbance.GetN());
+	static std::vector<double>* puretranspvalsp = &puretranspvals;
+	bptr = outtree->Branch("pure_transp",&puretranspvalsp);
+	bptr->Fill();
+	bptr = outtree->Branch("ref_corr",&ref_corr_valuesp);
+	bptr->Fill();
+	bptr = outtree->Branch("abs",&absorbancesp);
+	bptr->Fill();
+	std::cout<<"saving absref from graph of "<<g_absorption_ref.GetN()<<" datapoints"<<std::endl;
+	static std::vector<double> absrefvals(g_absorption_ref.GetY(),g_absorption_ref.GetY()+g_absorption_ref.GetN());
+	static std::vector<double>* absrefvalsp = &absrefvals;
+	std::cout<<"absrefvalsp has "<<absrefvalsp->size()<<" points"<<std::endl;
+	bptr = outtree->Branch("abs_ref",&absrefvalsp);
+	bptr->Fill();
+	
+	outtree->SetEntries(1);
+	outtree->ResetBranchAddresses();
 	
 	return true;
 }
@@ -635,7 +710,7 @@ bool ReturnOfTheMarcusAnalysis::GetAbsorptionRef(std::string filename){
 bool ReturnOfTheMarcusAnalysis::GetAbsFunc(){
 	
 	// construct functional fit of reference gd absorption
-	Log(m_unique_name+" constructing functional fit TF1 from reference absorbance trace",v_debug,verbosity);
+	Log(m_unique_name+" constructing functional fit TF1 from reference Gd absorbance trace",v_debug,verbosity);
 	
 	// We'll scale it, and add a linear background to account for contaminants.
 	// TODO we could potentially make this a pol2 or pol3 background,
@@ -645,18 +720,17 @@ bool ReturnOfTheMarcusAnalysis::GetAbsFunc(){
 	
 	// for reasons explained in MarcusAnalysis, the easiest way to make a functional fit
 	// is to make a lambda function that captures a pointer to the fitted TGraph member
-	TGraph* g_abs_gd_p = &g_abs_gd;
+	TGraph* g_abs_ref_p = &g_absorption_ref;
 	abs_fct = new TF1(name.c_str(),
-		[g_abs_gd_p](double* x, double* par) -> double {
+		[g_abs_ref_p](double* x, double* par) -> double {
 			// par [0] = y-scaling
 			// par [1] = baseline offset (c)
 			// par [2] = baseline gradient (m)
-			double abs = par[0]*g_abs_gd_p->Eval(x[0]);
+			double abs = par[0]*g_abs_ref_p->Eval(x[0]);
 			double baseline = par[2]*(x[0]-276) + par[1];
 			return (abs + baseline);
 		},
-		wavelengths[start_gd], wavelengths[end_gd], n_absfit_pars);
-	
+		ROI_min, ROI_max, n_absfit_pars);
 	
 	// set default parameters
 	// TODO is it worth making these configuration parameters?
@@ -901,8 +975,9 @@ bool ReturnOfTheMarcusAnalysis::GetROI(){
 	
 	npoints_all = wavelengths.size();
 	npoints_gd = 0;
+	int ROI_min_light=50; // FIXME make configurable
 	for(int i=0; i<npoints_all; ++i){
-		if(wavelengths.at(i)>ROI_max) break;
+		if(wavelengths.at(i)>ROI_max || (end_gd>start_gd && (gad_values.at(i)<ROI_min_light || ref_values.at(i)<ROI_min_light))) break;
 		if(wavelengths.at(i)<ROI_min) continue;
 		if(npoints_gd==0) start_gd=i;
 		end_gd=i;
@@ -918,9 +993,12 @@ bool ReturnOfTheMarcusAnalysis::FitAbsorbance(){
 	// fit absorbance in UV region with reference shape and extract the scaling required
 	
 	// extract ROI
-	if(npoints_gd==0){
-		GetROI();  // find indices of 260nm - 300nm range
+	// for absorbance fit to work best, we need to only fit the region where there is light
+	// so do this on every execution, as our range of wavelengths for which this is true can shift
+	GetROI();  // find indices of 260nm - 300nm range
+	if(absfitvalues.size()==0){
 		g_abs_gd.Set(npoints_gd);
+		absfitvalues.resize(npoints_gd);
 	}
 	
 	// extract subset of absorbance around Gd region
@@ -931,7 +1009,7 @@ bool ReturnOfTheMarcusAnalysis::FitAbsorbance(){
 	// initialise fit parameters (skip to carry over previous values)
 	//abs_fct->SetParameters(absfunc_init_params.data());
 	
-	TFitResultPtr absfitresptr = g_abs_gd.Fit(abs_fct,"RNMQS"); // or call it 'tmp'
+	absfitresptr = g_abs_gd.Fit(abs_fct,"RNMQS"); // or make a new one and call it 'tmp'
 	//absfitresptr = TFitResultPtr((TFitResult*)tmp->Clone());  // i don't know if Clone is required
 	
 	if(absfitresptr->IsEmpty() || !absfitresptr->IsValid() || absfitresptr->Status()!=0){
@@ -962,6 +1040,7 @@ bool ReturnOfTheMarcusAnalysis::FitAbsorbance(){
 			Log("abs fit function eval to NaN",v_error,verbosity);
 			next_abs = 0;
 		}
+		absfitvalues[i] = next_abs;
 		g_absfit.SetPoint(i, next_wl, next_abs);
 	}
 	
@@ -977,6 +1056,12 @@ bool ReturnOfTheMarcusAnalysis::FitAbsorbance(){
 	c_ttmp.SaveAs("absfit.png");
 	*/
 	
+	if(!save_trees) return absfit_success;
+	
+	TBranch* absbranch = outtree->Branch("absfit",&absfitvaluesp);
+	absbranch->Fill();
+	outtree->ResetBranchAddresses();
+	
 	return absfit_success;
 }
 
@@ -986,14 +1071,22 @@ bool ReturnOfTheMarcusAnalysis::CalculateConcentration(){
 	
 	// convert to gd concentration based on specified calibration curve
 	Log(m_unique_name+" calculating concentration",v_debug,verbosity);
-	double metric = absfitresptr->Parameter(0);
-	double conc_prediction = calib_curve.GetX(metric);
+	metric = absfitresptr->Parameter(0);
+	gd_conc = calib_curve.GetX(metric);
 	
 	double metric_err = absfitresptr->GetErrors()[0];
 	metric_and_err = std::pair<double,double>{metric, metric_err};
 	
 	double gd_conc_err = metric_err * calib_curve.Derivative(metric);
-	conc_and_err = std::pair<double,double>{conc_prediction, gd_conc_err};
+	conc_and_err = std::pair<double,double>{gd_conc, gd_conc_err};
+	
+	if(!save_trees) return get_ok;
+	
+	TBranch* bptr = nullptr;
+	bptr = outtree->Branch("metric",&metric);
+	bptr->Fill();
+	bptr = outtree->Branch("gd_conc",&gd_conc);
+	bptr->Fill();
 	
 	return get_ok;
 }

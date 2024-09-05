@@ -1,0 +1,25 @@
+verbosity 10
+save_trees 1
+#ledToAnalyse 275_A
+#ledToAnalyse White
+ledToAnalyse 275_B
+
+# trace for pure water down GAD arm
+#pureref_ver     # DB entry ID
+#pureref_file purewater_absorbance.root   # should contain TGraph called 'Graph' 
+#pureref_file g_ratio_fresh2.root
+#pureref_file g_pure_fromviosys.root
+pureref_file g_pure_leds.root
+
+# reference Gd absorbance trace. Normalised peak of 1.
+# (not strictly required as its a combination with calibration curve)
+#absref_ver      # DB entry ID
+absref_file g_ref_abs_275_A.root    # should contain TGraph called 'Graph'
+
+# calibration function to map scaling of reference absorbance to concentration
+#cal_curve_ver   # DB entry ID
+cal_curve_file test_cal.root # should contain TF1 called 'CalCurve'
+cal_tf1_formula pol1 # e.g. pol6
+cal_n_par 2      # e.g. 7
+cal_par_0 1      # one variable for each with X from 0 to n_par-1
+cal_par_1 1
