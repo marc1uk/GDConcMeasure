@@ -59,10 +59,6 @@ bool ArduinoControl::Execute(){
 	
 	get_ok = true;
 	
-	// TODO arduino control is bizarrely slow. Either find out why,
-	// or re-write this to combine the set of new states into one command
-	// so that we can set everything with a single write.
-	
 	// check for LED state changes
 	// TODO sanity check that 'tmp' is "1" or "0"
 	std::string tmp;
@@ -128,6 +124,13 @@ bool ArduinoControl::Execute(){
 		m_data->CStore.Remove("Shutter_lamp");
 	}
 	
+	// this just enables/disables control via the DB15 connector on the back of the lamp
+	// note not all electronics boxes support this; some have it hard-wired to 5V
+	if(m_data->CStore.Get("Lamp_DB15",tmp)){
+		get_ok = get_ok && SetState("LAMP_DB15", (tmp=="ENABLE"));
+		m_data->CStore.Remove("Lamp_DB15");
+	}
+	
 	if(m_data->CStore.Get("Valve_gad",tmp)){
 		get_ok = get_ok && SetState("TUBE", (tmp=="OPEN"));
 		m_data->CStore.Remove("Valve_gad");
@@ -138,10 +141,34 @@ bool ArduinoControl::Execute(){
 		m_data->CStore.Remove("Valve_parallel");
 	}
 	
-	// this just enables/disables control via the DB15 connector on the back of the lamp
-	if(m_data->CStore.Get("Lamp_DB15",tmp)){
-		get_ok = get_ok && SetState("LAMP_DB15", (tmp=="ENABLE"));
-		m_data->CStore.Remove("Lamp_DB15");
+	if(m_data->CStore.Get("Valve_pump",tmp)){
+		get_ok = get_ok && SetState("PUMP", (tmp=="OPEN"));
+		m_data->CStore.Remove("Valve_pump");
+	}
+	
+	if(m_data->CStore.Get("LED_temp",tmp)){
+		get_ok = get_ok && GetLedTemp();
+		// result should have been put in CStore key 'LED_T'
+		m_data->CStore.Remove("LED_temp");
+	}
+	
+	if(m_data->CStore.Get("Sol_temps",tmp)){
+		get_ok = get_ok && GetSolTemps();
+		// result should have been put in CStore key 'Sol_Ts'
+		m_data->CStore.Remove("Sol_temps");
+	}
+	
+	if(m_data->CStore.Get("Flow_check",tmp)){
+		get_ok = get_ok && GetFlowStatus();
+		// result should have been put in CStore key 'Flow_Status'
+		// N.B. this is just a 0/1, not a litres/min rate!
+		m_data->CStore.Remove("Flow_check");
+	}
+	
+	if(m_data->CStore.Get("BEEP",tmp)){
+		// TODO add support for beep patterns
+		get_ok = get_ok && SerialWrite("BEEP");
+		m_data->CStore.Remove("BEEP");
 	}
 	
 	return get_ok;
@@ -207,6 +234,108 @@ bool ArduinoControl::ShutItDown(){
 	return allok;
 }
 
+bool ArduinoControl::GetLedTemp(){
+	std::string resp;
+	bool ok = SendAndReceive("LED_TEMP",resp);
+	if(!ok){
+		Log(m_unique_name+"::GetLedTemp error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	// format is 'LED_TEMP: X' (so we know we're getting the right number)
+	std::stringstream ss(resp);
+	std::string tmp;
+	double led_temp=0;
+	ss >> tmp >> led_temp;
+	ok = (!ss.fail() && ss.eof());
+	if(!ok || tmp!="LED_TEMP:"){
+		Log(m_unique_name+"::GetLedTemp error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	m_data->CStore.Set("LED_T",led_temp);
+	return true;
+}
+
+bool ArduinoControl::GetSolTemp(int sol_num, double& temp){
+	// solenoid numbers should be 0-2
+	std::string key = "SOL"+std::to_string(sol_num)+"_TEMP";
+	std::string resp;
+	bool ok = SendAndReceive(key,resp);
+	if(!ok){
+		Log(m_unique_name+"::GetSolTemp error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	
+	// format is 'SOLN_TEMP: X' (so we know we're getting the right number)
+	std::string expected_key = "SOL"+std::to_string(sol_num)+"_TEMP:";
+	std::stringstream ss(resp);
+	std::string tmp;
+	double sol_temp=0;
+	ss >> tmp >> sol_temp;
+	ok = (!ss.fail() && ss.eof());
+	if(!ok || tmp!=expected_key){
+		Log(m_unique_name+"::GetSolTemp error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	temp = sol_temp;
+	return true;
+}
+
+bool ArduinoControl::GetSolTemps(){
+	// more likely we're gonna want all 3, so we have a command for that
+	std::string resp;
+	bool ok = SendAndReceive("SOL_TEMPS",resp);
+	if(!ok){
+		Log(m_unique_name+"::GetSolTemps error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	// response should be of the form: 'SOL_TEMPS: T1,T2,T3'
+	std::stringstream ss(resp);
+	std::string tmp;
+	std::vector<double> temps;
+	while(std::getline(ss, tmp, ',')){
+		Log(m_unique_name+": next part: '"+tmp+"'",v_debug,verbosity);
+		if(tmp=="SOL_TEMPS:") continue;
+		try{
+			double temp = std::stod(tmp);
+			temps.push_back(temp);
+		} catch(...){
+			Log(m_unique_name+"::GetSolTemps error; bad temp format '"+resp+"'",v_error,verbosity);
+			return false;
+		}
+	}
+	if(temps.size()>3){
+		Log(m_unique_name+"::GetSolTemps too many temperatures ("+std::to_string(temps.size())+")"
+		    +", response: '"+resp+"'",v_error,verbosity);
+		return false;
+	} else {
+		m_data->CStore.Set("Sol_Ts",temps);
+	}
+	return true;
+}
+
+bool ArduinoControl::GetFlowStatus(){
+	std::string resp;
+	bool ok = SendAndReceive("FLOW_SENSE",resp);
+	if(!ok){
+		Log(m_unique_name+"::GetFlowStatus error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	// format is 'FLOW_SENSE: X' (so we know we're getting the right number)
+	// X is either 0 or 1, currently used flow sensor does not provide an actual rate
+	std::stringstream ss(resp);
+	std::string tmp;
+	char flow_state=0;
+	ss >> tmp >> flow_state;
+	ok = (!ss.fail() && ss.eof());
+	if(!ok || tmp!="FLOW_SENSE:" || (flow_state!='1' && flow_state!='0')){
+		Log(m_unique_name+"::GetFlowStatus error '"+resp+"'",v_error,verbosity);
+		return false;
+	}
+	int flow_val = std::atoi(&flow_state);
+	m_data->CStore.Set("Flow_Status",flow_val);
+	return true;
+}
+
 bool ArduinoControl::Connect(){
 	
 	// default arduino serial is 8 data bits, 1 stop bit, no parity, no flow control
@@ -226,7 +355,7 @@ bool ArduinoControl::Connect(){
 	
 	// check comms are working as expected
 	std::string response;
-	get_ok = SendAndReceive("Hello",response);
+	get_ok = SendAndReceive("HELLO",response);
 	if(!get_ok || response!="Hello!"){
 		if(get_ok) Log(m_unique_name+" Error with initial comms check; expected response 'Hello!', got '"+response+"'",v_error,verbosity);
 		return false;

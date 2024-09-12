@@ -39,6 +39,10 @@ class ArduinoControl: public Tool {
 	bool Disable(const std::string& name);
 	bool Enable(const std::string& name);
 	bool SetState(const std::string& name, bool enable);
+	bool GetLedTemp();
+	bool GetSolTemp(int sol, double& temp);
+	bool GetSolTemps();
+	bool GetFlowStatus();
 	
 	private:
 	timer atimer;
