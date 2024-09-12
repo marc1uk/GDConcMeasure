@@ -1,6 +1,6 @@
 # placeholder, nothing needed here
 verbosity 1
-#livedraw 1
+livedraw 1
 hold_max_plot 0
 hold_max_range 1
 #plot_gd_region 1

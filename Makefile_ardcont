@@ -1,0 +1,8 @@
+
+all: turn_off_arduino
+
+turn_off_arduino: turn_off_arduino.cpp turn_off_arduino.h
+	g++ -g -std=c++11 -I /home/gad/GDConcMeasure/ToolDAQ/SerialCpp -L /home/gad/GDConcMeasure/ToolDAQ/SerialCpp -lserial $< -o $@
+
+switch_valves: switch_valves.cpp turn_off_arduino.h
+	g++ -g -std=c++11 -I /home/gad/GDConcMeasure/ToolDAQ/SerialCpp -L /home/gad/GDConcMeasure/ToolDAQ/SerialCpp -lserial $< -o $@

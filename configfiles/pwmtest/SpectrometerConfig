@@ -1,9 +1,10 @@
 # configuration for spectrometer
-verbosity 10
-wakedelay 6                     # seconds to wait to give spectrometer time to connect to DHCP
-traces 1000                     # number of traces to take each measurement (2k)
+verbosity 2
+wakedelay 1                     # seconds to wait to give spectrometer time to connect to DHCP
+traces 20                     # number of traces to take each measurement (2k)
 integration 25000               # integration time in microseconds
-SpectrometerIP 192.168.50.2     # lab gad rig spectrometer
+#SpectrometerIP 192.168.50.2     # lab gad rig spectrometer
+SpectrometerIP 192.168.2.187
 #SpectrometerIP 192.168.50.4    # new gad rig spectrometer
 #SpectrometerModel Jaz          # old spectrometer?
 SpectrometerModel Blaze         # current spectrometer

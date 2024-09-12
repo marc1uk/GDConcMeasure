@@ -15,17 +15,17 @@ setFile tmp
 ###################################################
 
 # open shutter
-#{"Shutter_ref":"OPEN"}
-{"Shutter_gad":"OPEN"}
+{"Shutter_ref":"OPEN"}
+#{"Shutter_gad":"OPEN"}
 
 # shorten integration time. 1000ms minimum. doesn't make much difference tbh.
 #integrationTime 1000
 
 # turn on LED
-#{"White":"1","LED":"Change"}
+{"White":"1","LED":"Change"}
 #{"275_A":"1","LED":"Change"}
 # relays numbered 0-3
-{"Relay3":"1","LED":"Change"}
+#{"Relay3":"1","LED":"Change"}
 
 start_loop
 
