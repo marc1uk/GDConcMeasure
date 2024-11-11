@@ -126,7 +126,9 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     //pars = std::vector<double>{1,0,1,0.5,0,0,0};
     //pars = std::vector<double>{9,-0.25,0.8,0,0.001,-0.06,0.12}; << initial for set 1
     //pars = std::vector<double>{20.222116, 0.065019, 0.809043, 0.000000, 0.001000, -0.048069, -0.310535}; // << last of set 1 - used for april-jul retroactive analysis with april calibration
-    pars = std::vector<double>{0.13,-0.02, 1.1, 0.0, 0.0, 0.0, 0.0};
+    //pars = std::vector<double>{0.13,-0.02, 1.1, 0.0, 0.0, 0.0, 0.0};
+    // below from 27-08-2024 restart, propagate last set for continuity.
+    pars = std::vector<double>{0.659464, 0.049935, 1.023525, 0.000000, 0.000000, 0.003120, -0.051462};
     led_info.combined_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.1,50},{-1,1},{0.7,1.1},{0,1.1},{0.002,0.002}, {-0.1,0.1}, {-1,1} };
     led_info.combined_fit.SetFitParameterRanges(limits);
@@ -138,7 +140,9 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     
     // y_scaling, x_translation, 3rd order bg, 2nd order bg, 1st order bg, constant bg
     //pars = std::vector<double>{1,0,0,0,0,0}; << initial for set 1
-    pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
+    //pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
+    // below from 27-08-2024 restart, propagate last set for continuity.
+    pars = std::vector<double>{1.139877, 0.049598, -0.000643, 0.000000, 0.014598, -0.167741};
     led_info.absorbtion_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.01,100},{-10,10},{-2,2},{10,10},{-100,100},{-1000,1000} };
     led_info.absorbtion_fit.SetFitParameterRanges(limits);
@@ -232,7 +236,6 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // also the way the 'zeroth order background' parameter is implemented, it's redundant with the pure
   // scaling (parameter 0)
   curr_comb_fit.fit_funct.FixParameter(7,0);
-  TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(RemoveRegion(current_dark_sub, abs_region_low, abs_region_high),false, current_led=="275_A");
   
   /* -- nah this still doesn't work
   // fix the pure parts
@@ -245,6 +248,42 @@ bool MatthewAnalysisStrikesBack::Execute(){
   curr_comb_fit.fit_funct.SetParLimits(3,0,1.1);
   TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
   */
+  
+  // we'll repeat the fit multiple times, this seems to be the easiest and most robust
+  // way to prevent misfits! stop once the chi2 stabilises.
+  int mintries=2; // defining a chi2 threshold is difficult but try at least twice to see if it goes down
+  int maxtries=5; // after 5 re-fits its probably not going to go down any more.... right? don't want to get stuck.
+  double lastchi2=0;
+  for(int numtries=0; numtries<maxtries; ++numtries){
+    
+    TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(RemoveRegion(current_dark_sub, abs_region_low, abs_region_high),false);
+    
+    double thischi2 = datafitresptr->Chi2();
+    bool badfit = (thischi2 > 10E3);
+    double deltachi2pc = std::abs(thischi2-lastchi2) / lastchi2;
+    lastchi2 = thischi2;
+    
+    // sometimes the fits are bad, but strangely enough simply redoing them improves it.
+    // redo the fit if it was bad, if we've made less than maxtries fit attempts,
+    // and if the change in the chi2 was more than 10%
+    if( (badfit && numtries<(maxtries-1) && deltachi2pc>0.1) || (numtries<mintries) ) continue;
+    
+    // FIXME figure out a suitable metric of whether these fits worked or not
+    int datafit_success =  !datafitresptr->IsEmpty() &&
+                           datafitresptr->IsValid() &&
+                           datafitresptr->Status()==0 &&
+                           ((datafitresptr->Chi2()/datafitresptr->Ndf()) < 10.) &&
+                           !TMath::IsNaN(datafitresptr->GetParams()[0]) &&
+                           (datafitresptr->GetErrors()[0] < 0.5);
+    // update the datamodel
+    m_data->CStore.Set("datafit_success",datafit_success);
+    datafitresp = TFitResultPtr((TFitResult*)datafitresptr->Clone());
+    intptr_t datafitresi = reinterpret_cast<intptr_t>(&datafitresp);
+    m_data->CStore.Set("datafitresptr",datafitresi);
+    
+    break;
+    
+  }
   
   // debug
   purefitgraph = curr_comb_fit.GetGraph();
@@ -265,18 +304,6 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // update the datamodel
   tmp_ptr_t = reinterpret_cast<intptr_t>(&current_ratio_absorbtion);
   m_data->CStore.Set("absorbance", tmp_ptr_t);
-  datafitresp = TFitResultPtr((TFitResult*)datafitresptr->Clone());  // FIXME possible memory leak
-  tmp_ptr_t = reinterpret_cast<intptr_t>(&datafitresp);
-  m_data->CStore.Set("datafitresptr", tmp_ptr_t);
-  
-  // FIXME figure out a suitable metric of whether these fits worked or not
-  int datafit_success =  !datafitresptr->IsEmpty() &&
-                         datafitresptr->IsValid() &&
-                         datafitresptr->Status()==0 &&
-                         ((datafitresptr->Chi2()/datafitresptr->Ndf()) < 10.) &&
-                         !TMath::IsNaN(datafitresptr->GetParams()[0]) &&
-                         (datafitresptr->GetErrors()[0] < 0.5);
-  m_data->CStore.Set("datafit_success",datafit_success);
   
   // now perform abs fit on ratio absorbance
   Log(m_unique_name+" fitting absorption curve", v_debug,m_verbose);

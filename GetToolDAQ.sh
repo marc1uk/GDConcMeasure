@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO add all other required packages here
+sudo apt-get install syssat # used by stats.sh resource monitoring script
+
 # Saves the directory where this script is located to the ToolDAQapp
 # variable. This method isn't foolproof. See
 # https://stackoverflow.com/a/246128/4081973 if you need something more robust

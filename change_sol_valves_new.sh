@@ -20,8 +20,7 @@ if [ "${dir}" != "out" ]; then
 	echo "out" > /sys/class/gpio/gpio18/direction
 fi
 
-# to stagger the values, we should ensure that if power is off,
-# that both valves are set to 0 before powering on
+# if power is off, set valves to 0 before powering on
 powerison=1
 if [ ! -d /sys/class/gpio/gpio4 ]; then
 	powerison=0
@@ -36,10 +35,9 @@ fi
 
 if [ $powerison -eq 0 ]; then
 	echo "power does not appear to be on, therefore valves closed"
-	echo "setting valve state to closed to prevent simultaneous closing on powerup"
+	# switching valve
 	echo "0" > /sys/class/gpio/gpio15/value
-	# just in case
-	sleep 1
+	# holding valve
 	echo "0" > /sys/class/gpio/gpio18/value
 	
 	# power must be on to power the values
@@ -53,18 +51,20 @@ if [ $powerison -eq 0 ]; then
 fi
 
 
-if grep -Fxq "0" /sys/class/gpio/gpio18/value && grep -Fxq "0" /sys/class/gpio/gpio15/value; then
-	echo "both valves closed"
-    echo 1 > /sys/class/gpio/gpio15/value
-    sleep 1
-    echo 1 > /sys/class/gpio/gpio18/value
-    echo "valves opened"
-elif grep -Fxq "1" /sys/class/gpio/gpio18/value && grep -Fxq "1" /sys/class/gpio/gpio15/value; then
-    echo 0 > /sys/class/gpio/gpio15/value
-    echo "both valves open"
-    sleep 1
-    echo 0 > /sys/class/gpio/gpio18/value
-    echo "valves closed"
-else
-    echo "valve state mismatch"
+if grep -Fxq "1" /sys/class/gpio/gpio18/value || grep -Fxq "1" /sys/class/gpio/gpio15/value; then
+	echo "valves open, closing"
+	echo 0 > /sys/class/gpio/gpio15/value
+	echo 0 > /sys/class/gpio/gpio18/value
+	echo "valves closed"
+elif grep -Fxq "0" /sys/class/gpio/gpio18/value && grep -Fxq "0" /sys/class/gpio/gpio15/value; then
+	echo "valves closed, switching..."
+	# switching (gpio15)
+	echo 1 > /sys/class/gpio/gpio15/value
+	# holding (gpio18)
+	echo 1 > /sys/class/gpio/gpio18/value
+	echo "sleep 1..."
+	sleep 1
+	echo "switch to holding only"
+	echo 0 > /sys/class/gpio/gpio15/value
+	echo "valves opened"
 fi  
