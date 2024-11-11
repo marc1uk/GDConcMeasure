@@ -136,6 +136,7 @@ public:
   void SetFitParameters(const std::vector<double>&);
   void SetFitParameterRanges(const std::vector<std::pair<double, double>>&);
   TFitResultPtr PerformFitOnData(TGraph, bool i = false);
+  TFitResultPtr PerformFitOnData(TGraphErrors&);
   void SetExampleGraph(const TGraph&);
   double GetParameterValue(const int&) const;
   double GetChiSquared() const ;

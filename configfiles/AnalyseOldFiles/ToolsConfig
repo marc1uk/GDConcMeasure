@@ -20,4 +20,4 @@ newMatthewAnalyse MatthewAnalysisStrikesBack configfiles/AnalyseOldFiles/NewMatt
 #newMatthewAnalyse MatthewAnalysisStrikesBack configfiles/AnalyseOldFiles/NewMatthewAnalysisConfig2
 
 # DB
-#mySaveToDB SaveToDB configfiles/AnalyseOldFiles/SaveToDBConfig
+mySaveToDB SaveToDB configfiles/AnalyseOldFiles/SaveToDBConfig

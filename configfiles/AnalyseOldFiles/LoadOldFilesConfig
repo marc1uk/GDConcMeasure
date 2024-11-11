@@ -3,6 +3,13 @@ verbosity 1
 #file_list configfiles/AnalyseOldFiles/jun8calib_file_list_test.txt
 #file_list configfiles/AnalyseOldFiles/newmethodset1A.txt
 #file_list configfiles/AnalyseOldFiles/newmethodset2A.txt
-file_list configfiles/AnalyseOldFiles/newmethodsetB.txt
-#file_list configfiles/AnalyseOldFiles/newmethodsetA.txt
+#file_list configfiles/AnalyseOldFiles/newmethodsetB.txt
+#file_list configfiles/AnalyseOldFiles/newmethodsetAy.txt
+#file_list configfiles/AnalyseOldFiles/fitfixfiles.txt
+#file_list configfiles/AnalyseOldFiles/nov2023filesetB.txt
+#file_list configfiles/AnalyseOldFiles/nov2023filesetAy.txt
+#file_list configfiles/AnalyseOldFiles/newmethodsetA_part2.txt
+#file_list configfiles/AnalyseOldFiles/newmethodsetB_part2.txt
+#file_list configfiles/AnalyseOldFiles/newmethodset_may2024.txt
+file_list configfiles/AnalyseOldFiles/tmp.txt
 #max_files 10

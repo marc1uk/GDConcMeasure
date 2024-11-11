@@ -139,65 +139,70 @@ bool SaveToDB::Execute(){
 	try{
 		Log(m_unique_name+" checking MarcusScheduler for DB results",v_debug,verbosity);
 		get_ok = MarcusScheduler();
-	} catch(...){ std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save marcusscheduler "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenPower for DB results",v_debug,verbosity);
 		get_ok = BenPower();
-	} catch(...){ std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save benpower "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking Valve for DB results",v_debug,verbosity);
 		get_ok = Valve();
-	} catch(...){ std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save valve "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenLED for DB results",v_debug,verbosity);
 		get_ok = BenLED();
-	} catch(...){ std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save benled "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenSpectrometer for DB results",v_debug,verbosity);
 		get_ok = BenSpectrometer();
-	} catch(...){ std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save benspec "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking TraceAverage for DB results",v_debug,verbosity);
 		get_ok = TraceAverage();
-	} catch(...){ std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save traceav "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking MatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = MatthewAnalysis();
-	} catch(...){ std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save mattana "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking SaveTraces for DB results",v_debug,verbosity);
 		get_ok = SaveTraces();
-	} catch(...){ std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save savetr "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking RoutineCalibration for DB results",v_debug,verbosity);
 		get_ok = RoutineCalibration();  // placeholder, Tool TODO
-	} catch(...){ std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save routinecalib "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
 	
 	// the following tools store information persistently into the database 'data' table
 	try{
 		Log(m_unique_name+" checking MarcusAnalysis for DB results",v_debug,verbosity);
 		get_ok = MarcusAnalysis();
-	} catch(...){ std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save marcusana "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking MatthewTransparency for DB results",v_debug,verbosity);
 		get_ok = MatthewTransparency();
-	} catch(...){ std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save matthewtransp: caught "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking NewMatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = NewMatthewAnalysis();
-	} catch(...){ std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save newmatthewanalyse: caught "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
+	try{
+		Log(m_unique_name+" checking CorrectStepChanges for DB results",v_debug,verbosity);
+		get_ok = CorrectStepChanges();
+	} catch(std::exception& e){ std::cerr<<"failed to save correctstepchanges "<<e.what()<<std::endl; all_ok = false; }
+	if(!get_ok) { std::cerr<<"failed to save correctstepchanges"<<std::endl; all_ok = false; }
 	
 	return get_ok;
 }
@@ -2016,6 +2021,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 		key = "calibcurveID_"+ledname;
 		get_ok = m_data->CStore.Get(key, calibcurveID);
 		std::string calibcurve_json = "{\"ID\":\""+calibcurveID+"\"}";
+		
 		if(not get_ok){
 			Log("SaveToDB::NewMatthewAnalysis failed to get calibcurve reference ID for led "+ledname+" from CStore!",
 			    v_error,verbosity);
@@ -2710,6 +2716,78 @@ bool SaveToDB::MarcusScheduler(){
 	}
 	
 	return all_ok;
+}
+
+
+bool SaveToDB::CorrectStepChanges(){
+	
+	std::string ledname="";
+	get_ok = m_data->CStore.Get("NewCorrectedConc",ledname);
+	if(!get_ok || ledname!=""){
+		return true;
+	}
+	
+	get_ok = m_data->CStore.Get("dbrunnum",runnum);
+	
+	std::string dbtimestamp; // e.g "2020-09-16 15:54:00"
+	get_ok = m_data->CStore.Get("corr_conc_timestamp",dbtimestamp);
+	if(!get_ok){
+		Log(m_unique_name+" Error! No 'corr_conc_timestamp' in data model!",v_error,verbosity);
+		// we could take the current time, but this is not a good fallback
+		// as corrected values should be delayed, so this may not maintain monotonicity
+		return false;
+	}
+	
+	int measurementnum=-1;
+	get_ok = m_data->CStore.Get("corr_conc_meas_num",measurementnum);
+	if(not get_ok){
+		Log(m_unique_name+" Error! No 'corr_conc_meas_num' in data model!",v_error,verbosity);
+		// i mean, we could try to get the CorrectStepChanges Tool configuration
+		// and backtrack the current measurement number by the size of the buffers
+		// but it's kinda overkill??
+		return false;
+	}
+	
+	// get results
+	bool step_vetoed=0, step_found=0;
+	double new_corrected_conc=0, step_applied=0, accum_step_changes=0;
+	get_ok  = m_data->CStore.Get("conc_and_err_corr",new_corrected_conc);
+	if(!get_ok){ Log(m_unique_name+" no 'conc_and_err_corr' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("step_vetoed",step_vetoed);
+	if(!get_ok){ Log(m_unique_name+" no 'step_vetoed' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("step_found", step_found);
+	if(!get_ok){ Log(m_unique_name+" no 'step_found' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("step_applied",step_applied);
+	if(!get_ok){ Log(m_unique_name+" no 'step_applied' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("accum_step_changes", accum_step_changes);
+	if(!get_ok){ Log(m_unique_name+" no 'accum_step_changes' in datamodel",v_error,verbosity); return false; }
+	
+	// TODO
+	std::string datajson = "";
+	
+	if(get_ok){
+		
+		std::vector<std::string> field_names{"run","measurement","timestamp","ledname","tool","name","values"};
+		error_ret="";
+		get_ok = m_data->postgres.Insert("data",                      // table name
+		                                 field_names,                 // field names
+		                                 &error_ret,                  // error return string
+		                                 // variadic argument list of field values
+		                                 runnum,                      // run
+		                                 measurementnum,              // measurement
+		                                 dbtimestamp,                 // timestamp
+		                                 ledname,                     // ledname
+		                                 "CorrectStepChanges",        // tool
+		                                 "gdconccorrected",           // name
+		                                 datajson);                   // values (jsonb)
+		if(!get_ok){
+			Log("SaveToDB::NewMatthewAnalysis failed to insert fit results "
+			    "for led "+ledname+" into database with error '"+error_ret+"'",v_error,verbosity);
+		}
+	}
+	
+	return get_ok;
+	
 }
 
 bool SaveToDB::RoutineCalibration(){

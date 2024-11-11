@@ -1,21 +1,21 @@
 verbosity 1
 #calib_version 0   # when pulling the calibration constants from the database
 # coefficients based on 275_A (previously 260)
-CalibCoeff0 -2.2420182e-05
-CalibCoeff1 2.4347342
-CalibCoeff2 -10.671675
-CalibCoeff3 25.117418
-CalibCoeff4 -15.640706
-CalibCoeff5 -35.283659
-CalibCoeff6 67.871408
+# CalibCoeff0 -2.2420182e-05
+# CalibCoeff1 2.4347342
+# CalibCoeff2 -10.671675
+# CalibCoeff3 25.117418
+# CalibCoeff4 -15.640706
+# CalibCoeff5 -35.283659
+# CalibCoeff6 67.871408
 
 # coefficients based on 275_B (previously 275)
-#CalibCoeff0 0.0026276936
-#CalibCoeff1 1.7358592
-#CalibCoeff2 8.4855030
-#CalibCoeff3 -229.74577
-#CalibCoeff4 1644.7045
-#CalibCoeff5 -5214.2215
-#CalibCoeff6 6289.4336
+CalibCoeff0 0.0026276936
+CalibCoeff1 1.7358592
+CalibCoeff2 8.4855030
+CalibCoeff3 -229.74577
+CalibCoeff4 1644.7045
+CalibCoeff5 -5214.2215
+CalibCoeff6 6289.4336
 
 pure_filename pureDarkSubtracted.root

@@ -45,12 +45,24 @@ CombinedGdPureFunc_DATA::CombinedGdPureFunc_DATA(const TGraph& pds, const TGraph
 }
  
 double CombinedGdPureFunc_DATA::Evaluate(double* x, double* p){
-  return p[PURE_SCALING]  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
-    * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - 276) + 276 - p[PURE_TRANSLATION])
-    * (std::max(0.0, (1-p[ABS_SCALING]*rat_abs.Eval(x[0]))) +
-       p[SECOND_ORDER_BACKGROUND] *  (x[0]-276) * (x[0]-276) +
-       p[FIRST_ORDER_BACKGROUND] * (x[0]-276) +
-       p[ZEROTH_ORDER_BACKGROUND]);
+// this one VV
+//  return p[PURE_SCALING]  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
+//    * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - 276) + 276 - p[PURE_TRANSLATION])
+//    * (std::max(0.0, (1-p[ABS_SCALING]*rat_abs.Eval(x[0]))) +
+//       p[SECOND_ORDER_BACKGROUND] *  (x[0]-276) * (x[0]-276) +
+//       p[FIRST_ORDER_BACKGROUND] * (x[0]-276) +
+//       p[ZEROTH_ORDER_BACKGROUND]);
+       
+       // scale it up
+         return p[PURE_SCALING]/1000.  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
+    * pure_dark_subtracted.Eval(p[PURE_STRETCH]/1000. * (x[0] - 276) + 276 - p[PURE_TRANSLATION]/1000.)
+    * (/*std::max(0.0,*/ (1-p[ABS_SCALING]/1000.*rat_abs.Eval(x[0]))/*)*/ +
+       p[SECOND_ORDER_BACKGROUND]/1000. *  (x[0]-276) * (x[0]-276) +
+       p[FIRST_ORDER_BACKGROUND]/1000. * (x[0]-276) +
+       p[ZEROTH_ORDER_BACKGROUND]/1000.);
+       
+       
+       
 //  return p[PURE_SCALING]  // p[PURE_FIRST_ORDER_CORRECTION] * x[0]
 //    * pure_dark_subtracted.Eval(p[PURE_STRETCH] * (x[0] - 276) + 276 - p[PURE_TRANSLATION])
 //    * ( 1 + p[SECOND_ORDER_BACKGROUND] *  (x[0]-276) * (x[0]-276)
@@ -75,11 +87,20 @@ AbsFunc::AbsFunc(const TGraph& a)
 }
 
 double AbsFunc::Evaluate(double* x, double* p){
-  return p[ABS_SCALING] * abs_ds.Eval(x[0] - p[ABS_TRANSLATION]) +
-         p[THIRD_BACKGROUND]  * (x[0]-276) * (x[0]-276) * (x[0]-276) + 
-         p[SECOND_BACKGROUND] * (x[0]-276) * (x[0]-276) + 
-         p[FIRST_BACKGROUND]  * (x[0]-276) +
-         p[ZEROTH_BACKGROUND];
+  double gd = p[ABS_SCALING] * abs_ds.Eval(x[0] - p[ABS_TRANSLATION]);
+  /*
+  double bg = p[THIRD_BACKGROUND]  * (x[0]-276) * (x[0]-276) * (x[0]-276) + 
+              p[SECOND_BACKGROUND] * (x[0]-276) * (x[0]-276) + 
+              p[FIRST_BACKGROUND]  * (x[0]-276) +
+              p[ZEROTH_BACKGROUND];
+  // but we fix the bg component to be 0 at 275nm, to prevent it producing
+  // an overall translation
+  double bg275 = -p[THIRD_BACKGROUND] + p[SECOND_BACKGROUND] - p[FIRST_BACKGROUND] + p[ZEROTH_BACKGROUND];
+  return gd + bg - bg275;
+  */
+  double bg = p[THIRD_BACKGROUND]*exp(p[SECOND_BACKGROUND]*(x[0]-276/*-p[FIRST_BACKGROUND]*/));
+  //double bg275 = p[THIRD_BACKGROUND]*exp(p[SECOND_BACKGROUND]*(-1/*-p[FIRST_BACKGROUND]*/));
+  return gd + bg /*- bg275*/ + p[ZEROTH_BACKGROUND];
 }
 
 FunctionalFit::FunctionalFit(Func* func_class_ptr, const std::string& fcn) : fit_name{fcn} {
@@ -118,7 +139,7 @@ void FunctionalFit::SetFitParameterRanges(const std::vector<std::pair<double, do
 
 
 TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
-  fit_funct.SetNpx(10000);
+  fit_funct.SetNpx(5000);
   TFitResultPtr res;
   
   if (interactive){
@@ -145,7 +166,7 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
 //    TFile* fsav=new TFile("fsav.root","RECREATE");
 //    data.Write("absgraph_beingfit");
 //    fit_funct.Write("fitfunc_beforefit");
-    res = data.Fit(&fit_funct, "NRSQ"); // keep this one
+    res = data.Fit(&fit_funct, "MENRSQ"); // keep this one
 //    fit_funct.Write("fitfunc_afterfit");
 //    fsav->Close();
 //    delete fsav;
@@ -158,6 +179,13 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive){
   
   fitted = true;
   return res;
+}
+
+// accept TGraphErrors; ensures weights are used based on errors
+TFitResultPtr FunctionalFit::PerformFitOnData(TGraphErrors& data){
+  fit_funct.SetNpx(1000);
+  fitted = true;
+  return data.Fit(&fit_funct, "NRSQ");
 }
 
 void FunctionalFit::SetExampleGraph(const TGraph& e){
@@ -353,6 +381,11 @@ TGraph PWRatio(const TGraph& n, const TGraph& d){
                            double ny = y;
                            _d.GetPoint(_i, x, y);
                            double dy = y;
+                           // diving by zero sometimes gives 'inf', but if we try to pass that
+                           // into the database, postgres chokes with invalid value.
+                           if(dy==0){
+                             return std::numeric_limits<double>::max();
+                           }
                            return ny / dy;});
 }
 
@@ -364,6 +397,11 @@ TGraph PWLogRatio(const TGraph& n, const TGraph& d){
                            double ny = y;
                            _d.GetPoint(_i, x, y);
                            double dy = y;
+                           // diving by zero sometimes gives 'inf', but if we try to pass that
+                           // into the database, postgres chokes with invalid value.
+                           if(dy==0){
+                             return log10(std::numeric_limits<double>::max());
+                           }
                            return log10(ny / dy);});
 }
 

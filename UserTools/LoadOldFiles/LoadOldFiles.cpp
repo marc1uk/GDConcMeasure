@@ -90,7 +90,7 @@ bool LoadOldFiles::Execute(){
 	// we should probably retrieve this from the database when re-analysing old data
 	// so that we can match the new results to the old results.... TODO
 	++measurementnum;
-	get_ok = m_data->CStore.Get("dbmeasurementnum",measurementnum);
+	m_data->CStore.Set("dbmeasurementnum",measurementnum);
 	
 	// while each LED gets saved to a different file, the dark traces for all LED measurements are currently saved
 	// in one common file. It is also the case that several unused dark traces are taken between measurements

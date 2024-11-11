@@ -3,9 +3,13 @@
 #include "gad_utils.h"
 #include "TFile.h"
 #include "TROOT.h"
+#include "TSpline.h"
 //#include "TDirectory.h"
 #include <memory>
 #include <numeric>
+
+#include "Math/MinimizerOptions.h"
+#include "TVirtualFitter.h"
 
 MatthewAnalysisStrikesBack::MatthewAnalysisStrikesBack():Tool(){}
 
@@ -50,7 +54,7 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     // pure scaling, pure first order correction, pure translation, linear background gradient, constant y offset
     std::vector<double> pars{1,0,0,0,0};
     simple_fit.SetFitParameters(pars);
-    std::vector<std::pair<double,double>> limits{ {0.01,100},{-1,1},{-10,10},{-10,10},{-1000,1000} };
+    std::vector<std::pair<double,double>> limits{ {0.01,100},{-1,1},{-0.1,0.1},{-0.02,0.02},{-1000,1000} };
     simple_fit.SetFitParameterRanges(limits);
     
     //fit non-pure with the simple fit and extract gd attenuation and ratio absorbance shapes
@@ -61,9 +65,26 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     SaveDebug(&simple_fit_result, std::string{"g_ref_simple_fit_"}+led_name);
     Log(m_unique_name+" extracting gd shape for LED: "+led_name, v_debug,m_verbose);
     const TGraph gd_abs_attenuation = CalculateGdAbs(simple_fit_result, high_conc_ds);
+    
     SaveDebug(&gd_abs_attenuation, std::string{"g_ref_atten_"}+led_name);
-    const TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);
+    TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);
+    // remove offset of 1
+    for(int i=0; i<ratio_absorbance.GetN(); ++i) ratio_absorbance.GetY()[i] -= 1;
+    
     SaveDebug(&ratio_absorbance, std::string{"g_ref_abs_"}+led_name);
+    
+    /*
+    // try to mitigate effects of quantization by smoothing the reference curve
+    TSpline3 s3("s3",ratio_absorbance.GetX(),ratio_absorbance.GetY(),ratio_absorbance.GetN());
+    TGraph smooth_ratio_abs(100);
+    double wlmin = ratio_absorbance.GetX()[0];
+    double wlmax = ratio_absorbance.GetX()[ratio_absorbance.GetN()-1];
+    for(int i=0; i<100; ++i){
+        double wl = wlmin+(double(i)*(wlmax-wlmin)/100.);
+        smooth_ratio_abs.SetPoint(i,wl,s3.Eval(wl));
+    }
+    SaveDebug(&smooth_ratio_abs, std::string{"g_smooth_abs_"}+led_name);
+    */
     
     //create FunctionalFit object to do inital pure removal fit
     led_info.combined_func = std::make_unique<CombinedGdPureFunc_DATA>(pure_ds, gd_abs_attenuation);
@@ -84,24 +105,54 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     for(int i=0; i<parnames.size(); ++i) led_info.combined_fit.fit_funct.SetParName(i, parnames.at(i).c_str());
     //pars = std::vector<double>{1,0,1,0.5,0,0,0};
     //pars = std::vector<double>{9,-0.25,0.8,0,0.001,-0.06,0.12}; << initial for set 1
-    pars = std::vector<double>{20.222116, 0.065019, 0.809043, 0.000000, 0.001000, -0.048069, -0.310535}; // << last of set 1
+    //pars = std::vector<double>{20.222116, 0.065019, 0.809043, 0.000000, 0.001000, -0.048069, -0.310535}; // << last of set 1
+    pars = std::vector<double>{1.391987, -0.047877, 1.010899, 0.000000, 0.000000, 0.001474, -0.091663};
+    for(auto&& par : pars) par *= 1000.;
     led_info.combined_fit.SetFitParameters(pars);
-    limits = std::vector<std::pair<double,double>>{ {0.1,50},{-1,1},{0.7,1.1},{0,1.1},{0.002,0.002}, {-0.1,0.1}, {-1,1} };
+    // FIXME better constrain these
+    //limits = std::vector<std::pair<double,double>>{ {0.1,2.5},{-0.2,0.2},{0.98,1.02},{0,1.1},{-0.002,0.002}, {-0.003,0.005}, {-1,1} };  /// works for april-jul long term period, but not thereafter....
+    limits = std::vector<std::pair<double,double>>{ {0.1,2.5},{-0.4,0.4},{0.8,1.2},{0,1.1},{-0.002,0.002}, {-0.003,0.005}, {-1,1} };
+    for(auto&& par : limits){ par.first *= 1000.; par.second *=1000.; }
     led_info.combined_fit.SetFitParameterRanges(limits);
+    //led_info.combined_fit.fit_funct.FixParameter(1,-0.05); /// ??? XXX
+    led_info.combined_fit.fit_funct.FixParameter(4,0);
+    led_info.combined_fit.fit_funct.FixParameter(5,0);
     
     //create FunctionalFit object to do absorbance fit on data
     led_info.abs_func = std::make_shared<AbsFunc>(ratio_absorbance);
+    //led_info.abs_func = std::make_shared<AbsFunc>(smooth_ratio_abs);
     led_info.absorbtion_fit = FunctionalFit(led_info.abs_func.get(), "abs");
     led_info.absorbtion_fit.SetExampleGraph(pure_ds);
     
     // y_scaling, x_translation, 3rd order bg, 2nd order bg, 1st order bg, constant bg
     //pars = std::vector<double>{1,0,0,0,0,0}; << initial for set 1
-    pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
+    //pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
+    // y_scaling, x_translation, expl amplitude, expl halflife, expl x0, constant bg (not used)
+    pars = std::vector<double>{0.3288, -0.01, 0.01, -0.1, 0.0, 0.0};
     led_info.absorbtion_fit.SetFitParameters(pars);
-    limits = std::vector<std::pair<double,double>>{ {0.01,100},{-10,10},{-2,2},{10,10},{-100,100},{-1000,1000} };
+    limits = std::vector<std::pair<double,double>>{ {0.01,100},{-0.2,0.2},{-2,2},{-10,10},{-100,100},{0,1000} };
     led_info.absorbtion_fit.SetFitParameterRanges(limits);
-    
+    led_info.absorbtion_fit.fit_funct.FixParameter(4,0); // this parameter is redundant
   }
+  
+  // We may be able to improve fitting by altering the tolerances
+  // from https://root-forum.cern.ch/t/speeding-up-fitting-to-a-landau-distribution/25140/2
+  //ROOT::Math::MinimizerOptions::SetDefaultStrategy(0);
+  /*
+  ROOT::Math::MinimizerOptions::SetDefaultMaxIterations(10000);
+  ROOT::Math::MinimizerOptions::SetDefaultMaxFunctionCalls(1000000);
+  ROOT::Math::MinimizerOptions::SetDefaultTolerance(0.001);
+  ROOT::Math::MinimizerOptions::SetDefaultMinimizer("GSLMultiMin",nullptr);
+  //ROOT::Math::MinimizerOptions::SetDefaultMinimizer("Minuit2");
+  //gSystem->Load("libMinuit2");
+  */
+  // If MaxIterations is too low, the fitter may break early, thinking it's reached tolerance!
+  // The returned EDM is incorrect!
+  // Bear this in mind when balaning MaxIterations vs EDM:
+  // MaxIterations needs a suitable buffer above what seems necesary!
+  // Maybe lowering the EDM more could also help protect against terminating at false minima...?
+  //TVirtualFitter::SetMaxIterations(3000); // 2000 seems sufficient at a brief scan, allow more
+  //TVirtualFitter::SetPrecision(0.5);  // 0.001 default, 20 seems sufficient...mostly. bad histograms fit badly.
   
   return true;
 }
@@ -115,9 +166,36 @@ int MatthewAnalysisStrikesBack::SaveDebug(const TObject* obj, const std::string&
   return byteswritten;
 }
 
+int MatthewAnalysisStrikesBack::SaveDebug(const std::string& par, double val){
+  if(fdebug==nullptr) return 1;
+  TDirectory* fcur = gDirectory;
+  fdebug->cd();
+  TTree* t=(TTree*)fdebug->Get("t");
+  if(t==nullptr){
+    t = new TTree("t","t");
+  }
+  TBranch* b = t->GetBranch(par.c_str());
+  if(b==nullptr){
+    b = t->Branch(par.c_str(),&val);
+  } else {
+    b->SetAddress(&val);
+  }
+  int byteswritten = b->Fill();
+  t->SetEntries(b->GetEntries());
+  b->ResetAddress();
+  fcur->cd();
+  return byteswritten;
+}
+
 bool MatthewAnalysisStrikesBack::Execute(){
   
+  //std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  //std::string dbtimestamp = "not-a-date-time";
+  //m_data->CStore.Set("dbtimestamp",dbtimestamp);
+  
   double* xv;
+  // should we save the results of this fit to debug file
+  bool saveit=false;
   
   // clear any previous results
   Log(m_unique_name+" resetting DataModel",v_debug,m_verbose);
@@ -160,7 +238,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // calculate dark subtract from these traces
   Log(m_unique_name+" doing dark subtraction", v_debug,m_verbose);
   const TGraph darksubdata = DarkSubtractFromTreePtrs(led_tree_ptr, dark_tree_ptr);
-  SaveDebug(&darksubdata, std::string{"darksub_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&darksubdata, std::string{"darksub_"}+current_led+"_"+std::to_string(measurementnum));
   
   // update the datamodel
   Log(m_unique_name+" recording abs region",v_debug,m_verbose);
@@ -172,7 +250,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   m_data->CStore.Set("dark_subtracted_data_out",reinterpret_cast<intptr_t>(&dark_subtracted_data_out));
   
   const TGraph current_dark_sub = TrimGraph(darksubdata);
-  SaveDebug(&current_dark_sub, std::string{"datatrimmed_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&current_dark_sub, std::string{"datatrimmed_"}+current_led+"_"+std::to_string(measurementnum));
   
   // retrieve the functional fit for this led
   LEDInfo& current_led_info = led_info_map.at(current_led);
@@ -181,12 +259,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // perform the fit on this new data
   Log(m_unique_name+" fitting data", v_debug,m_verbose);
   
-  // y_scaling, x_translation, x_scaling, absorbance_scaling, 2nd order bg, 1st order bg, constant bg
-  //TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
-  // FIXME HACK: the fit's not working, so mask out the absorbance region and just fit the sidebands
-  curr_comb_fit.fit_funct.FixParameter(3,0);
-  TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(RemoveRegion(current_dark_sub, abs_region_low, abs_region_high),false);
-  
+  // FIXME this fit is baaaad.
   /* -- nah this still doesn't work
   // fix the pure parts
   std::vector<int> parstofix{0,1,2,4,5,6};
@@ -199,61 +272,139 @@ bool MatthewAnalysisStrikesBack::Execute(){
   TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
   */
   
-  // debug
+//  // TODO set range of scaling to not deviate by more than 20% from last measurement?
+//  led_info.absorbtion_fit.fit_funct.FixParameter(5,0);
+  
+  // y_scaling, x_translation, x_scaling, absorbance_scaling, 2nd order bg, 1st order bg, constant bg
+  //TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
+  // FIXME HACK: the fit's not working, so mask out the absorbance region and just fit the sidebands
+  curr_comb_fit.fit_funct.FixParameter(3,0);
+  
+  int mintries=2; // defining a chi2 threshold is difficult but at we seem to need to try at least twice...?
+  int maxtries=5;
+  double lastchi2=0;
+  for(int numtries=0; numtries<maxtries; ++numtries){
+    
+    TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(RemoveRegion(current_dark_sub, abs_region_low, abs_region_high),false);
+    
+    double thischi2 = datafitresptr->Chi2();
+    bool badfit = (thischi2 > 10E3);
+    double deltachi2pc = std::abs(thischi2-lastchi2) / lastchi2;
+    lastchi2 = thischi2;
+    
+    // sometimes the fits are bad, but strangely enough simply redoing them improves it.
+    // redo the fit if it was bad, if we've made less than maxtries fit attempts,
+    // and if the change in the chi2 was more than 10%
+    if( (badfit && numtries<(maxtries-1) && deltachi2pc>0.1) || (numtries<mintries) ) continue;
+    
+    // FIXME figure out a suitable metric of whether these fits worked or not
+    int datafit_success =  !datafitresptr->IsEmpty() &&
+                           datafitresptr->IsValid() &&
+                           datafitresptr->Status()==0 &&
+                           ((datafitresptr->Chi2()/datafitresptr->Ndf()) < 10.) &&
+                           !TMath::IsNaN(datafitresptr->GetParams()[0]) &&
+                           (datafitresptr->GetErrors()[0] < 0.5);
+    // update the datamodel
+    m_data->CStore.Set("datafit_success",datafit_success);
+    datafitresp = TFitResultPtr((TFitResult*)datafitresptr->Clone());
+    intptr_t datafitresi = reinterpret_cast<intptr_t>(&datafitresp);
+    m_data->CStore.Set("datafitresptr",datafitresi);
+    
+    break;
+    
+  }
+  
+  if(saveit){
+    SaveDebug(&darksubdata, std::string{"darksub_"}+current_led+"_"+std::to_string(measurementnum));
+    SaveDebug(&current_dark_sub, std::string{"datatrimmed_"}+current_led+"_"+std::to_string(measurementnum));
+  }
+  
+  // get pure fit curve for webpage, debug and led intensity
   purefitgraph = curr_comb_fit.GetGraph();
-  // FIXME this fit is baaaad.
-  SaveDebug(&purefitgraph, std::string{"datafit_"}+current_led+"_"+std::to_string(measurementnum));
+  purefitgraph = curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING});
   
   // update the datamodel
-  purefitgraph = curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING});
   m_data->CStore.Set("purefit",reinterpret_cast<intptr_t>(&purefitgraph));
-  SaveDebug(&purefitgraph, std::string{"purefit_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&purefitgraph, std::string{"purefit_"}+current_led+"_"+std::to_string(measurementnum));
+  
+  // extract led intensity of peak of pure fit
+  double led_intensity = *std::max_element(purefitgraph.GetY(),purefitgraph.GetY()+purefitgraph.GetN());
   
   // doesn't this need a log10???
   //current_ratio_absorbtion = PWLogRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);  -- the resulting concentrations from this are way off... did the calibration curve use log10?
   current_ratio_absorbtion = PWRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);
-  SaveDebug(&current_ratio_absorbtion, std::string{"ratioabs_"}+current_led+"_"+std::to_string(measurementnum));
+  // remove offset of 1
+  for(int i=0; i<current_ratio_absorbtion.GetN(); ++i){ current_ratio_absorbtion.GetY()[i] -= 1.; }
+  if(saveit) SaveDebug(&current_ratio_absorbtion, std::string{"ratioabs_"}+current_led+"_"+std::to_string(measurementnum));
   
-  // update the datamodel
   m_data->CStore.Set("absorbance",reinterpret_cast<intptr_t>(&current_ratio_absorbtion));
-  datafitresp = TFitResultPtr((TFitResult*)datafitresptr->Clone());
-  intptr_t datafitresi = reinterpret_cast<intptr_t>(&datafitresp);
-  m_data->CStore.Set("datafitresptr",datafitresi);
-  
-  // FIXME figure out a suitable metric of whether these fits worked or not
-  int datafit_success =  !datafitresptr->IsEmpty() &&
-                         datafitresptr->IsValid() &&
-                         datafitresptr->Status()==0 &&
-                         ((datafitresptr->Chi2()/datafitresptr->Ndf()) < 10.) &&
-                         !TMath::IsNaN(datafitresptr->GetParams()[0]) &&
-                         (datafitresptr->GetErrors()[0] < 0.5);
-  m_data->CStore.Set("datafit_success",datafit_success);
   
   // now perform abs fit on ratio absorbance
   Log(m_unique_name+" fitting absorption curve", v_debug,m_verbose);
   FunctionalFit curr_abs_fit = current_led_info.absorbtion_fit;
+  
+  lastchi2=0;
+  for(int numtries=0; numtries<maxtries; ++numtries){
   TFitResultPtr absfitresptr = curr_abs_fit.PerformFitOnData(current_ratio_absorbtion,false);
-
-  // update the datamodel
+  /*
+  // add errors to try to influence fit to be better at the peaks
+  // does not improve stability
+  TGraphErrors crae{current_ratio_absorbtion.GetN(),current_ratio_absorbtion.GetX(),current_ratio_absorbtion.GetY()};
+  double xres = (crae.GetX()[1]-crae.GetX()[0])*0.5;
+  for(int i=0; i<crae.GetN(); ++i){
+    //crae.GetEX()[i]=xres;
+    crae.GetEY()[i]=.003/crae.GetY()[i];
+  }
+  if(saveit) SaveDebug(&crae, std::string{"ratioabs_err_"}+current_led+"_"+std::to_string(measurementnum));
+  TFitResultPtr absfitresptr = curr_abs_fit.PerformFitOnData(crae);
+  */
+  
+    double thischi2 = absfitresptr->Chi2();
+    bool badfit = (thischi2 > 0.0015);
+    double deltachi2pc = std::abs(thischi2-lastchi2) / lastchi2;
+    lastchi2 = thischi2;
+    
+    // sometimes the fits are bad, but strangely enough simply redoing them improves it.
+    // redo the fit if it was bad, if we've made less than maxtries fit attempts,
+    // and if the change in the chi2 was more than 10%
+    if( (badfit && numtries<(maxtries-1) && deltachi2pc>0.1) || (numtries<mintries) ) continue;
+    
+    int absfit_success = !absfitresptr->IsEmpty() &&
+                         absfitresptr->IsValid() &&
+                         absfitresptr->Status()==0 &&
+                         ((absfitresptr->Chi2()/absfitresptr->Ndf()) < 10.) &&
+                         !TMath::IsNaN(absfitresptr->GetParams()[0]) &&
+                         (absfitresptr->GetErrors()[0] < 0.5);
+    // update the datamodel
+    m_data->CStore.Set("absfit_success",absfit_success);
+    absfitresp = TFitResultPtr((TFitResult*)absfitresptr->Clone());
+    intptr_t absfitresi = reinterpret_cast<intptr_t>(&absfitresp);
+    m_data->CStore.Set("absfitresptr",absfitresi);
+    
+    break;
+    
+  }
+  
+  // save debug info
   GetAbsRegion(curr_abs_fit.GetGraph(), absfitgraph);
-  SaveDebug(&absfitgraph, std::string{"absfit_"}+current_led+"_"+std::to_string(measurementnum));
   m_data->CStore.Set("absfit",reinterpret_cast<intptr_t>(&absfitgraph));
+  if(saveit) SaveDebug(&absfitgraph, std::string{"absfit_"}+current_led+"_"+std::to_string(measurementnum));
+  TGraph absfitbg = curr_abs_fit.GetGraphExcluding({current_led_info.abs_func->ABS_SCALING});
+  if(saveit) SaveDebug(&absfitbg, std::string{"absfitbg_"}+current_led+"_"+std::to_string(measurementnum));
+  for(int i=0; i<absfitresp->NPar(); ++i){
+    if(saveit) SaveDebug(std::string("par")+std::to_string(i),absfitresp->Parameter(i));
+  }
   
-  absfitresp = TFitResultPtr((TFitResult*)absfitresptr->Clone());
-  intptr_t absfitresi = reinterpret_cast<intptr_t>(&absfitresp);
-  m_data->CStore.Set("absfitresptr",absfitresi);
-  
-  int absfit_success =  !absfitresptr->IsEmpty() &&
-                        absfitresptr->IsValid() &&
-                        absfitresptr->Status()==0 &&
-                        ((absfitresptr->Chi2()/absfitresptr->Ndf()) < 10.) &&
-                        !TMath::IsNaN(absfitresptr->GetParams()[0]) &&
-                        (absfitresptr->GetErrors()[0] < 0.5);
-  m_data->CStore.Set("absfit_success",absfit_success);
+  TGraph absfitresD = PWDifference(current_ratio_absorbtion, curr_abs_fit.GetGraph());
+  if(saveit) SaveDebug(&absfitresD, std::string{"absfitresdiff_"}+current_led+"_"+std::to_string(measurementnum));
+  TGraph absfitresR = PWRatio(current_ratio_absorbtion, curr_abs_fit.GetGraph());
+  if(saveit) SaveDebug(&absfitresR, std::string{"absfitresratio_"}+current_led+"_"+std::to_string(measurementnum));
   
   //extract metric from fit result, then get the concentration prediction from the calibration curve 
   double metric = curr_abs_fit.GetParameterValue(current_led_info.abs_func->ABS_SCALING);
   double conc_prediction = current_led_info.calibration_curve_ptr->GetX(metric);
+  if(saveit) SaveDebug("gdconc",conc_prediction);
+  if(saveit) SaveDebug("metric",metric);
   
   // debug: detect steps
   /*
@@ -269,7 +420,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   */
   
   // calculate suitable errors
-  double metric_err = absfitresptr->GetErrors()[0];
+  double metric_err = absfitresp->GetErrors()[0];
   std::pair<double,double> metric_and_err{metric, metric_err};
   m_data->CStore.Set("metric_and_err",metric_and_err);
   
@@ -277,6 +428,61 @@ bool MatthewAnalysisStrikesBack::Execute(){
   double gd_conc_err = metric_err * calib_curve_func->Derivative(metric);
   std::pair<double,double> conc_and_err{conc_prediction, gd_conc_err};
   m_data->CStore.Set("conc_and_err",conc_and_err);
+  
+  // At one point our LEDs died, so of course the pure fit got scaled down to ~0, and the absorption
+  // became just meaningless noise (~0/~0). This made the extracted gd concentration go nuts, stretching the plot ranges.
+  // To prevent this, let's just say the concentration is 0 when we don't have enough light for a meaningful measurement.
+  // There's no clear threshold at which this happens (strictly the error bars should account for the intensity,
+  // so that the error goes to infinity as the intensity goes to 0), but in lieu of a better, more complex treatment,
+  // let's just say the concentration is 0 when the intensity is less than 500.
+  // We can also generalise this to other potential issues by checking the quality of the fits with the chi2
+  // (athough the range of 'good' chi2 values depends on the fitting function, the reference, and so on).
+  // The following thresholds come from looking at data (both good and bad) spanning Jul 2023 to May 2024.
+  // -- too strict
+  if(led_intensity<500 /*|| absfitresp->Chi2()>0.05 || datafitresp->Chi2()>1E6*/){
+    int datafit_success=0;
+    int absfit_success=0;
+    metric_and_err.first=0;
+    metric_and_err.second=1;
+    conc_and_err.first=0;
+    conc_and_err.second=1;
+    m_data->CStore.Set("datafit_success",datafit_success);
+    m_data->CStore.Set("absfit_success",absfit_success);
+    m_data->CStore.Set("conc_and_err",conc_and_err);
+    m_data->CStore.Set("metric_and_err",metric_and_err);
+  }
+  
+  {
+  TCanvas ctmp;
+  static int imgnum=0;
+  TMultiGraph gg;
+  gg.Add(dynamic_cast<TGraph*>(dark_subtracted_data_in.Clone()));
+  //gg.Add(dynamic_cast<TGraph*>(dark_subtracted_data_out.Clone()));
+  int lhp=0;
+  while(dark_subtracted_data_out.GetX()[lhp]<275) ++lhp;
+  gg.Add(new TGraph(lhp,dark_subtracted_data_out.GetX(),dark_subtracted_data_out.GetY()));
+  gg.Add(new TGraph(dark_subtracted_data_out.GetN()-lhp,&dark_subtracted_data_out.GetX()[lhp],&dark_subtracted_data_out.GetY()[lhp]));
+  
+  //double scalefactor = *std::max_element(dark_subtracted_data_in.GetY(),dark_subtracted_data_in.GetY()+dark_subtracted_data_in.GetN());
+  TGraph* g1=(dynamic_cast<TGraph*>(gg.GetListOfGraphs()->At(0)));
+  TGraph* g2=(dynamic_cast<TGraph*>(gg.GetListOfGraphs()->At(1)));
+  TGraph* g3=(dynamic_cast<TGraph*>(gg.GetListOfGraphs()->At(2)));
+  for(int i=0; i<g1->GetN(); ++i) g1->GetY()[i] /= led_intensity;
+  for(int i=0; i<g2->GetN(); ++i) g2->GetY()[i] /= led_intensity;
+  for(int i=0; i<g3->GetN(); ++i) g3->GetY()[i] /= led_intensity;
+  
+  (dynamic_cast<TGraph*>(gg.GetListOfGraphs()->At(0)))->SetLineColor(kRed);
+  (dynamic_cast<TGraph*>(gg.GetListOfGraphs()->At(1)))->SetLineColor(kBlue);
+  (dynamic_cast<TGraph*>(gg.GetListOfGraphs()->At(2)))->SetLineColor(kBlue);
+  std::string fname=std::string("raw_")+std::to_string(imgnum)+".png";
+  ctmp.cd();
+  gg.Draw("AL");
+  gg.GetHistogram()->GetYaxis()->SetRangeUser(0,1.1);
+  ctmp.Modified();
+  ctmp.Update();
+  ctmp.SaveAs(fname.c_str());
+  ++imgnum;
+  }
 
   // Inform downstream tools that a new measurement is available
   // maybe we could use the value to indicate if the data is good?
@@ -297,6 +503,10 @@ std::string MatthewAnalysisStrikesBack::GetCurrentTimestamp(){
 
 bool MatthewAnalysisStrikesBack::Finalise(){
   if(fdebug){
+  
+    TTree* t=(TTree*)fdebug->Get("t");
+    fdebug->cd();
+    if(t!=nullptr) t->Write("t",TObject::kOverwrite);
     fdebug->Close();
     delete fdebug;
     fdebug=nullptr;
@@ -328,26 +538,27 @@ bool MatthewAnalysisStrikesBack::ReinitDataModel(){
 
 void MatthewAnalysisStrikesBack::GetWavelengthIndices(const TGraph& g){
   
-  if(abs_region_npoints==0){
-    
-    double* wlarray = g.GetX();
-    if(wlarray==nullptr){
-      throw std::runtime_error("GetWavelengthIndices: null wavelengths array!!!\n");
-    }
-    
-    for(int i=0; i<g.GetN(); ++i){
-      if(wlarray[i] < sideband_region_low) ++sideband_region_low_index;
-      if(wlarray[i] < abs_region_low) ++abs_region_low_index;
-      if(wlarray[i] < abs_region_high) ++abs_region_high_index;
-      if(wlarray[i] < sideband_region_high) ++sideband_region_high_index;
-      else break;
-    }
-    abs_region_low = wlarray[abs_region_low_index];
-    abs_region_high = wlarray[abs_region_high_index];
-    abs_region_npoints = abs_region_high_index - abs_region_low_index;
-    sideband_region_npoints = sideband_region_high_index - sideband_region_low_index;
+  if(abs_region_npoints>0) return; // already done
+  if(g.GetN()!=number_of_points){
+    throw std::logic_error((m_unique_name+"::GetWavelengthIndices called with trimmed graph!\n").c_str());
   }
   
+  double* wlarray = g.GetX();
+  if(wlarray==nullptr){
+    throw std::runtime_error("GetWavelengthIndices: null wavelengths array!!!\n");
+  }
+  
+  for(int i=0; i<g.GetN(); ++i){
+    if(wlarray[i] < sideband_region_low) ++sideband_region_low_index;
+    if(wlarray[i] < abs_region_low) ++abs_region_low_index;
+    if(wlarray[i] < abs_region_high) ++abs_region_high_index;
+    if(wlarray[i] < sideband_region_high) ++sideband_region_high_index;
+    else break;
+  }
+  abs_region_low = wlarray[abs_region_low_index];
+  abs_region_high = wlarray[abs_region_high_index];
+  abs_region_npoints = abs_region_high_index - abs_region_low_index;
+  sideband_region_npoints = sideband_region_high_index - sideband_region_low_index;
   return;
 }
 
@@ -356,7 +567,7 @@ void MatthewAnalysisStrikesBack::GetAbsRegion(const TGraph& datagraph, TGraph& a
   double* x_in_vals = datagraph.GetX();
   double* y_in_vals = datagraph.GetY();
   if(x_in_vals==nullptr || y_in_vals==nullptr){
-    throw std::invalid_argument("GetAbsRegion: x or y array nullptr!!!\n");
+    throw std::invalid_argument("GetAbsRegion: x or y in array nullptr!!!\n");
   }
   if(datagraph.GetN()==0){
     throw std::invalid_argument("GetAbsRegion: no datapoints!!!\n");
@@ -366,17 +577,21 @@ void MatthewAnalysisStrikesBack::GetAbsRegion(const TGraph& datagraph, TGraph& a
   absgraph.Set(abs_region_npoints);
   double* x_out_vals = absgraph.GetX();
   double* y_out_vals = absgraph.GetY();
+  if(x_out_vals==nullptr || y_out_vals==nullptr){
+    throw std::invalid_argument("GetAbsRegion: x or y array out nullptr!!!\n");
+  }
   
   if(datagraph.GetN()==number_of_points){
     // get the indices of the absorbance region
-    for(int i=0, j=abs_region_low_index; i<abs_region_npoints; ++i, ++j){
+    int i=0;
+    for(int /*i=0,*/ j=abs_region_low_index; i<abs_region_npoints; ++i, ++j){
       x_out_vals[i] = x_in_vals[j];
       y_out_vals[i] = y_in_vals[j];
-      ++i;
     }
   } else {
     // tgraph is already trimmed
-    for(int i=0, j=0; j<datagraph.GetN(); ++j){
+    int i=0;
+    for(int /*i=0,*/ j=0; j<datagraph.GetN(); ++j){
       if(x_in_vals[j]>abs_region_high) break;
       if(x_in_vals[j]<abs_region_low) continue;
       x_out_vals[i] = x_in_vals[j];
@@ -388,33 +603,37 @@ void MatthewAnalysisStrikesBack::GetAbsRegion(const TGraph& datagraph, TGraph& a
   return;
 }
 
-void MatthewAnalysisStrikesBack::GetSidebandRegion(const TGraph& datagraph, TGraph& absgraph){
+void MatthewAnalysisStrikesBack::GetSidebandRegion(const TGraph& datagraph, TGraph& sidegraph){
   
   double* x_in_vals = datagraph.GetX();
   double* y_in_vals = datagraph.GetY();
   if(x_in_vals==nullptr || y_in_vals==nullptr){
-    throw std::invalid_argument("GetSidebandRegion: x or y array nullptr!!!\n");
+    throw std::invalid_argument("GetSidebandRegion: x or y in array nullptr!!!\n");
   }
   if(datagraph.GetN()==0){
     throw std::invalid_argument("GetAbsRegion: no datapoints!!!\n");
   }
   
-  absgraph.Set(sideband_region_npoints - abs_region_npoints);
-  double* x_out_vals = absgraph.GetX();
-  double* y_out_vals = absgraph.GetY();
+  GetWavelengthIndices(datagraph);
+  sidegraph.Set(sideband_region_npoints - abs_region_npoints +2);
+  double* x_out_vals = sidegraph.GetX();
+  double* y_out_vals = sidegraph.GetY();
+  if(x_out_vals==nullptr || y_out_vals==nullptr){
+    throw std::invalid_argument("GetSidebandRegion: x or y out array nullptr!!!\n");
+  }
   
   if(datagraph.GetN()==number_of_points){
     // get the indices of the sideband region
-    GetWavelengthIndices(datagraph);
-    for(int i=0, j=abs_region_low_index; i<abs_region_npoints; ++i, ++j){
+    for(int i=0, j=sideband_region_low_index; j<sideband_region_high_index; ++j){
+      if((j>abs_region_low_index) && (j<(abs_region_high_index-1))) continue;
       x_out_vals[i] = x_in_vals[j];
       y_out_vals[i] = y_in_vals[j];
       ++i;
     }
   } else {
-    // tgraph is already trimmed
+    // tgraph is already trimmed, use wavelengths
     for(int i=0, j=0; j<datagraph.GetN(); ++j){
-      if(x_in_vals[j]<sideband_region_high) break;
+      if(x_in_vals[j]>sideband_region_high) break;
       if(x_in_vals[j]<sideband_region_low) continue;
       if((x_in_vals[j]>abs_region_low) && (x_in_vals[j]<abs_region_high)) continue;
       x_out_vals[i] = x_in_vals[j];
@@ -451,6 +670,8 @@ void MatthewAnalysisStrikesBack::GetDarkTraceParams(double& mean, double& sigma)
   mean = (std::accumulate(dark_values.begin(), dark_values.end(), 0))/number_of_points;
   sigma = TMath::StdDev(number_of_points, dark_values.data());
   
+  dark_tree_ptr->ResetBranchAddresses();
+  
   return;
   
 }
@@ -481,17 +702,24 @@ void MatthewAnalysisStrikesBack::GetRawMinMax(double& raw_min, double& raw_max){
        static_cast<int>(wavelengths.size()) != number_of_points ){
     throw std::runtime_error("GetRawMinMax: retrieved vectors of incorrect size!!!\n");
   }
-  
+
   std::vector<double>::iterator abs_it_low = led_values.begin();
   std::vector<double>::iterator abs_it_high = led_values.begin();
-  for(auto&& awl : wavelengths){
-    if(awl < abs_region_low) ++abs_it_low;
-    if(awl < abs_region_high) ++abs_it_high;
-    else break;
+  if(abs_region_low_index==0){
+    for(auto&& awl : wavelengths){
+      if(awl < abs_region_low) ++abs_it_low;
+      if(awl < abs_region_high) ++abs_it_high;
+      else break;
+    }
+  } else {
+    std::advance(abs_it_low,abs_region_low_index);
+    std::advance(abs_it_high,abs_region_high_index);
   }
   
   raw_min = *std::min_element(abs_it_low, abs_it_high);
   raw_max = *std::max_element(abs_it_low, abs_it_high);
+  
+  led_tree_ptr->ResetBranchAddresses();
   
   return;
 }
