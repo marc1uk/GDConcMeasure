@@ -11,5 +11,9 @@ verbosity 1
 #file_list configfiles/AnalyseOldFiles/newmethodsetA_part2.txt
 #file_list configfiles/AnalyseOldFiles/newmethodsetB_part2.txt
 #file_list configfiles/AnalyseOldFiles/newmethodset_may2024.txt
-file_list configfiles/AnalyseOldFiles/tmp.txt
+#file_list configfiles/AnalyseOldFiles/tmp.txt
+#file_list configfiles/AnalyseOldFiles/oct_2024_calib_newpures_A.txt
+#file_list configfiles/AnalyseOldFiles/oct_2024_calib_newpures_B.txt
+file_list configfiles/AnalyseOldFiles/oct_2024_aftercalib_A.txt
+#file_list configfiles/AnalyseOldFiles/oct_2024_aftercalib_B.txt
 #max_files 10

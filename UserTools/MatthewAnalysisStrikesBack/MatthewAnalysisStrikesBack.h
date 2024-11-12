@@ -63,7 +63,6 @@ class MatthewAnalysisStrikesBack: public Tool {
   TFile* fdebug = nullptr;
   int SaveDebug(const TObject* obj, const std::string& name);
   int SaveDebug(const TObject& obj, const std::string& name);
-  int SaveDebug(const std::string& par, double val);
   std::string GetCurrentTimestamp();
   
   int get_ok;
