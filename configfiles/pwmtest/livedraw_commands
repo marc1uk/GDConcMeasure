@@ -24,8 +24,13 @@ setFile tmp
 # turn on LED
 {"White":"1","LED":"Change"}
 #{"275_A":"1","LED":"Change"}
+
 # relays numbered 0-3
+# Relay2 is White
+# Relay3 is UV
 #{"Relay3":"1","LED":"Change"}
+#{"Relay2":"1","LED":"Change"}
+
 
 start_loop
 
