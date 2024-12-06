@@ -12,29 +12,6 @@ namespace {
 	
 }
 
-struct measurement {
-	
-	int led_entry;                      // entry number in LED-on tree for gad arm measurement
-	int ref_entry;                      // entry number in LED-on tree for ref arm measurement
-	int ref_dark_entry;                 // entry number in Dark tree for ref arm measurement
-	int gad_dark_entry;                 // entry number in Dark tree for gad arm measurement
-	
-	std::vector<double> values_ref;     // LED-on intensity values for reference arm measurement
-	std::vector<double> dark_ref;       // Dark intensity values for reference arm measurement
-	std::vector<double> values_gad;     // LED-on intensity values for gad arm measurement
-	std::vector<double> dark_gad;       // Dark intensity values for gad arm measurement
-	
-	std::vector<double> darksub_ref;    // dark-subtracted reference arm intensities
-	std::vector<double> darksub_gad;    // dark-subtracted gad arm intensities
-	
-	std::vector<double> corrected_ref;  // reference arm intensities corrected for pure water absorption
-	std::vector<double> ratio_abs;      // ratio of gad arm intensity to corrected reference arm intensity
-	std::vector<double> ratio_err;      // based on 1/sqrt(X) or something... TBD
-	
-	Short_t LED_yr, LED_mon, LED_dy, LED_hr, LED_mn, LED_sc;    // time the LED-on measurement was taken
-	
-};
-
 class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	
 	public:
@@ -46,11 +23,7 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	
 	private:
 	
-	// Initialise:
-	bool GetPureWaterTransparency();
-	bool GetPureWaterTransparency(int pureref_ver);
-	bool GetPureWaterTransparency(std::string filename);
-	
+	// Initialise:	
 	bool GetCalibrationCurve();
 	bool GetCalibrationCurveFromConfigs();
 	bool GetCalibrationCurveFromFile();
@@ -65,11 +38,8 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	bool ReadyToAnalyse();
 	void ReInit();
 	void SetGraphTitles();
-	bool GetTrees();
-	bool ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>* values);
-	bool ReadValues();
 	bool GetROI();
-	bool CalculateAbsorbance();
+	bool GetAbsorbance();
 	bool FitAbsorbance();
 	bool CalculateConcentration();
 	void UpdateDataModel();
@@ -108,11 +78,7 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	size_t start_gd = 0;
 	size_t end_gd = 0;
 	
-	// input trees
-	TTree* led_tree = nullptr;
-	TTree* dark_tree = nullptr;
-	
-	// for getting data from input trees
+	// TODO update these according to Tool needs
 	std::vector<double> gad_values, ref_values, gad_dark, ref_dark, wavelengths;
 	
 	std::vector<double>* gad_valuesp= nullptr;

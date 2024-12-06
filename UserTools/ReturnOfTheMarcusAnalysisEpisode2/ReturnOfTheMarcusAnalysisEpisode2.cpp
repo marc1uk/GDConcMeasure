@@ -39,10 +39,6 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Initialise(std::string configfile, DataM
 	if(ledToAnalyse=="") throw std::runtime_error(m_unique_name+" has no LedToAnalyse!");
 	Log(m_unique_name+" will analyse LED "+ledToAnalyse,v_debug,verbosity);
 	
-	// get the transparency of pure water; this is a correction we need to apply to go from
-	// the reference arm to what would be expected for the GAD arm with no Gd or contaminants
-	GetPureWaterTransparency();
-	
 	// get reference Gd absorption shape
 	GetAbsorptionRef();
 	
@@ -89,18 +85,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 			Log(m_unique_name+" reinitializing variables",v_debug,verbosity);
 			ReInit();
 			
-			// get pointers to the led-on and dark TTrees
-			Log(m_unique_name+" getting input data",v_debug,verbosity);
-			GetTrees();
-			
-			// read in led-on and dark data entries for both GAD and reference arm measurements
-			// and do dark subtraction
-			Log(m_unique_name+" doing dark-subtraction",v_debug,verbosity);
-			ReadValues();
-			
-			// calculate absorbance from log10(transmitted / received) light
-			Log(m_unique_name+" calculating absorbance",v_debug,verbosity);
-			CalculateAbsorbance();
+			// get absorbance data
+			Log(m_unique_name+" getting absorbance data",v_debug,verbosity);
+			GetAbsorbance();
 			
 			// fit absorbance trace with reference Gd absorbance shape
 			Log(m_unique_name+" fitting absorbance",v_debug,verbosity);
@@ -119,7 +106,7 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 			
 			// Inform downstream tools that a new measurement is available
 			// maybe we could use the value to indicate if the data is good?
-			m_data->CStore.Set("NewMarcusAnalyse",ledToAnalyse);
+			m_data->CStore.Set("NewMarcusAnalyseEp2",ledToAnalyse);
 			
 		} catch(std::exception& e){
 			Log(m_unique_name+" Error! Caught "+e.what(),v_error,verbosity);
@@ -130,8 +117,8 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 		// else no data to Analyse
 		// see if there's an old flag from this instance and remove it if so
 		std::string lastAnalyse="";
-		if(m_data->CStore.Get("NewMarcusAnalyse",lastAnalyse) && lastAnalyse==ledToAnalyse){
-			m_data->CStore.Remove("NewMarcusAnalyse");
+		if(m_data->CStore.Get("NewMarcusAnalyseEp2",lastAnalyse) && lastAnalyse==ledToAnalyse){
+			m_data->CStore.Remove("NewMarcusAnalyseEp2");
 		}
 	}
 	
@@ -146,13 +133,13 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Finalise(){
 }
 
 bool ReturnOfTheMarcusAnalysisEpisode2::ReadyToAnalyse(){
+	
+	// XXX XXX XXX NEEDS FIXING TODO XXX FIXME
 	// Checks if analyse flag for our LED has been set by scheduler. Removes it if found.
 	bool ready = false;
-	std::string analyse="";
 	std::string currentLED="";
-	m_data->CStore.Get("Analyse", analyse);
-	m_data->CStore.Get("ledToAnalyse", currentLED);
-	if (analyse == "Analyse" && currentLED == ledToAnalyse){
+	m_data->CStore.Get("NewMarcusAnalyse", currentLED);
+	if (currentLED == ledToAnalyse){
 		m_data->CStore.Remove("Analyse");
 		ready = true;
 	}
@@ -174,369 +161,7 @@ void ReturnOfTheMarcusAnalysisEpisode2::SetGraphTitles(){
 
 // -------------------------------------------------------------------------//
 
-bool ReturnOfTheMarcusAnalysisEpisode2::GetPureWaterTransparency(){
-	// Retrieve pure water transparency from either DB or file
-	// prioritize local filename if we have one
-	std::string pureref_file;
-	get_ok = m_variables.Get("pureref_file",pureref_file);
-	if(get_ok){
-		GetPureWaterTransparency(pureref_file);
-	} else {
-		// if no filename, see if we have a version number
-		// for a database entry
-		int pureref_ver=0;
-		get_ok = m_variables.Get("pureref_ver",pureref_ver);
-		if(!get_ok){
-			throw std::runtime_error(m_unique_name+" No pure reference given!");
-		}
-		GetPureWaterTransparency(pureref_ver);
-	}
-	
-	// set name and title
-	std::string purename="g_pureref_"+ledToAnalyse;
-	g_pure_absorbance.SetName(purename.c_str());
-	g_pure_absorbance.SetTitle(purename.c_str());
-	
-	// also store a pointer to the graph for plotting on the webpage
-	intptr_t puregraphp = reinterpret_cast<intptr_t>(&g_pure_absorbance);
-	std::string key = "purerefData_"+ledToAnalyse;
-	m_data->CStore.Set(key, puregraphp);
-	
-	Log(m_unique_name+" loaded pure reference trace of "+g_pure_absorbance.GetN()
-	    +" points",v_debug,verbosity);
-	
-	return true;
-}
-
-bool ReturnOfTheMarcusAnalysisEpisode2::GetPureWaterTransparency(int pureref_ver){
-	// get reference trace representing absorption of pure water
-	
-	// new reference curve can be inserted with e.g.: FIXME update
-	// psql -U postgres -d "rundb" -c "INSERT INTO data (timestamp, name, ledname, values) VALUES ('now()', 'pure_curve', '275_A', '{\"version\":0, \"xvals\":[200.0, ..., 800.0], \"yvals\":[0.0079581671, ..., -29982.759] }' );"
-	
-	// FIXME update
-	std::string query_string = "SELECT values->'yvals' FROM data WHERE name='pure_transparency'"
-	                           " AND ledname="+m_data->postgres.pqxx_quote(ledToAnalyse)+
-	                           " AND values->'yvals' IS NOT NULL"
-	                           " AND values->'version' IS NOT NULL"
-	                           " AND values->'version'="+ m_data->postgres.pqxx_quote(pureref_ver);
-	
-	std::string pureref_json="";
-	get_ok = m_data->postgres.ExecuteQuery(query_string, pureref_json);
-	
-	if(!get_ok || pureref_json==""){
-		throw std::runtime_error(m_unique_name+" GetPureRefDB obtained empty y array for led "
-		                        +ledToAnalyse+", version "+std::to_string(pureref_ver));
-	}
-	
-	// the values string is a json array; i.e. '[val1, val2, val3...]'
-	// first strip the '[' and ']' ...
-	pureref_json = pureref_json.substr(1,pureref_json.length()-2);
-	
-	// then parse the remaining list of values
-	std::stringstream ss(pureref_json);
-	std::string tmp;
-	std::vector<double> pureref_yvals;
-	
-	while(std::getline(ss,tmp,',')){
-		char* endptr = &tmp[0];
-		double nextval = strtod(tmp.c_str(),&endptr);
-		if(endptr==&tmp[0]){
-			throw std::runtime_error(m_unique_name+" GetPureRefDB failed to parse y array for led "
-			                        +ledToAnalyse+" version "+std::to_string(pureref_ver));
-		}
-		pureref_yvals.push_back(nextval);
-	}
-	
-	if(pureref_yvals.size()==0){
-		throw std::runtime_error(m_unique_name+" GetPureRefDB parsed no y values for led "
-		                         +ledToAnalyse+" version "+std::to_string(pureref_ver));
-	}
-	
-	// repeat for the x-values
-	query_string = "SELECT values->'xvals' FROM data WHERE name='pure_transparency'"
-	               " AND ledname="+m_data->postgres.pqxx_quote(ledToAnalyse)+
-	               " AND values->'xvals' IS NOT NULL"
-	               " AND values->'version' IS NOT NULL"
-	               " AND values->'version'="+ m_data->postgres.pqxx_quote(pureref_ver);
-	
-	pureref_json="";
-	get_ok = m_data->postgres.ExecuteQuery(query_string, pureref_json);
-	if(!get_ok || pureref_json==""){
-		throw std::runtime_error(m_unique_name+" GetPureRefDB obtained empty x array for led "
-		                        +ledToAnalyse+", version "+std::to_string(pureref_ver));
-	}
-	
-	// the values string is a json array; i.e. '[val1, val2, val3...]'
-	// strip the '[' and ']'
-	pureref_json = pureref_json.substr(1,pureref_json.length()-2);
-	// parse it
-	ss.clear();
-	ss.str(pureref_json);
-	std::vector<double> pureref_xvals;
-	while(std::getline(ss,tmp,',')){
-		char* endptr = &tmp[0];
-		double nextval = strtod(tmp.c_str(),&endptr);
-		if(endptr==&tmp[0]){
-			throw std::runtime_error(m_unique_name+" GetPureRefDB failed to parse x array for led "
-			                        +ledToAnalyse+" version "+std::to_string(pureref_ver));
-		}
-		pureref_xvals.push_back(nextval);
-	}
-	if(pureref_xvals.size()==0){
-		throw std::runtime_error(m_unique_name+" GetPureRefDB parsed no x values for led "
-		                         +ledToAnalyse+" version "+std::to_string(pureref_ver));
-	}
-	
-	g_pure_absorbance = TGraph(pureref_xvals.size(), pureref_xvals.data(), pureref_yvals.data());
-	
-	// put the version number used in the CStore for later tools
-	std::string key = "purerefID_"+ledToAnalyse;
-	m_data->CStore.Set(key, std::to_string(pureref_ver));
-	
-	return true;
-}
-
-bool ReturnOfTheMarcusAnalysisEpisode2::GetPureWaterTransparency(std::string filename){
-	// get pure reference trace from a local file
-	Log(m_unique_name+" loading pure reference trace from local file "+filename,v_debug,verbosity);
-	
-	TFile* puref = nullptr;
-	try {
-		puref = TFile::Open(filename.c_str());
-		
-		if(puref==nullptr || puref->IsZombie()){
-			throw std::runtime_error(m_unique_name+" Error opening pure reference file "+filename);
-		}
-		
-		// returns number of bytes read
-		get_ok = puref->ReadTObject(&g_pure_absorbance,"Graph");
-		
-		// ensure normalised TODO just do this in the creation
-		double puremax = *std::max_element(g_pure_absorbance.GetY(),g_pure_absorbance.GetY()+g_pure_absorbance.GetN());
-		if(puremax!=1){
-			for(int i=0; i<g_pure_absorbance.GetN(); ++i){
-				g_pure_absorbance.GetY()[i] = g_pure_absorbance.GetY()[i] / puremax;
-			}
-		}
-		
-		if(get_ok<=0){
-			throw std::runtime_error(m_unique_name+" failed to read pure reference TGraph 'Graph' from file "
-				                     +filename);
-		}
-		
-	} catch (std::exception& e){
-		
-		// attempt cleanup
-		if(puref){
-			puref->Close();
-			delete puref;
-		}
-		
-		// rethrow
-		throw;
-	}
-	
-	// put the version number used in the CStore for later tools
-	std::string key = "purerefID_"+ledToAnalyse;
-	m_data->CStore.Set(key, filename);
-	
-	return true;
-}
-
-
-// -------------------------------------------------------------------------//
-
-bool ReturnOfTheMarcusAnalysisEpisode2::GetTrees(){
-	// Get the TTree pointers for the current dark and led traces from the DataModel
-	Log(m_unique_name+" getting TTrees",v_debug,verbosity);
-	led_tree = nullptr;
-	dark_tree = nullptr;
-	for(std::pair<const std::string, TTree*>& atree : m_data->m_trees){
-		if (atree.first == ledToAnalyse) led_tree = atree.second;
-		else if (boost::iequals(atree.first, "dark")) dark_tree = atree.second;
-		if(led_tree && dark_tree) break;
-	}
-	
-	if(!led_tree) throw std::runtime_error(m_unique_name+" Failed to find led tree!");
-	if(!dark_tree) throw std::runtime_error(m_unique_name+" Failed to find dark tree!");
-	
-	return bool(led_tree) && bool(dark_tree);
-}
-
-bool ReturnOfTheMarcusAnalysisEpisode2::ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>* values){
-	get_ok = ((tree->SetBranchAddress(branch.c_str(), &values)) >= 0);
-	if(!get_ok){
-		throw std::runtime_error(m_unique_name+" failed to set address for tree "+tree->GetName()
-		      +", branch "+branch);
-	}
-	get_ok = tree->GetBranch(branch.c_str())->GetEntry(entry);
-	if(get_ok<=0){
-		throw std::runtime_error(m_unique_name+" failed to get entry "+std::to_string(entry)
-		                        +" from tree "+tree->GetName()+", branch "+branch);
-	}
-	tree->GetBranch(branch.c_str())->ResetAddress();
-	return true;
-}
-
-bool ReturnOfTheMarcusAnalysisEpisode2::ReadValues(){
-	// retrieve data for GAD and reference arms and do dark subtraction
-	
-	// We assume the measurement process is:
-	// 1. measure dark
-	// 2. measure ref arm
-	// 3. measure dark
-	// 4. measure gad arm.
-	if(dark_tree->GetEntries()<1){
-		Log(m_unique_name+" no entries in dark tree!",v_error,verbosity);
-		return false;
-	}
-	if(led_tree->GetEntries()<2){
-		Log(m_unique_name+" no entries in '"+ledToAnalyse+"' tree!",v_error,verbosity);
-		return false;
-	}
-	
-	Log(m_unique_name+" retrieving reference arm led-on data",v_debug,verbosity);
-	if(wavelengths.size()==0){
-		ReadBranch(led_tree, "wavelength", led_tree->GetEntries()-1, wavelengthsp);
-	}
-	ReadBranch(led_tree, "value", led_tree->GetEntries()-2, ref_valuesp);
-	ReadBranch(led_tree, "value", led_tree->GetEntries()-1, gad_valuesp);
-	ReadBranch(dark_tree, "value", dark_tree->GetEntries()-2, ref_darkp);
-	ReadBranch(dark_tree, "value", dark_tree->GetEntries()-1, gad_darkp);
-	
-	if(g_ref.GetN()==0) g_ref.Set(wavelengths.size());
-	if(g_gad.GetN()==0) g_gad.Set(wavelengths.size());
-	
-	// do dark subtraction
-	try {
-		for(size_t i=0; i<wavelengths.size(); ++i){
-			gad_values.at(i) -= gad_dark.at(i);
-			ref_values.at(i) -= ref_dark.at(i);
-			
-			if(TMath::IsNaN(gad_values.at(i)) || TMath::IsNaN(ref_values.at(i)) ||
-			  !TMath::Finite(gad_values.at(i)) || !TMath::Finite(ref_values.at(i)) ){
-				std::cout<<"gad: "<<gad_values.at(i)<<", ref: "<<ref_values.at(i)<<std::endl;
-				throw std::runtime_error(m_unique_name+" NaN value in trace point "+std::to_string(i));
-			}
-			
-			g_gad.SetPoint(i, wavelengths.at(i), gad_values.at(i));
-			g_ref.SetPoint(i, wavelengths.at(i), ref_values.at(i));
-		}
-	} catch(std::out_of_range& e){
-		std::stringstream ss;
-		ss << m_unique_name << " Caught " << e.what() << " doing dark subtraction!\n"
-		   << "\twavelengths.size() = "+std::to_string(wavelengths.size())<<"\n"
-		   << "\tGAD values.size() = "+std::to_string(gad_values.size())<<"\n"
-		   << "\tref values.size() = "+std::to_string(ref_values.size())<<"\n"
-		   << "\tGAD darks.size() = "+std::to_string(gad_dark.size())<<"\n"
-		   << "\tref darks.size() = "+std::to_string(ref_dark.size())<<"\n";
-		Log(ss.str(),v_error,verbosity);
-		throw std::runtime_error(m_unique_name+" Error getting data from trees");
-	}
-	
-	// for stability monitoring we'll record some characteristic information about the raw data
-	// in the database. The dark trace should be pretty flat, so we'll histogram it,
-	// fit it with a gaussian, and record the mean and sigma. - do this just for gad arm measurement.
-	TH1D tmphist("tmphist","title",100,*std::min_element(gad_dark.begin(), gad_dark.end()),
-		                               *std::max_element(gad_dark.begin(), gad_dark.end()));
-	for(size_t i=0; i<gad_dark.size(); ++i){
-		tmphist.Fill(gad_dark.at(i));
-	}
-	tmphist.Fit("gaus","Q");
-	dark_mean = tmphist.GetFunction("gaus")->GetParameter(1);
-	dark_sigma = tmphist.GetFunction("gaus")->GetParameter(2);
-	
-	// for the raw LED-on trace we'll record the maximum and minimum value of the trace
-	// within the absorption region.
-	ref_max = *std::max_element(ref_values.begin(), ref_values.end());
-	ref_min = *std::min_element(ref_values.begin(), ref_values.end());
-	
-	gad_max = *std::max_element(gad_values.begin(), gad_values.end());
-	gad_min = *std::min_element(gad_values.begin(), gad_values.end());
-	
-	Log(m_unique_name+" ref arm max: "+std::to_string(ref_max)
-	   +", gad arm max: "+std::to_string(gad_max),v_debug,verbosity);
-	
-	return true;
-}
-
-// -------------------------------------------------------------------------//
-
-bool ReturnOfTheMarcusAnalysisEpisode2::CalculateAbsorbance(){
-	// generate absorbance as log of ratio of (corrected) reference arm to GAD arm
-	
-	// TODO we could fit the reference arm data to the gad arm data in the sidebands.
-	// This should be a no-op, but could detect changes
-	// 1. from fluctuations in LED output between the two measurements (hopefully small)
-	// 2. from variations in absorption down the gad arm since the 'water transparency' reference was taken - e.g. solarization of the fibres
-	// put fit result into g_gadfit, put maximum into gad_fitted_max
-	
-	if(g_ref_corr.GetN()==0) g_ref_corr.Set(wavelengths.size());
-	if(g_abs.GetN()==0) g_abs.Set(wavelengths.size());
-	if(g_gadfit.GetN()==0) g_gadfit.Set(wavelengths.size());
-	if(ref_corr_values.size()==0) ref_corr_values.resize(wavelengths.size());
-	if(absorbances.size()==0) absorbances.resize(wavelengths.size());
-	
-	for(size_t i=0; i<wavelengths.size(); ++i){
-		// correct reference arm values for water transparency (and other GAD optical path elements)
-		// to obtain expected GAD arm measurement for pure water
-		double ref_value_corr = ref_values.at(i) * g_pure_absorbance.GetY()[i];
-		ref_corr_values[i]=ref_value_corr;
-		g_ref_corr.SetPoint(i, wavelengths.at(i), ref_value_corr);
-		// we'll get NaN if the argument to log10 is negative; i.e. if either value in the ratio is negative
-		// while technically we cannot have negative light, after dark subtraction we can get negative vlaues.
-		// if ref arm is <=0, call absorbance 0. If gad arm is <=0, set gad value to 1*
-		// if gad arm is > ref arm, this is probably noise, so also set absorbance to 0
-		// *a gad value of 0 means ref/gad is inf, so set to 1 ADC count.
-		if(gad_values.at(i)<=0) gad_values.at(i)=1.;
-		double absval=-1;
-		if(ref_value_corr<=0) absval=0;
-		else if(gad_values.at(i)>ref_value_corr) absval=0; // FIXME sanity check that ref value is very small?
-		else absval = ref_value_corr/gad_values.at(i); //log10(ref_value_corr/gad_values.at(i));
-		if(TMath::IsNaN(absval) || !TMath::Finite(absval)){
-			throw std::runtime_error(m_unique_name+" NaN absorbance value "+std::to_string(absval)
-			                        +" for datapoint "+ std::to_string(i)
-			                        +" from gad value "+std::to_string(gad_values.at(i))+", ref value: "
-			                        +std::to_string(ref_values.at(i))+", corrected for pure water: "
-			                        + std::to_string(ref_value_corr));
-		}
-		absorbances[i]=absval;
-		g_abs.SetPoint(i, wavelengths.at(i), absval);
-	}
-	corrected_ref_max = *std::max_element(g_ref_corr.GetY(),g_ref_corr.GetY()+g_ref_corr.GetN());
-	
-	if(!save_trees) return true;
-	
-	// save calculated traces to output tree if requested
-	outtree = new TTree("rotma","Return of the Marcus Analysis");
-	m_data->m_trees.emplace("rotma",outtree);
-	// XXX SaveTraces deletes all entries of m_data->m_trees when save is called!
-	TBranch* bptr = nullptr;
-	bptr = outtree->Branch("wavelength",&wavelengthsp);
-	bptr->Fill();
-	bptr = outtree->Branch("gad_values",&gad_valuesp);
-	bptr->Fill();
-	bptr = outtree->Branch("ref_values",&ref_valuesp);
-	bptr->Fill();
-	static std::vector<double> puretranspvals(g_pure_absorbance.GetY(),g_pure_absorbance.GetY()+g_pure_absorbance.GetN());
-	static std::vector<double>* puretranspvalsp = &puretranspvals;
-	bptr = outtree->Branch("pure_transp",&puretranspvalsp);
-	bptr->Fill();
-	bptr = outtree->Branch("ref_corr",&ref_corr_valuesp);
-	bptr->Fill();
-	bptr = outtree->Branch("abs",&absorbancesp);
-	bptr->Fill();
-	std::cout<<"saving absref from graph of "<<g_absorption_ref.GetN()<<" datapoints"<<std::endl;
-	static std::vector<double> absrefvals(g_absorption_ref.GetY(),g_absorption_ref.GetY()+g_absorption_ref.GetN());
-	static std::vector<double>* absrefvalsp = &absrefvals;
-	std::cout<<"absrefvalsp has "<<absrefvalsp->size()<<" points"<<std::endl;
-	bptr = outtree->Branch("abs_ref",&absrefvalsp);
-	bptr->Fill();
-	
-	outtree->SetEntries(1);
-	outtree->ResetBranchAddresses();
-	
+bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsorbance(){
 	return true;
 }
 
