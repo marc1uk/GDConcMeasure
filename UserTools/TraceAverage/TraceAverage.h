@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include "Tool.h"
 #include "TTree.h"
@@ -24,10 +25,13 @@ class TraceAverage: public Tool {
   bool Execute();
   bool Finalise();
 
+  static void pipeCloseHandler(int);
+  static bool pipeclosed;
 
  private:
 
   bool InitTTree(TTree* tree);
+  bool CheckFifo();
   
   bool livedraw=false;
   bool hold_max_plot=false;
@@ -40,6 +44,8 @@ class TraceAverage: public Tool {
   TCanvas* cspec=nullptr;
   TGraphErrors* ge=nullptr;
   Color_t linecol = kRed;
+  std::ofstream fifo;
+  std::string fifoname;
 
   int verbosity=1;
   int v_error=0;

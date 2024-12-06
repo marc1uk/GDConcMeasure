@@ -2,9 +2,11 @@
 #include "TApplication.h"
 #include "TSystem.h"
 #include "TH1.h"
+#include <signal.h>
+#include <ext/stdio_filebuf.h>
 
 TraceAverage::TraceAverage():Tool(){}
-
+bool TraceAverage::pipeclosed = false;
 
 bool TraceAverage::Initialise(std::string configfile, DataModel &data){
   
@@ -35,6 +37,11 @@ bool TraceAverage::Initialise(std::string configfile, DataModel &data){
   
   livedraw = false;
   m_variables.Get("livedraw",livedraw);
+  m_variables.Get("hold_max_plot",hold_max_plot);
+  m_variables.Get("hold_max_range",hold_max_range);
+  m_variables.Get("plot_gd_region",plot_gd_region);
+  m_variables.Get("normalise_livedraw",normalise_livedraw);
+  m_variables.Get("live_darksub",live_darksub);
   if(livedraw){
       Log("TraceAverage: live draw enabled, making TApp",v_debug,verbosity);
       // make a TApplication for live viewing the spectrum
@@ -51,11 +58,15 @@ bool TraceAverage::Initialise(std::string configfile, DataModel &data){
 	  // make canvas to draw it on
 	  Log("TraceAverage: making live plot canvas",v_debug,verbosity);
 	  cspec = new TCanvas("cspec","cspec",1200,700);
-	  m_variables.Get("hold_max_plot",hold_max_plot);
-	  m_variables.Get("hold_max_range",hold_max_range);
-	  m_variables.Get("plot_gd_region",plot_gd_region);
-	  m_variables.Get("normalise_livedraw",normalise_livedraw);
-	  m_variables.Get("live_darksub",live_darksub);
+  }
+  
+  // an alternative livedraw that works over tty
+  m_variables.Get("fifo",fifoname);
+  if(!fifoname.empty()){
+    if(signal((int) SIGPIPE, this->pipeCloseHandler) == SIG_ERR){
+      Log("TraceAverage: Failed to set up signal handler!", v_error, verbosity);
+      return false;
+    }
   }
   
   return true;
@@ -175,8 +186,10 @@ bool TraceAverage::Execute(){
     	}
     }
     
+    if(!fifoname.empty()) CheckFifo();
+    
     // do dark subtraction based on last dark if requested
-    if(livedraw && live_darksub){
+    if((livedraw || fifo.is_open()) && live_darksub){
       if(name=="Dark") darkvals=value;
       else if(darkvals.size()==wavelength.size()){
         for(int i=0; i<wavelength.size(); ++i) value.at(i) -= darkvals.at(i);
@@ -212,6 +225,10 @@ bool TraceAverage::Execute(){
 	    cspec->Modified();
 	    cspec->Update();
 	    gSystem->ProcessEvents();
+    }
+    if(fifo.is_open() && (!hold_max_plot || new_max) && (!live_darksub || name!="Dark")){
+    	for(auto it=(value.begin()+start_index); it!=(value.begin()+end_index); ++it) fifo<<*it<<" ";
+    	fifo<<std::endl;
     }
     
     //TCanvas c1("c1","A Simple Graph with error bars",200,10,700,500);
@@ -252,6 +269,7 @@ bool TraceAverage::Finalise(){
 	    m_data->CStore.Set("tapp",tapp_p);
 	  }
   }
+  if(fifo.is_open()) fifo.close();
   
   return true;
 }
@@ -286,4 +304,28 @@ bool TraceAverage::InitTTree(TTree* tree){
   }
   return true;
   
+}
+
+bool TraceAverage::CheckFifo(){
+	if(pipeclosed){
+		fifo.close();
+		pipeclosed=false;
+	} 
+	std::cout<<"fifo check: "<<fifo.is_open()<<std::endl;
+	if(fifo.is_open()){
+		if(!fifo.good()) fifo.clear();
+		return true;
+	}
+	int file_descr = open(fifoname.c_str(), O_WRONLY |O_NONBLOCK);
+	__gnu_cxx::stdio_filebuf<char> buf(file_descr, std::ios_base::out);
+	std::swap(buf,*fifo.rdbuf());
+	fifo.clear();
+	//fifo.open(fifoname);
+	std::cout<<"tried to open fifo: "<<fifo.is_open()<<std::endl;
+	return fifo.is_open();
+}
+
+void TraceAverage::pipeCloseHandler(int){
+	std::cout<<"detected pipe close"<<std::endl;
+	pipeclosed=true;
 }
