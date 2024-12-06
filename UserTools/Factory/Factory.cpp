@@ -17,5 +17,6 @@ if (tool=="ReturnOfTheMarcusAnalysis") ret=new ReturnOfTheMarcusAnalysis;
 if (tool=="SaveToDB") ret=new SaveToDB;
 if (tool=="SaveTraces") ret=new SaveTraces;
 if (tool=="TraceAverage") ret=new TraceAverage;
+if (tool=="ReturnOfTheMarcusAnalysisEpisode2") ret=new ReturnOfTheMarcusAnalysisEpisode2;
 return ret;
 }

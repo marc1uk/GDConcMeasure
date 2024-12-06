@@ -7,6 +7,7 @@
 #include <MatthewTransparency.h>
 #include <Monitoring.h>
 #include <ReturnOfTheMarcusAnalysis.h>
+#include <ReturnOfTheMarcusAnalysisEpisode2.h>
 #include <SaveToDB.h>
 #include <SaveTraces.h>
 #include <TraceAverage.h>

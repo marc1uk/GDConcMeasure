@@ -76,15 +76,18 @@ bool LoadOldFiles::Execute(){
 			continue;
 		}
 		
-		// under normal operation, each measurement results in a TTree with one entry... probably not very efficient.
-		// the MatthewAnalysis tool analyses led Tree entry 0, so warn if there are others
-		Log("LoadOldFiles: checking one entry",v_debug,verbosity);
+		// under normal operation, each measurement results in a TTree with one entry (old GAD) or two (new GAD)...
+		// (FIXME this is probably not very efficient)
+		Log("LoadOldFiles: checking number of entries",v_debug,verbosity);
 		if(ledTree->GetEntries()==0){
 			Log("LoadOldFiles found no entries in tree '"+treename+"' in file '"+filename+"!",v_warning,verbosity);
 			continue;
-		} else if(ledTree->GetEntries()>1){
-			Log("LoadOldFiles found more than one entry in tree '"+treename
-				+"' in file '"+filename+"! Only entry 0 will be analysed!",v_warning,verbosity);
+		} else if(ledTree->GetEntries()>2){
+			Log("LoadOldFiles found more than two entries in tree '"+treename
+				+"' in file '"+filename+"!",v_warning,verbosity);
+			// at present:
+			// the old GAD MatthewAnalysisStrikesBack code will only use entry 0
+			// the new GAD ReturnOfTheMarcusAnalysis code will use the last 2 entries as reference and gad arms respectively
 		}
 		
 		got_file=true;
@@ -100,12 +103,8 @@ bool LoadOldFiles::Execute(){
 	++measurementnum;
 	get_ok = m_data->CStore.Get("dbmeasurementnum",measurementnum);
 	
-	// while each LED gets saved to a different file, the dark traces for all LED measurements are currently saved
-	// in one common file. It is also the case that several unused dark traces are taken between measurements
-	// to warm up the spectrometer. The result of this is that the MatthewAnalysis takes the last (most recent)
-	// entry from the Dark tree for its dark subtraction, but other dark traces may be taken after this.
-	// When reading from the file, we therefore need to be careful about picking the right Dark trace.
-	// To do this, we'll find the most recent dark by timestamp
+	// scan the Dark tree and copy over the relevant entries - i.e. the last Dark before each LED-on measurement.
+	// first get the set of LED-on measurement times
 	Log("LoadOldFiles: setting branch addresses",v_debug,verbosity);
 	Short_t yr, mon, dy, hr, mn, sc;
 	ledTree->SetBranchAddress("year",&yr);
@@ -114,27 +113,38 @@ bool LoadOldFiles::Execute(){
 	ledTree->SetBranchAddress("hour",&hr);
 	ledTree->SetBranchAddress("min",&mn);
 	ledTree->SetBranchAddress("sec",&sc);
-	Log("LoadOldFiles: getting entry 0",v_debug,verbosity);
-	ledTree->GetEntry(0);
-	struct tm ledtime;
-	ledtime.tm_year = yr - 1900;
-	ledtime.tm_mon = mon - 1;
-	ledtime.tm_mday = dy;
-	ledtime.tm_hour = hr;
-	ledtime.tm_min = mn;
-	ledtime.tm_sec = sc;
-	time_t ledtime_t = mktime(&ledtime);
-	// for some reason on the first toolchain Execute (perhaps just the first mktime call)
-	// this produces a timestamp one hour later than the passed ledtime, and even changes
-	// the ledtime.tm_hour to be one hour later. re-set the hour and regenerate.
-	ledtime.tm_hour = hr;
-	ledtime_t = mktime(&ledtime);
 	
-	// we can override the default "now()" timestamp passed to postgres by providing it explicitly
-	char dbtimestamp[20];
-	snprintf(dbtimestamp, 20, "%04d-%02d-%02d %02d:%02d:%02d", yr, mon, dy, hr, mn, sc);
-	std::string dbtimestampstring(dbtimestamp);
-	m_data->CStore.Set("dbtimestamp",dbtimestampstring);
+	std::vector<time_t> ledtimes;
+	for(int i=0; i<ledTree->GetEntries(); ++i){
+		
+		Log("LoadOldFiles: getting led entry "+std::to_string(i),v_debug,verbosity);
+		
+		ledTree->GetEntry(i);
+		struct tm ledtime;
+		ledtime.tm_year = yr - 1900;
+		ledtime.tm_mon = mon - 1;
+		ledtime.tm_mday = dy;
+		ledtime.tm_hour = hr;
+		ledtime.tm_min = mn;
+		ledtime.tm_sec = sc;
+		time_t ledtime_t = mktime(&ledtime);
+		// for some reason on the first toolchain Execute (perhaps just the first mktime call)
+		// this produces a timestamp one hour later than the passed ledtime, and even changes
+		// the ledtime.tm_hour to be one hour later. re-set the hour and regenerate.
+		ledtime.tm_hour = hr;
+		ledtime_t = mktime(&ledtime);
+		ledtimes.push_back(ledtime_t);
+		
+		// we can override the default "now()" timestamp passed to postgres by providing it explicitly
+		// we'll assume to use the timestamp of the first LED measurement
+		if(i==0){
+			char dbtimestamp[20];
+			snprintf(dbtimestamp, 20, "%04d-%02d-%02d %02d:%02d:%02d", yr, mon, dy, hr, mn, sc);
+			std::string dbtimestampstring(dbtimestamp);
+			m_data->CStore.Set("dbtimestamp",dbtimestampstring);
+		}
+		
+	}
 	
 	// get the dark tree
 	Log("LoadOldFiles: getting dark tree",v_debug,verbosity);
@@ -156,29 +166,37 @@ bool LoadOldFiles::Execute(){
 	darkTree->SetBranchAddress("min",&mn);
 	darkTree->SetBranchAddress("sec",&sc);
 	
-	// loop over dark entries
-	int darkentry=0;
-	Log("LoadOldFiles: scanning "+std::to_string(darkTree->GetEntries())+" entries for closest timestamp",v_debug,verbosity);
-	for(int i=0; i<darkTree->GetEntries(); ++i){
-		darkTree->GetEntry(i);
-		
-		struct tm darktime;
-		darktime.tm_year = yr - 1900;
-		darktime.tm_mon = mon - 1;
-		darktime.tm_mday = dy;
-		darktime.tm_hour = hr;
-		darktime.tm_min = mn;
-		darktime.tm_sec = sc;
-		time_t darktime_t = mktime(&darktime);
-		
-		// difftime does [ time_a - time_b ]
-		double numsecs = difftime(ledtime_t, darktime_t);
-		// do we use the closest in time dark, or the last dark before the led-on?
-		// what if someone decides to do the dark measurements after the led?
-		if(numsecs<0) break;
-		darkentry=i;
+	// loop over dark entries and copy over the last one taken before each LED-on measurement
+	std::vector<int> darkentries;
+	for(int j=0; j<ledtimes.size(); ++j){
+		Log("LoadOldFiles: scanning "+std::to_string(darkTree->GetEntries())+" entries for closest timestamp",v_debug,verbosity);
+		for(int i=0; i<darkTree->GetEntries(); ++i){
+			darkTree->GetEntry(i);
+			
+			struct tm darktime;
+			darktime.tm_year = yr - 1900;
+			darktime.tm_mon = mon - 1;
+			darktime.tm_mday = dy;
+			darktime.tm_hour = hr;
+			darktime.tm_min = mn;
+			darktime.tm_sec = sc;
+			time_t darktime_t = mktime(&darktime);
+			
+			// difftime does [ time_a - time_b ]
+			double numsecs = difftime(ledtimes.at(j), darktime_t);
+			if(numsecs<0){
+				// last entry was the last one before this measurement
+				darkentries.push_back(i-1);
+				Log("LoadOldFiles: adding dark entry "+std::to_string(i-1),v_debug,verbosity);
+				break;
+			} else if(i==(ledtimes.size()-1)){
+				// last dark entry is always relevant as we don't save more darks to file after lights (would be pointless)
+				// but since we won't have a following dark with timestamp after thed time, the above will not catch it
+				darkentries.push_back(i);
+				Log("LoadOldFiles: adding dark entry "+std::to_string(i),v_debug,verbosity);
+			}
+		}
 	}
-	Log("LoadOldFiles: dark entry number = "+std::to_string(darkentry),v_debug,verbosity);
 	
 	// make a new TTree with just the dark entry we're intersted in
 	// because TTrees must attach to a file, attach it to a temporary file
@@ -195,10 +213,12 @@ bool LoadOldFiles::Execute(){
 	
 	// load the desired entry to copy
 	Log("LoadOldFiles: getting desired entry",v_debug,verbosity);
-	darkTree->GetEntry(darkentry);
-	// write it to the clone tree
-	Log("LoadOldFiles: filling copy",v_debug,verbosity);
-	darkTreeNew->Fill();
+	for(int i=0; i<darkentries.size(); ++i){
+		darkTree->GetEntry(darkentries.at(i));
+		// write it to the clone tree
+		Log("LoadOldFiles: filling copy",v_debug,verbosity);
+		darkTreeNew->Fill();
+	}
 	
 	//m_data->m_trees is a std::map<std::string, TTree*>
 	// we need to put the 'dark' tree and the 'led' tree in it,
@@ -207,13 +227,14 @@ bool LoadOldFiles::Execute(){
 	m_data->m_trees["dark"] = darkTreeNew;
 	m_data->m_trees[treename] = ledTree;
 	
-	std::pair<int,int> treeentrynums{0,darkentry}; // light then dark
-	get_ok = m_data->CStore.Get("dbtreeentries",treeentrynums);
+	// this only works with one entry per output.... ok for old GAD
+	std::pair<int,int> treeentrynums{0,darkentries.at(0)}; // light then dark
+	m_data->CStore.Set("dbtreeentries",treeentrynums);
 	
 	m_data->CStore.Set("ledToAnalyse",treename);
 	m_data->CStore.Set("Filename",filename);
 	
-	// trigger the MatthewAnalysis
+	// trigger the Analysis
 	std::string analyse = "Analyse";
 	m_data->CStore.Set("Analyse", analyse);
 	

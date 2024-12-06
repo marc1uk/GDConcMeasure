@@ -128,14 +128,14 @@ bool MarcusAnalysis::Execute(){
 		
 		// Inform downstream tools that a new measurement is available
 		// maybe we could use the value to indicate if the data is good?
-		m_data->CStore.Set("NewMarcusAnalyse",ledToAnalyse);
+		m_data->CStore.Set("MarcusAnalyse",ledToAnalyse);
 		
 	} else {
 		// else no data to Analyse
 		// see if there's an old flag from this instance and remove it if so
 		std::string lastAnalyse="";
-		if(m_data->CStore.Get("NewMarcusAnalyse",lastAnalyse) && lastAnalyse==ledToAnalyse){
-			m_data->CStore.Remove("NewMarcusAnalyse");
+		if(m_data->CStore.Get("MarcusAnalyse",lastAnalyse) && lastAnalyse==ledToAnalyse){
+			m_data->CStore.Remove("MarcusAnalyse");
 		}
 	}
 	

@@ -1,0 +1,9 @@
+verbosity 10
+save_trees 1
+ledToAnalyse White
+
+# trace for pure water down GAD arm
+# use 'create' to make it from first entry
+#pureref_file create
+pureref_file PureWaterTransparency.root
+

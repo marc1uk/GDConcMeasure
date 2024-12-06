@@ -1,11 +1,16 @@
-#ifndef ReturnOfTheMarcusAnalysis_H
-#define ReturnOfTheMarcusAnalysis_H
+#ifndef ReturnOfTheMarcusAnalysisEpisode2_H
+#define ReturnOfTheMarcusAnalysisEpisode2_H
 
 #include <string>
 #include <iostream>
 
 #include "Tool.h"
-#include "DataModel.h"
+
+namespace {
+	const double ROI_min = 260; // nm
+	const double ROI_max = 300; // nm
+	
+}
 
 struct measurement {
 	
@@ -30,10 +35,10 @@ struct measurement {
 	
 };
 
-class ReturnOfTheMarcusAnalysis: public Tool {
+class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	
 	public:
-	ReturnOfTheMarcusAnalysis();
+	ReturnOfTheMarcusAnalysisEpisode2();
 	bool Initialise(std::string configfile,DataModel &data);
 	bool Execute();
 	bool Finalise();
@@ -46,6 +51,16 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	bool GetPureWaterTransparency(int pureref_ver);
 	bool GetPureWaterTransparency(std::string filename);
 	
+	bool GetCalibrationCurve();
+	bool GetCalibrationCurveFromConfigs();
+	bool GetCalibrationCurveFromFile();
+	bool GetCalibrationCurveFromDB();
+	
+	bool GetAbsorptionRef();
+	bool GetAbsorptionRef(int absref_ver);
+	bool GetAbsorptionRef(std::string filename);
+	bool GetAbsFunc();
+	
 	// Execute:
 	bool ReadyToAnalyse();
 	void ReInit();
@@ -53,17 +68,19 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	bool GetTrees();
 	bool ReadBranch(TTree* tree, const std::string& branch, const size_t entry, std::vector<double>* values);
 	bool ReadValues();
+	bool GetROI();
 	bool CalculateAbsorbance();
+	bool FitAbsorbance();
+	bool CalculateConcentration();
 	void UpdateDataModel();
 	
 	std::string ledToAnalyse;
 	
-	// option to use first measurement to define water transparency
-	bool make_pureref = false;
-	bool GeneratePureWaterTransparency();
-	
 	// filled during initialise
 	TGraph g_pure_absorbance;    // absorbance of pure water (ideally normalised)
+	TGraph g_absorption_ref;
+	TF1 calib_curve;
+	TF1* abs_fct;
 	
 	// filled in ReadValues
 	TGraph g_ref;                // reference arm data
@@ -71,7 +88,25 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	
 	// filled in CalculateAbsorbance
 	TGraph g_ref_corr;           // ref arm corrected for water transparency
+	TGraph g_gadfit;             // corrected ref arm fitted to gad arm sidebands
 	TGraph g_abs;                // log(ratio) of corrected ref arm to gad arm
+	
+	// filled in FitAbsorbance
+	TGraph g_abs_gd;             // gd region only
+	TGraph g_absfit;
+	TFitResultPtr absfitresptr;
+	bool absfit_success = false; // our own metric as we can't trust the status of TFitResultPtr
+	double metric, gd_conc;
+	std::pair<double,double> metric_and_err;
+	std::pair<double,double> conc_and_err;
+	
+	std::vector<double> absfunc_init_params; // TODO populate - read from config? fit limits?
+	
+	// indices of ROI
+	size_t npoints_all = 0;
+	size_t npoints_gd = 0;
+	size_t start_gd = 0;
+	size_t end_gd = 0;
 	
 	// input trees
 	TTree* led_tree = nullptr;
@@ -90,15 +125,16 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	double dark_mean, dark_sigma;
 	double ref_max, corrected_ref_max, ref_min;
 	double gad_max, gad_min;
+	double gad_fitted_max;
 	
 	// to save traces to output file (for debug, for now?)
 	bool save_trees=false;
-	TFile* outfile=nullptr; // used when putting debug in a separate file
 	TTree* outtree=nullptr;
 	// branches
-	std::vector<double> ref_corr_values, absorbances;
+	std::vector<double> ref_corr_values, absorbances, absfitvalues;
 	std::vector<double>* ref_corr_valuesp=nullptr;
 	std::vector<double>* absorbancesp=nullptr;
+	std::vector<double>* absfitvaluesp=nullptr;
 	
 	// for logging
 	int verbosity=1;

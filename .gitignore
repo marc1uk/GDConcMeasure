@@ -5,6 +5,7 @@ DataModel/*.o
 *.png
 ToolDAQ
 main
+GAD_ToolChain
 RemoteControl
 NodeDaemon
 
