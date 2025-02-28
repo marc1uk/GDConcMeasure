@@ -501,8 +501,8 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 		// *a gad value of 0 means ref/gad is inf, so set to 1 ADC count.
 		if(gad_values.at(i)<=0) gad_values.at(i)=1.;
 		double absval=-1;
-		if(ref_value_corr<=0) absval=0;
-		else if(gad_values.at(i)>ref_value_corr) absval=0; // FIXME sanity check that ref value is very small?
+		if(ref_value_corr<=0) absval=1.; // assume no absorbance, since nothing to absorb? no generally appropriate value tbh
+		else if(gad_values.at(i)>ref_value_corr) absval=1.; // FIXME sanity check that ref value is very small?
 		else absval = ref_value_corr/gad_values.at(i); //log10(ref_value_corr/gad_values.at(i));
 		if(TMath::IsNaN(absval) || !TMath::Finite(absval)){
 			throw std::runtime_error(m_unique_name+" NaN absorbance value "+std::to_string(absval)

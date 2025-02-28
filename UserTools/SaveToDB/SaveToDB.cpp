@@ -2628,8 +2628,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 		}
 		
 		/*
-		disabled as the absorption fitting and conc extraction is disabled / probably to move to a new Tool
-		(WCTE currently has no Gd and our UV LED is dead!)
+		disabled as the absorption fitting and conc extraction is moved to a ReturnOfTheMarcusAnalysisEpisode2
 		
 		// 2B. store which reference gd absorbance trace was used
 		// for persistent db storage, just record the reference ID for this measurement
