@@ -9,6 +9,7 @@
 //#include <errno.h>
 
 #include "Tool.h"
+#include "DataModel.h"
 
 /**
 * \class GracefulStop

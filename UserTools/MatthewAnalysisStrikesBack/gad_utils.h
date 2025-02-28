@@ -171,8 +171,8 @@ class LEDInfo {
   TF1* calibration_curve_ptr;
 };
 
-TGraph DarkSubtractFromTreePtrs(TTree*, TTree*, const int);
-TGraph GetDarkSubtractFromFile(const std::string, const std::string, const int&);
+TGraph DarkSubtractFromTreePtrs(TTree*, TTree*, const int = -1);
+TGraph GetDarkSubtractFromFile(const std::string, const std::string, const int =-1);
 TGraph RemoveRegion(const TGraph&, const double&, const double&);
 
 template<class L>

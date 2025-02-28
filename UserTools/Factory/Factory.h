@@ -4,6 +4,8 @@
 #include <string>
 #include "Tool.h"
 
+using namespace ToolFramework;
+
 Tool* Factory(std::string tool);
 
 #endif

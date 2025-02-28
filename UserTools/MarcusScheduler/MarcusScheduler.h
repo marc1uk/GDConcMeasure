@@ -11,6 +11,7 @@
 #include "keyb.h"  // defines kbhit to wait for keypress
 
 #include "Tool.h"
+#include "DataModel.h"
 
 #include "boost/date_time/gregorian/gregorian.hpp"
 #include "boost/date_time/posix_time/posix_time.hpp"

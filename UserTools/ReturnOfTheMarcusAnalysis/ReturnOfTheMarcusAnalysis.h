@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Tool.h"
+#include "DataModel.h"
 
 namespace {
 	const double ROI_min = 260; // nm

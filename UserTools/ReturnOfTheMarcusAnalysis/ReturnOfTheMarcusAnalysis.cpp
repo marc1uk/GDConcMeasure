@@ -1,5 +1,8 @@
 #include "ReturnOfTheMarcusAnalysis.h"
 #include <stdexcept>
+#include <strings.h> // strcasecmp
+
+#include "TH1.h"
 
 ReturnOfTheMarcusAnalysis::ReturnOfTheMarcusAnalysis():Tool(){}
 
@@ -354,7 +357,7 @@ bool ReturnOfTheMarcusAnalysis::GetTrees(){
 	dark_tree = nullptr;
 	for(std::pair<const std::string, TTree*>& atree : m_data->m_trees){
 		if (atree.first == ledToAnalyse) led_tree = atree.second;
-		else if (boost::iequals(atree.first, "dark")) dark_tree = atree.second;
+		else if (strcasecmp(atree.first.c_str(), "dark")==0) dark_tree = atree.second;
 		if(led_tree && dark_tree) break;
 	}
 	

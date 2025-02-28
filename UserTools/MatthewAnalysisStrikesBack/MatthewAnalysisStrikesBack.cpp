@@ -6,6 +6,7 @@
 //#include "TDirectory.h"
 #include <memory>
 #include <numeric>
+#include <strings.h> // strcasecmp
 
 MatthewAnalysisStrikesBack::MatthewAnalysisStrikesBack():Tool(){}
 
@@ -823,7 +824,7 @@ void MatthewAnalysisStrikesBack::GetDarkAndLEDTrees(){
   // from the current traces taken, sort the led and dark tree and store as class members
   for (const auto& [name, tree_ptr] : m_data->m_trees){
     if (name == current_led){led_tree_ptr = tree_ptr;}
-    else if (boost::iequals(name, "dark")){dark_tree_ptr = tree_ptr;}
+    else if (strcasecmp(name.c_str(), "dark")==0){dark_tree_ptr = tree_ptr;}
   }
   if(led_tree_ptr == nullptr){
     throw std::runtime_error("MatthewAnalysisStrikesBack::GetDarkAndLEDTrees: Failed to find led trace!");

@@ -1,24 +1,25 @@
-#ifndef ArduinoControl_H
-#define ArduinoControl_H
+#ifndef Monitoring_H
+#define Monitoring_H
 
 #include <string>
 #include <iostream>
+#include <chrono>
 
 #include "Tool.h"
 #include "DataModel.h"
-#include "ArduinoController.h"
 
-class ArduinoControl: public Tool {
+class Monitoring: public Tool {
 	
 	public:
-	
-	ArduinoControl();
+	Monitoring();
 	bool Initialise(std::string configfile,DataModel &data);
 	bool Execute();
 	bool Finalise();
 	
 	private:
-	ArduinoController controller;
+	std::chrono::time_point<std::chrono::high_resolution_clock> last_send;
+	//std::chrono::duration<std::chrono::seconds> send_period_s;
+	int send_period_s = 10; // seconds
 	
 	int verbosity=1;
 	int v_error=0;

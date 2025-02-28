@@ -5,6 +5,8 @@
 #include "Store.h"
 #include "BoostStore.h"
 
+using namespace ToolFramework;
+
 class DataModel;
 
 class PGHelper{

@@ -1,5 +1,6 @@
 #include "SaveToDB.h"
 #include "Algorithms.h" // for SystemCall
+#include <strings.h> // strcasecmp
 
 SaveToDB::SaveToDB():Tool(){}
 
@@ -801,7 +802,7 @@ bool SaveToDB::MarcusAnalysis(){
 			auto light_and_dark_trees = std::pair<TTree*, TTree*>{nullptr,nullptr};
 			for(std::pair<const std::string, TTree*>& atree : m_data->m_trees){
 				if (atree.first==ledname){light_and_dark_trees.first = atree.second;}
-				else if (boost::iequals(atree.first, "dark")){light_and_dark_trees.second = atree.second;}
+				else if (strcasecmp(atree.first.c_str(), "dark")==0){light_and_dark_trees.second = atree.second;}
 			}
 			if(light_and_dark_trees.first!=nullptr){
 				treeentrynums.first=light_and_dark_trees.first->GetEntries()-1;
@@ -1487,7 +1488,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			auto light_and_dark_trees = std::pair<TTree*, TTree*>{nullptr,nullptr};
 			for(std::pair<const std::string, TTree*>& atree : m_data->m_trees){
 				if (atree.first==ledname){light_and_dark_trees.first = atree.second;}
-				else if (boost::iequals(atree.first, "dark")){light_and_dark_trees.second = atree.second;}
+				else if (strcasecmp(atree.first.c_str(), "dark")==0){light_and_dark_trees.second = atree.second;}
 			}
 			if(light_and_dark_trees.first!=nullptr){
 				treeentrynums.first=light_and_dark_trees.first->GetEntries()-1;
@@ -2252,7 +2253,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 			auto light_and_dark_trees = std::pair<TTree*, TTree*>{nullptr,nullptr};
 			for(std::pair<const std::string, TTree*>& atree : m_data->m_trees){
 				if (atree.first==ledname){light_and_dark_trees.first = atree.second;}
-				else if (boost::iequals(atree.first, "dark")){light_and_dark_trees.second = atree.second;}
+				else if (strcasecmp(atree.first.c_str(), "dark")==0){light_and_dark_trees.second = atree.second;}
 			}
 			if(light_and_dark_trees.first!=nullptr){
 				treeentrynums.first=light_and_dark_trees.first->GetEntries()-1;

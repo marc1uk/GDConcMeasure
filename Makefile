@@ -1,23 +1,36 @@
 ToolDAQPath=ToolDAQ
+ToolFrameworkCore=$(ToolDAQPath)/ToolFrameworkCore
+ToolDAQFramework=$(ToolDAQPath)/ToolDAQFramework
+SOURCEDIR=`pwd`
 
-CPPFLAGS= -Wno-psabi -std=c++14 #-fsanitize=address -O1 -fno-omit-frame-pointer -g
+CXXFLAGS=  -fPIC -Wpedantic -Wall -std=c++14 -Wno-psabi -Wno-comment #-Wno-unused -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlogical-op -Wmissing-declarations -Wmissing-include-dirs -Wnoexcept  -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-null-sentinel -Wstrict-overflow=5 -Wswitch-default -Wundef #-Werror -Wold-style-cast 
+#-fsanitize=address -O1 -fno-omit-frame-pointer -g
+
+ifeq ($(MAKECMDGOALS),debug)
+CXXFLAGS+= -O0 -g -lSegFault -rdynamic -DDEBUG
+else
+CXXFLAGS+= -O3
+endif
+
+#ToolDAQFrameworkInclude = $(ToolDAQFrameworkDIR)/include
+#ToolDAQFrameworkLib = $(ToolDAQFrameworkDIR)/lib
 
 ZMQLib= -L $(ToolDAQPath)/zeromq-4.0.7/lib -lzmq
-ZMQInclude= -I $(ToolDAQPath)/zeromq-4.0.7/include/
+ZMQInclude= -isystem $(ToolDAQPath)/zeromq-4.0.7/include/
 
 RootLib = `root-config --libs`
-RootInclude = -I`root-config --incdir`
+RootInclude = -isystem `root-config --incdir`
 
 BoostLib= -L $(ToolDAQPath)/boost_1_66_0/install/lib -lboost_date_time -lboost_serialization -lboost_iostreams -lboost_system
-BoostInclude= -I $(ToolDAQPath)/boost_1_66_0/install/include
+BoostInclude= -isystem $(ToolDAQPath)/boost_1_66_0/install/include
 
 # need to check postgres install path - /usr/pgsql-12/lib...?
 PostgresLib= -L $(ToolDAQPath)/libpqxx-6.4.7/install/lib -lpqxx -lpq
-PostgresInclude= -I $(ToolDAQPath)/libpqxx-6.4.7/install/include
+PostgresInclude= -isystem $(ToolDAQPath)/libpqxx-6.4.7/install/include
 
 # simple c++ serial comms library
 SerialLib = -L $(ToolDAQPath)/SerialCpp -lserial
-SerialInclude = -I $(ToolDAQPath)/SerialCpp
+SerialInclude = -isystem $(ToolDAQPath)/SerialCpp
 
 # pi wiring library for gpio
 #WiringPiLib = -L $(ToolDAQPath)/WiringPi/wiringPi -lwiringPi
@@ -27,9 +40,6 @@ SerialInclude = -I $(ToolDAQPath)/SerialCpp
 SeaBreezeLib = -L $(ToolDAQPath)/seabreeze-3.0.11/SeaBreeze/lib/ -lseabreeze
 SeaBreezeInclude = -isystem ToolDAQ/seabreeze-3.0.11/SeaBreeze/include
 
-DataModelInclude= $(RootInclude)
-DataModelLib=  $(RootLib)
-
 # 64-bit location
 LIBUSBPATH:=/usr/lib/aarch64-linux-gnu
 ifeq ($(wildcard $(LIBUSBPATH)/.),)
@@ -37,90 +47,87 @@ ifeq ($(wildcard $(LIBUSBPATH)/.),)
   LIBUSBPATH:=/usr/lib/arm-linux-gnueabihf
 endif
 
-MyToolsInclude= $(RootInclude) $(SeaBreezeInclude) $(PostgresInclude) $(WiringPiInclude) $(SerialInclude)
-MyToolsLib= $(RootLib) $(WiringPiLib) $(SeaBreezeLib) $(PostgresLib) $(SerialLib) -L$(LIBUSBPATH) -lusb
+DataModelInclude = $(RootInclude) $(SerialInclude) $(PostgresInclude)
+DataModelLib = $(RootLib) $(SerialLib) $(PostgresLib)
 
-all: lib/libStore.so lib/libLogging.so lib/libDataModel.so include/Tool.h lib/libMyTools.so lib/libServiceDiscovery.so lib/libToolChain.so GAD_ToolChain RemoteControl  NodeDaemon
+MyToolsInclude = $(SeaBreezeInclude) $(WiringPiInclude)
+MyToolsLib = $(WiringPiLib) $(SeaBreezeLib) -L$(LIBUSBPATH) -lusb
 
-GAD_ToolChain: src/main.cpp | lib/libMyTools.so lib/libStore.so lib/libLogging.so lib/libToolChain.so lib/libDataModel.so lib/libServiceDiscovery.so
-	@echo -e "\n*************** Making " $@ "****************"
-	g++ -g $(CPPFLAGS) src/main.cpp -o $@ -I include -L lib -lStore -lMyTools -lToolChain -lDataModel -lLogging -lServiceDiscovery -lpthread $(DataModelInclude) $(DataModelib) $(MyToolsInclude)  $(MyToolsLib) $(ZMQLib) $(ZMQInclude)  $(BoostLib) $(BoostInclude)
+Includes=-I $(ToolFrameworkCore)/include/ -I $(ToolDAQFramework)/include/ -I $(SOURCEDIR)/include/ $(ZMQInclude) $(BoostInclude) $(DataModelInclude)
+ToolLibraries = $(patsubst %, lib/%, $(filter lib%, $(subst /, , $(wildcard UserTools/*/*.so))))
+LIBRARIES=lib/libDataModel.so lib/libMyTools.so $(ToolLibraries)
+DataModelHEADERS:=$(patsubst %.h, include/%.h, $(filter %.h, $(subst /, ,$(wildcard DataModel/*.h))))
+MyToolHEADERS:=$(patsubst %.h, include/%.h, $(filter %.h, $(subst /, ,$(wildcard UserTools/*/*.h) $(wildcard UserTools/*.h))))
+ToolLibs = $(patsubst %.so, %, $(patsubst lib%, -l%,$(filter lib%, $(subst /, , $(wildcard UserTools/*/*.so)))))
+AlreadyCompiled = $(wildcard UserTools/$(filter-out %.so UserTools , $(subst /, ,$(wildcard UserTools/*/*.so)))/*.cpp)
+SOURCEFILES:=$(patsubst %.cpp, %.o,  $(filter-out $(AlreadyCompiled), $(wildcard */*.cpp) $(wildcard */*/*.cpp)))
+Libs=-L $(SOURCEDIR)/lib/ -lDataModel -L $(ToolDAQFramework)/lib/ -lToolDAQChain -lDAQDataModelBase  -lDAQLogging -lServiceDiscovery -lDAQStore -L $(ToolFrameworkCore)/lib/ -lToolChain -lMyTools -lDataModelBase -lLogging -lStore -lpthread  $(ToolLibs) -L $(ToolDAQFramework)/lib/ -lToolDAQChain -lDAQDataModelBase  -lDAQLogging -lServiceDiscovery -lDAQStore $(ZMQLib) $(BoostLib)
 
+#.SECONDARY: $(%.o)
 
-lib/libStore.so: $(ToolDAQPath)/ToolDAQFramework/src/Store/*
-	cd $(ToolDAQPath)/ToolDAQFramework && make lib/libStore.so
-	@echo -e "\n*************** Copying " $@ "****************"
-	cp $(ToolDAQPath)/ToolDAQFramework/src/Store/*.h include/
-	cp $(ToolDAQPath)/ToolDAQFramework/lib/libStore.so lib/
-	#g++ -g -fPIC -shared  -I include $(ToolDAQPath)/ToolDAQFramework/src/Store/*.cpp -o lib/libStore.so $(BoostLib) $(BoostInclude)
+all: $(DataModelHEADERS) $(MyToolHEADERS) $(SOURCEFILES) $(LIBRARIES) GAD_ToolChain NodeDaemon RemoteControl
 
+debug: all
 
-include/Tool.h:  $(ToolDAQPath)/ToolDAQFramework/src/Tool/Tool.h
-	@echo -e "\n*************** Copying " $@ "****************"
-	cp $(ToolDAQPath)/ToolDAQFramework/src/Tool/Tool.h include/
+GAD_ToolChain: src/main.o $(LIBRARIES) $(DataModelHEADERS) $(MyToolHEADERS) | $(SOURCEFILES)
+	@echo -e "\e[38;5;11m\n*************** Making " $@ " ****************\e[0m"
+	g++  $(CXXFLAGS) $< -o $@ $(Includes) $(Libs) $(DataModelInclude) $(DataModelLib) $(MyToolsInclude) $(MyToolsLib) 
 
+include/%.h:
+	@echo -e "\e[38;5;87m\n*************** sym linking headers ****************\e[0m"
+	ln -s  `pwd`/$(filter %$(strip $(patsubst include/%.h, /%.h, $@)), $(wildcard DataModel/*.h) $(wildcard UserTools/*/*.h) $(wildcard UserTools/*.h)) $@
 
-lib/libToolChain.so: $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/* | lib/libLogging.so lib/libStore.so lib/libMyTools.so lib/libServiceDiscovery.so lib/libLogging.so lib/libDataModel.so
-	@echo -e "\n*************** Making " $@ "****************"
-	#cp $(ToolDAQPath)/ToolDAQFramework/UserTools/Factory/*.h include/
-	cp $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/*.h include/
-	g++ -g $(CPPFLAGS) -fPIC -shared $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/ToolChain.cpp -I include -lpthread -L lib -lStore -lDataModel -lServiceDiscovery -lLogging -lMyTools -o lib/libToolChain.so $(DataModelInclude) $(DataModelib) $(ZMQLib) $(ZMQInclude) $(MyToolsInclude) $(MyToolsLib) $(BoostLib) $(BoostInclude)
+src/%.o :  src/%.cpp   
+	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes)
 
+UserTools/Factory/Factory.o :  UserTools/Factory/Factory.cpp  $(DataModelHEADERS) $(MyToolHEADERS)
+	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude) $(ToolsInclude)
+
+UserTools/%.o :  UserTools/%.cpp  $(DataModelHEADERS) UserTools/%.h
+	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude) $(ToolsInclude)
+
+DataModel/%.o : DataModel/%.cpp DataModel/%.h  $(DataModelHEADERS)
+	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude)
+
+lib/libDataModel.so: $(patsubst %.cpp, %.o , $(wildcard DataModel/*.cpp)) |   $(DataModelHEADERS)
+	@echo -e "\e[38;5;201m\n*************** Making " $@ "****************\e[0m"
+	g++ $(CXXFLAGS) --shared $^ -o $@ $(Includes) $(DataModelInclude)
+
+lib/libMyTools.so: $(patsubst %.cpp, %.o , $(filter-out $(AlreadyCompiled), $(wildcard UserTools/*/*.cpp))) |   $(DataModelHEADERS) $(MyToolHEADERS)
+	@echo -e "\e[38;5;201m\n*************** Making " $@ "****************\e[0m"
+	g++ $(CXXFLAGS) --shared $^ -o $@ $(Includes) $(DataModelInclude) $(MyToolsInclude)
+
+lib/%.so:
+	@echo -e "\e[38;5;87m\n*************** sym linking Tool libs ****************\e[0m"
+	ln -s `pwd`/$(filter %$(strip $(patsubst lib/%.so, /%.so ,$@)), $(wildcard UserTools/*/*.so)) $@
+
+NodeDaemon: $(ToolDAQFramework)/NodeDaemon
+	@echo -e "\e[38;5;87m\n*************** sym linking " $@ " ****************\e[0m"
+	ln -s $(ToolDAQFramework)/NodeDaemon ./
+
+RemoteControl: $(ToolDAQFramework)/RemoteControl
+	@echo -e "\e[38;5;87m\n*************** sym linking " $@ " ****************\e[0m"
+	ln -s $(ToolDAQFramework)/RemoteControl ./
 
 clean:
-	@echo -e "\n*************** Cleaning up ****************"
+	@echo -e "\e[38;5;201m\n*************** Cleaning up ****************\e[0m"
+	rm -f */*/*.o
+	rm -f */*.o
 	rm -f include/*.h
 	rm -f lib/*.so
-	rm -f GAD_ToolChain
-	rm -f RemoteControl
-	rm -f NodeDaemon
-
-lib/libDataModel.so: DataModel/* lib/libLogging.so | lib/libStore.so
-	@echo -e "\n*************** Making " $@ "****************"
-	cp DataModel/*.h include/
-	g++ -g $(CPPFLAGS) -fPIC -shared DataModel/*.cpp -I include -L lib -lStore  -lLogging  -o lib/libDataModel.so $(DataModelInclude) $(DataModelLib) $(ZMQLib) $(ZMQInclude)  $(BoostLib) $(BoostInclude) $(PostgresInclude) $(PostgresLib)
-
-lib/libMyTools.so: UserTools/*/* UserTools/* | include/Tool.h lib/libDataModel.so lib/libLogging.so lib/libStore.so
-	@echo -e "\n*************** Making " $@ "****************"
-	cp UserTools/*/*.h include/
-	cp UserTools/Factory/*.h include/
-	g++ -g $(CPPFLAGS) -fPIC -shared  UserTools/Factory/Factory.cpp -I include -L lib -lStore -lDataModel -lLogging -o lib/libMyTools.so $(MyToolsInclude) $(MyToolsLib) $(DataModelInclude) $(DataModelib) $(ZMQLib) $(ZMQInclude) $(BoostLib) $(BoostInclude)
-
-RemoteControl:
-	cd $(ToolDAQPath)/ToolDAQFramework/ && make RemoteControl
-	@echo -e "\n*************** Copying " $@ "****************"
-	cp $(ToolDAQPath)/ToolDAQFramework/RemoteControl ./
-
-NodeDaemon:
-	cd $(ToolDAQPath)/ToolDAQFramework/ && make NodeDaemon
-	@echo -e "\n*************** Copying " $@ "****************"
-	cp $(ToolDAQPath)/ToolDAQFramework/NodeDaemon ./
-
-lib/libServiceDiscovery.so: $(ToolDAQPath)/ToolDAQFramework/src/ServiceDiscovery/* | lib/libStore.so
-	cd $(ToolDAQPath)/ToolDAQFramework && make lib/libServiceDiscovery.so
-	@echo -e "\n*************** Copying " $@ "****************"
-	cp $(ToolDAQPath)/ToolDAQFramework/src/ServiceDiscovery/ServiceDiscovery.h include/
-	cp $(ToolDAQPath)/ToolDAQFramework/lib/libServiceDiscovery.so lib/
-	#g++ -shared -fPIC -I include $(ToolDAQPath)/ToolDAQFramework/src/ServiceDiscovery/ServiceDiscovery.cpp -o lib/libServiceDiscovery.so -L lib/ -lStore  $(ZMQInclude) $(ZMQLib) $(BoostLib) $(BoostInclude)
-
-lib/libLogging.so:  $(ToolDAQPath)/ToolDAQFramework/src/Logging/* | lib/libStore.so
-	cd $(ToolDAQPath)/ToolDAQFramework && make lib/libLogging.so
-	@echo -e "\n*************** Copying " $@ "****************"
-	cp $(ToolDAQPath)/ToolDAQFramework/src/Logging/Logging.h include/
-	cp $(ToolDAQPath)/ToolDAQFramework/lib/libLogging.so lib/
-	#g++ -shared -fPIC -I include $(ToolDAQPath)/ToolDAQFramework/src/Logging/Logging.cpp -o lib/libLogging.so -L lib/ -lStore $(ZMQInclude) $(ZMQLib) $(BoostLib) $(BoostInclude)
-
-update:
-	@echo -e "\n*************** Updating ****************"
-	cd $(ToolDAQPath)/ToolDAQFramework; git pull
-	cd $(ToolDAQPath)/zeromq-4.0.7; git pull
-	git pull
+	rm -rf main
+	rm -rf NodeDaemon
+	rm -rf RemoteControl
 
 make_pureref_DB_entry: make_pure_ref.cpp plotter.h plotter.cpp
 	g++ -g -std=c++11 $< plotter.cpp -I./ `root-config --cflags --libs` -o $@
 
 make_calcurve_DB_entry: make_cal_curve.cpp
 	g++ -g -std=c++11 $^ `root-config --cflags --libs` -o $@
-	
+        
 make_calcurve_DB_entry2: make_cal_curve2.cpp
 	g++ -g -std=c++11 $^ `root-config --cflags --libs` -o $@

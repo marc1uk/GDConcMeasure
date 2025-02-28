@@ -8,10 +8,11 @@
 
 #include "TTree.h"
 
+#include "SlowControlCollection.h"
 #include "Store.h"
 #include "BoostStore.h"
 #include "Logging.h"
-#include "GdTree.h"
+#include "DAQDataModelBase.h"
 
 #include "TGraphErrors.h"
 #include "TFile.h"
@@ -20,10 +21,15 @@
 #include "TFitResult.h"
 #include "TFitResultPtr.h"
 
+#include "GdTree.h"
 #include "Postgres.h"
 #include "PGHelper.h"
 
+#include "ArduinoController.h"
+
 #include <zmq.hpp>
+
+using namespace ToolFramework;
 
 enum State {
 	    ReplaceWater,
@@ -81,7 +87,7 @@ std::ostream& operator<<(std::ostream& os, State s);
 	finalise
 	};*/
 
-class DataModel{
+class DataModel : public DAQDataModelBase {
   
 public:
   
@@ -193,6 +199,10 @@ public:
   // database manager
   Postgres postgres;        // manages interface with the database
   PGHelper postgres_helper; // provides user methods to perform routine database operations
+  
+  ArduinoController* arduino=nullptr;
+  
+  Store monitoring_store; // put variables in here to send to the monitoring DB by Monitoring tool
   
 private:
   

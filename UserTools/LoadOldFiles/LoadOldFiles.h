@@ -6,6 +6,7 @@
 #include <map>
 
 #include "Tool.h"
+#include "DataModel.h"
 
 struct oldfile{
 	std::string filename;

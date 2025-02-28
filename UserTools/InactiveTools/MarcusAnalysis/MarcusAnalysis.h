@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include "Tool.h"
+#include "DataModel.h"
 
 class MarcusAnalysis: public Tool {
 	

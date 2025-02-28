@@ -10,6 +10,7 @@
 #include <memory>
 
 #include "Tool.h"
+#include "DataModel.h"
 #include "gad_utils.h"
 
 class MatthewAnalysisStrikesBack: public Tool {

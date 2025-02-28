@@ -254,7 +254,7 @@ TGraph FunctionalFit::GetGraphExcluding(const std::vector<int>& p) const {
   return result;
 }
 
-TGraph DarkSubtractFromTreePtrs(TTree* led_ptr, TTree* dark_ptr, const int dark_entry = -1){
+TGraph DarkSubtractFromTreePtrs(TTree* led_ptr, TTree* dark_ptr, const int dark_entry){
   if (led_ptr == nullptr || dark_ptr ==  nullptr){
     throw std::invalid_argument("DarkSubtractFromTreePtrs: one or more input trees is nullptr!!!\n");
   }
@@ -291,7 +291,7 @@ TGraph DarkSubtractFromTreePtrs(TTree* led_ptr, TTree* dark_ptr, const int dark_
   return result;
 }
 
-TGraph GetDarkSubtractFromFile(const std::string fname, const std::string led_name, const int& dark_offset = -1){
+TGraph GetDarkSubtractFromFile(const std::string fname, const std::string led_name, const int dark_offset){
   TFile* file_ptr = TFile::Open(fname.c_str(), "READ");
   if (!file_ptr || !file_ptr->IsOpen() || file_ptr->IsZombie()){
     throw std::invalid_argument("GetDarkSubtractFromFile: FAILED TO OPEN FILE" + fname + "!!!\n");

@@ -12,6 +12,7 @@
 #include "TFitResultPtr.h"
 
 #include "Tool.h"
+#include "DataModel.h"
 
 //sort the order of peaks and deeps
 struct Sort

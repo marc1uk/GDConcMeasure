@@ -7,6 +7,7 @@
 #include <fstream>
 
 #include "Tool.h"
+#include "DataModel.h"
 #include "TTree.h"
 #include "TCanvas.h"
 #include "TGraphErrors.h"
