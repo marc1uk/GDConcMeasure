@@ -53,7 +53,7 @@ DataModelLib = $(RootLib) $(SerialLib) $(PostgresLib)
 MyToolsInclude = $(SeaBreezeInclude) $(WiringPiInclude)
 MyToolsLib = $(WiringPiLib) $(SeaBreezeLib) -L$(LIBUSBPATH) -lusb
 
-Includes=-I $(ToolFrameworkCore)/include/ -I $(ToolDAQFramework)/include/ -I $(SOURCEDIR)/include/ $(ZMQInclude) $(BoostInclude) $(DataModelInclude)
+Includes=-I $(ToolFrameworkCore)/include/ -I $(ToolDAQFramework)/include/ -I $(SOURCEDIR)/include/ $(ZMQInclude) $(BoostInclude)
 ToolLibraries = $(patsubst %, lib/%, $(filter lib%, $(subst /, , $(wildcard UserTools/*/*.so))))
 LIBRARIES=lib/libDataModel.so lib/libMyTools.so $(ToolLibraries)
 DataModelHEADERS:=$(patsubst %.h, include/%.h, $(filter %.h, $(subst /, ,$(wildcard DataModel/*.h))))
@@ -79,15 +79,15 @@ include/%.h:
 
 src/%.o :  src/%.cpp   
 	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
-	g++ $(CXXFLAGS) -c $< -o $@ $(Includes)
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude)
 
 UserTools/Factory/Factory.o :  UserTools/Factory/Factory.cpp  $(DataModelHEADERS) $(MyToolHEADERS)
 	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
-	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude) $(ToolsInclude)
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude) $(MyToolsInclude)
 
 UserTools/%.o :  UserTools/%.cpp  $(DataModelHEADERS) UserTools/%.h
 	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"
-	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude) $(ToolsInclude)
+	g++ $(CXXFLAGS) -c $< -o $@ $(Includes) $(DataModelInclude) $(MyToolsInclude)
 
 DataModel/%.o : DataModel/%.cpp DataModel/%.h  $(DataModelHEADERS)
 	@echo -e "\e[38;5;214m\n*************** Making " $@ "****************\e[0m"

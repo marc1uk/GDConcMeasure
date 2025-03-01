@@ -48,6 +48,7 @@ class TraceAverage: public Tool {
   std::ofstream fifo;
   std::string fifoname;
 
+  std::string m_configfile;
   int verbosity=1;
   int v_error=0;
   int v_warning=1;

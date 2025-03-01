@@ -28,7 +28,7 @@ class SaveTraces: public Tool {
   int v_message=2;
   int v_debug=3;
 
-
+  std::string m_configfile;
 
 
 };

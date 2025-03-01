@@ -66,6 +66,7 @@ class MatthewAnalysisStrikesBack: public Tool {
   int SaveDebug(const TObject& obj, const std::string& name);
   std::string GetCurrentTimestamp();
   
+  std::string m_configfile;
   int get_ok;
   int m_verbose=1;
   int v_error=0;

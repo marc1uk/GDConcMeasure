@@ -20,6 +20,7 @@ class DummyTool: public Tool {
 
  private:
 
+  std::string m_configfile;
   int m_verbose;
 
 };

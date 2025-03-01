@@ -100,6 +100,7 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	std::vector<double>* ref_corr_valuesp=nullptr;
 	std::vector<double>* absorbancesp=nullptr;
 	
+	std::string m_configfile;
 	// for logging
 	int verbosity=1;
 	int v_error=0;

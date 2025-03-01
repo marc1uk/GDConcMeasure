@@ -36,6 +36,7 @@ class LoadOldFiles: public Tool {
   TFile* tmpfile=nullptr;
   int measurementnum=0;
   
+  std::string m_configfile;
   int get_ok = 0;
   int verbosity=1;
   int v_error=0;

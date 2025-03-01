@@ -48,6 +48,7 @@ class MatthewTransparency: public Tool {
   bool HandleErrors();
   std::map<std::string, std::pair<double, double>> CreateSamplesMap(const Transparency&) const;
   
+  std::string m_configfile;
   bool get_ok;
   int verbosity=1;
   int v_error=0;

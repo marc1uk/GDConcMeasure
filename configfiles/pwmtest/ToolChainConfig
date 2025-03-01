@@ -16,7 +16,7 @@ log_port 24010
 ###### Service discovery ##### Ignore these settings for local analysis
 service_discovery_address 239.192.1.1
 service_discovery_port 5000
-service_name ToolDAQ_Service
+service_name GAD
 service_publish_sec -1
 service_kick_sec -1
 

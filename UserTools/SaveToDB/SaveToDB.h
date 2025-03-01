@@ -57,6 +57,7 @@ class SaveToDB: public Tool {
 	std::string last_measurement_time;
 	int measurementnum=-1;
 	
+	std::string m_configfile;
 	bool get_ok;
 	int verbosity=1;
 	int v_error=0;

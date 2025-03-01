@@ -106,9 +106,9 @@ public:
   BoostStore CStore;
   std::map<std::string,BoostStore*> Stores;
   
-  Logging *Log;
+  //Logging *Log;
   
-  zmq::context_t* context;
+  //zmq::context_t* context;
   
   State state;
   std::string mode;

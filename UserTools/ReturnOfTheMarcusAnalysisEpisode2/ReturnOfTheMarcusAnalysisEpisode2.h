@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Tool.h"
+#include "DataModel.h"
 
 namespace {
 	const double ROI_min = 260; // nm
@@ -102,6 +103,7 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	std::vector<double>* absorbancesp=nullptr;
 	std::vector<double>* absfitvaluesp=nullptr;
 	
+	std::string m_configfile;
 	// for logging
 	int verbosity=1;
 	int v_error=0;

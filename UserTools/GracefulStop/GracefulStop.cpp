@@ -7,8 +7,9 @@ bool GracefulStop::gotStopSignal = false;
 
 bool GracefulStop::Initialise(std::string configfile, DataModel &data){
 	
-	/////////////////// Useful header ///////////////////////
-	m_data= &data; //assigning transient data pointer
+	InitialiseTool(data);
+	m_configfile=configfile;
+	InitialiseConfiguration(configfile);
 	
 	/* - new method, Retrieve configuration options from the postgres database - */
 	int RunConfig=-1;

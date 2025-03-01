@@ -3,12 +3,15 @@
 #include <strings.h> // strcasecmp
 
 #include "TH1.h"
+#include "TBufferJSON.h"
 
 ReturnOfTheMarcusAnalysis::ReturnOfTheMarcusAnalysis():Tool(){}
 
 bool ReturnOfTheMarcusAnalysis::Initialise(std::string configfile, DataModel &data){
 	
-	m_data = &data;
+	InitialiseTool(data);
+	m_configfile=configfile;
+	InitialiseConfiguration(configfile);
 	
 	verbosity=v_warning;
 	
@@ -607,6 +610,19 @@ void ReturnOfTheMarcusAnalysis::UpdateDataModel(){
 	m_data->CStore.Set("raw_ref_max",ref_max);                                            // led intensity down ref arm
 	m_data->CStore.Set("corrected_ref_max",corrected_ref_max);                            // *expected* led intensity down gad arm
 	m_data->CStore.Set("gad_max",gad_max);                                                // probably not terribly useful by itself
+	
+	// also put into monitoring store anything being sent for shift plots
+	// e.g. absorbance trace, LED intensities, Gd concentration...
+	m_data->monitoring_store.Set("ref_arm_"+ledToAnalyse+"_intensity",ref_max);
+
+	// FIXME this is only useful for the moment until we add Gd, then we will need to do a fit
+	// and extract the LED intensity from that. For now we have no Gd absorption so fit is unnecessary.
+	m_data->monitoring_store.Set("gad_arm_"+ledToAnalyse+"_intensity",gad_max);
+	
+	// send absorbance graph
+	std::string graph_json = TBufferJSON::ToJSON(&g_abs).Data();
+	std::string graph_name = "absorbance_"+ledToAnalyse;
+	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	
 	return;
 	

@@ -3,9 +3,10 @@
 LoadOldFiles::LoadOldFiles():Tool(){}
 
 bool LoadOldFiles::Initialise(std::string configfile, DataModel &data){
-	m_data= &data;
 	
-	if(configfile!="")  m_variables.Initialise(configfile);
+	InitialiseTool(data);
+	m_configfile=configfile;
+	InitialiseConfiguration(configfile);
 	//m_variables.Print();
 	
 	m_variables.Get("verbosity",verbosity);

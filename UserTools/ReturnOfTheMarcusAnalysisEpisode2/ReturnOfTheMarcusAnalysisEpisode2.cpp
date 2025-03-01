@@ -5,7 +5,9 @@ ReturnOfTheMarcusAnalysisEpisode2::ReturnOfTheMarcusAnalysisEpisode2():Tool(){}
 
 bool ReturnOfTheMarcusAnalysisEpisode2::Initialise(std::string configfile, DataModel &data){
 	
-	m_data = &data;
+	InitialiseTool(data);
+	m_configfile=configfile;
+	InitialiseConfiguration(configfile);
 	
 	verbosity=v_warning;
 	

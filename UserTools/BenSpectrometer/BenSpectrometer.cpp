@@ -4,7 +4,9 @@ BenSpectrometer::BenSpectrometer() : Tool(){}
 
 bool BenSpectrometer::Initialise(std::string configfile, DataModel &data){
   
-  m_data= &data;
+  InitialiseTool(data);
+  m_configfile=configfile;
+  InitialiseConfiguration(configfile);
   
   /* - new method, Retrieve configuration options from the postgres database - */
   int RunConfig=-1;

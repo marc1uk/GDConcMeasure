@@ -20,6 +20,7 @@ class ArduinoControl: public Tool {
 	private:
 	ArduinoController controller;
 	
+	std::string m_configfile;
 	int verbosity=1;
 	int v_error=0;
 	int v_warning=1;

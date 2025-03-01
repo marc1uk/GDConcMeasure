@@ -10,6 +10,7 @@
 #include <unistd.h>
 
 #include "Tool.h"
+#include "DataModel.h"
 
 class BenSpectrometer: public Tool {
   
