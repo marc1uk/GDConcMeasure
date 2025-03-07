@@ -61,9 +61,10 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     Log(m_unique_name+" getting calibration curve for LED: "+led_name, v_debug,m_verbose);
     led_info.calibration_curve_ptr = GetCalibrationCurve(led_name);
     
+    // ===================== pure fitting part ======================= //
+    
     //create FunctionalFit object to do initial "simple", ie remove Gd region and fit sidebands
-    std::shared_ptr<SimplePureFunc> simple_pure_func = std::make_shared<SimplePureFunc>(pure_ds);
-    FunctionalFit simple_fit = FunctionalFit(simple_pure_func.get(), "simple");
+    FunctionalFit simple_fit = FunctionalFit(new SimplePureFunc(pure_ds), "simple");
     simple_fit.SetExampleGraph(pure_ds);  // i think this is only used for x values...
     
     // ROOT needs starting values and limits to stand any chance of doing the right thing
@@ -81,30 +82,11 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     SaveDebug(&simple_fit_result, std::string{"g_ref_simple_fit_"}+led_name);
     Log(m_unique_name+" extracting gd shape for LED: "+led_name, v_debug,m_verbose);
     const TGraph gd_abs_attenuation = CalculateGdAbs(simple_fit_result, high_conc_ds); // normalised to 1!
+    // gd_abs_attenuation is defined as Normalise(1-highconc[x]/pure[x])
     SaveDebug(&gd_abs_attenuation, std::string{"g_ref_atten_"}+led_name);
-    
-    const TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);  // NOT normalised!
-    // either this reference must have been used for the calibration mapping,
-    // or as a crude hack, it must be renormalised to the same magnitude as that used
-    // for the calibration mapping. We'll do the latter as it's quicker for now,
-    // and if we're going to regenerate the calibration curve we should use a normalised one.
-    // get the amplitude of this curve. by definition it has an offset of 1 (and should be >1 at all points)
-    /*  -- disabled as we regenerated the calibration mapping
-    double r_amp = *std::max_element(ratio_absorbance.GetY(),ratio_absorbance.GetY()+ratio_absorbance.GetN()) - 1.;
-    // the following are the max elements from the absorbances used during calibration
-    double c_amp = ((strcmp(led_name,"275_A")==0) ? 3.6979136 : 3.6221790) - 1.;
-    for(int i=0; i<ratio_absorbance.GetN(); ++i){
-      // rescale the new absorbance reference (extracted from new pure and highconc refs)
-      // to the same amplitude as that used during calibration.
-      ratio_absorbance.GetY()[i] = (ratio_absorbance.GetY()[i]-1)*(c_amp/r_amp) + 1.;
-    }
-    SaveDebug(&ratio_absorbance, std::string{"g_ref_abs_"}+led_name);
-    */
     
     //create FunctionalFit object to do inital pure removal fit
     led_info.combined_func = std::make_unique<CombinedGdPureFunc_DATA>(pure_ds, gd_abs_attenuation);
-    //led_info.combined_func = std::make_unique<CombinedGdPureFunc_DATA>(pure_ds, ratio_absorbance);
-    // gd_abs_attenuation == (1-normalised_ratio_absorbance).
     // CombinedGdPureFunc_DATA should use gd_abs_attenuation, but shouldn't there be a log10 somewhere in here?
     led_info.combined_fit = FunctionalFit(led_info.combined_func.get(), "combined");
     led_info.combined_fit.SetExampleGraph(pure_ds);
@@ -128,10 +110,39 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     //pars = std::vector<double>{20.222116, 0.065019, 0.809043, 0.000000, 0.001000, -0.048069, -0.310535}; // << last of set 1 - used for april-jul retroactive analysis with april calibration
     //pars = std::vector<double>{0.13,-0.02, 1.1, 0.0, 0.0, 0.0, 0.0};
     // below from 27-08-2024 restart, propagate last set for continuity.
-    pars = std::vector<double>{0.659464, 0.049935, 1.023525, 0.000000, 0.000000, 0.003120, -0.051462};
+    //pars = std::vector<double>{0.659464, 0.049935, 1.023525, 0.000000, 0.000000, 0.003120, -0.051462};
+    if(led_name=="275_A"){
+    	pars = std::vector<double>{1.822243, -0.176774, 1.013252, 0.000000, 0.000000, -0.013862, -0.020580};
+    } else {
+    	pars = std::vector<double>{1.886775, -0.243534, 1.015764, 0.000000, 0.000000, -0.012532, -0.076639};
+    }
     led_info.combined_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.1,50},{-1,1},{0.7,1.1},{0,1.1},{0.002,0.002}, {-0.1,0.1}, {-1,1} };
     led_info.combined_fit.SetFitParameterRanges(limits);
+    
+    // ===================== absorption fitting part ======================= //
+    
+    const TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);  // NOT normalised!
+    SaveDebug(&ratio_absorbance, std::string{"g_ratio_abs_ref_"}+led_name);
+    // remove offset of 1
+    //for(int i=0; i<ratio_absorbance.GetN(); ++i){ ratio_absorbance.GetY()[i] -= 1.; }
+    
+    // either this reference must have been used for the calibration mapping,
+    // or as a crude hack, it must be renormalised to the same magnitude as that used
+    // for the calibration mapping. We'll do the latter as it's quicker for now,
+    // and if we're going to regenerate the calibration curve we should use a normalised one.
+    // get the amplitude of this curve. by definition it has an offset of 1 (and should be >1 at all points)
+    /*  -- disabled as we regenerated the calibration mapping
+    double r_amp = *std::max_element(ratio_absorbance.GetY(),ratio_absorbance.GetY()+ratio_absorbance.GetN()) - 1.;
+    // the following are the max elements from the absorbances used during calibration
+    double c_amp = ((strcmp(led_name,"275_A")==0) ? 3.6979136 : 3.6221790) - 1.;
+    for(int i=0; i<ratio_absorbance.GetN(); ++i){
+      // rescale the new absorbance reference (extracted from new pure and highconc refs)
+      // to the same amplitude as that used during calibration.
+      ratio_absorbance.GetY()[i] = (ratio_absorbance.GetY()[i]-1)*(c_amp/r_amp) + 1.;
+    }
+    SaveDebug(&ratio_absorbance, std::string{"g_ref_abs_"}+led_name);
+    */
     
     //create FunctionalFit object to do absorbance fit on data
     led_info.abs_func = std::make_shared<AbsFunc>(ratio_absorbance);
@@ -143,9 +154,18 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     //pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
     // below from 27-08-2024 restart, propagate last set for continuity.
     pars = std::vector<double>{1.139877, 0.049598, -0.000643, 0.000000, 0.014598, -0.167741};
+    /*
+    // these kill the fit :/
+    if(led_name=="275_A"){
+    	pars = std::vector<double>{1.285284, -4.572532, 0.006269, 0.000000, -0.137472, -0.037768};
+    } else {
+    	pars = std::vector<double>{1.281454, -4.572532, 0.006125, 0.000000, -0.134119, -0.040785};
+    }
+    */
     led_info.absorbtion_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.01,100},{-10,10},{-2,2},{10,10},{-100,100},{-1000,1000} };
     led_info.absorbtion_fit.SetFitParameterRanges(limits);
+    led_info.absorbtion_fit.fit_funct.FixParameter(5,0);  // tendency to trade-off scaling with baseline offset
     
   }
   
@@ -299,6 +319,8 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // doesn't this need a log10???
   //current_ratio_absorbtion = PWLogRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);  -- the resulting concentrations from this are way off... did the calibration curve use log10?
   current_ratio_absorbtion = PWRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);
+  // remove offset of 1
+  //for(int i=0; i<current_ratio_absorbtion.GetN(); ++i){ current_ratio_absorbtion.GetY()[i] -= 1.; }
   SaveDebug(&current_ratio_absorbtion, std::string{"ratioabs_"}+current_led+"_"+std::to_string(measurementnum));
   
   // update the datamodel
@@ -308,31 +330,42 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // now perform abs fit on ratio absorbance
   Log(m_unique_name+" fitting absorption curve", v_debug,m_verbose);
   FunctionalFit curr_abs_fit = current_led_info.absorbtion_fit;
-  TFitResultPtr absfitresptr = curr_abs_fit.PerformFitOnData(current_ratio_absorbtion,false);
-
-  // update the datamodel
-  Log(m_unique_name+" saving absorbption fit graph",v_debug,m_verbose);
-  GetAbsRegion(curr_abs_fit.GetGraph(), absfitgraph);
-  get_ok = SaveDebug(&absfitgraph, std::string{"absfit_"}+current_led+"_"+std::to_string(measurementnum));
-  if(get_ok==0){
-    Log(m_unique_name+" Failed to save absfit_ in debug file?!",v_error,m_verbose);
-  } else {
-    Log(m_unique_name+" saved absfit in file with bytes "+std::to_string(get_ok),v_debug,m_verbose);
+  
+  lastchi2=0;
+  for(int numtries=0; numtries<maxtries; ++numtries){
+    
+    TFitResultPtr absfitresptr = curr_abs_fit.PerformFitOnData(current_ratio_absorbtion,false);
+    
+    double thischi2 = absfitresptr->Chi2();
+    bool badfit = (thischi2 > 6E-3);
+    double deltachi2pc = std::abs(thischi2-lastchi2) / lastchi2;
+    lastchi2 = thischi2;
+    
+    if( (badfit && numtries<(maxtries-1) && deltachi2pc>0.1) || (numtries<mintries) ) continue;
+    
+    // FIXME figure out a suitable metric of whether these fits worked or not
+    int absfit_success =  !absfitresptr->IsEmpty() &&
+                           absfitresptr->IsValid() &&
+                           absfitresptr->Status()==0 &&
+                           ((absfitresptr->Chi2()/absfitresptr->Ndf()) < 10.) &&
+                           !TMath::IsNaN(absfitresptr->GetParams()[0]) &&
+                           (absfitresptr->GetErrors()[0] < 0.5);
+    
+    // update the datamodel
+    Log(m_unique_name+" saving absorbption fit graph",v_debug,m_verbose);
+    m_data->CStore.Set("absfit_success",absfit_success);
+    absfitresp = TFitResultPtr((TFitResult*)absfitresptr->Clone());
+    tmp_ptr_t = reinterpret_cast<intptr_t>(&absfitresp);
+    m_data->CStore.Set("absfitresptr", tmp_ptr_t);
+    
+    break;
+    
   }
+
+  GetAbsRegion(curr_abs_fit.GetGraph(), absfitgraph);
+  SaveDebug(&absfitgraph, std::string{"absfit_"}+current_led+"_"+std::to_string(measurementnum));
   tmp_ptr_t = reinterpret_cast<intptr_t>(&absfitgraph);
   m_data->CStore.Set("absfit", tmp_ptr_t);
-  
-  absfitresp = TFitResultPtr((TFitResult*)absfitresptr->Clone());
-  tmp_ptr_t = reinterpret_cast<intptr_t>(&absfitresp);
-  m_data->CStore.Set("absfitresptr", tmp_ptr_t);
-  
-  int absfit_success =  !absfitresptr->IsEmpty() &&
-                        absfitresptr->IsValid() &&
-                        absfitresptr->Status()==0 &&
-                        ((absfitresptr->Chi2()/absfitresptr->Ndf()) < 10.) &&
-                        !TMath::IsNaN(absfitresptr->GetParams()[0]) &&
-                        (absfitresptr->GetErrors()[0] < 0.5);
-  m_data->CStore.Set("absfit_success",absfit_success);
   
   //extract metric from fit result, then get the concentration prediction from the calibration curve 
   double metric = curr_abs_fit.GetParameterValue(current_led_info.abs_func->ABS_SCALING);
@@ -352,7 +385,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   */
   
   // calculate suitable errors
-  double metric_err = absfitresptr->GetErrors()[0];
+  double metric_err = absfitresp->GetErrors()[0];
   std::pair<double,double> metric_and_err{metric, metric_err};
   m_data->CStore.Set("metric_and_err",metric_and_err);
   
@@ -370,6 +403,11 @@ bool MatthewAnalysisStrikesBack::Execute(){
   if(dark_tree_ptr) dark_tree_ptr->ResetBranchAddresses();
   
   Log(m_unique_name+" finished", v_debug,m_verbose);
+  
+  std::string file;
+  m_data->CStore.Get("Filename",file);
+  std::cerr<<file<<" : "<<current_led<<" : "<<metric<<std::endl;
+  
   
   return true;
 }

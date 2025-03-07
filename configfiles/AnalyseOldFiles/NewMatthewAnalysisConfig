@@ -1,20 +1,21 @@
 verbosity 1
 savedebug 1
 
-pureref_ver 4
-highconcref_ver 1
+#pureref_ver 3     # for jun-oct 2024 analysis (and before?)
+pureref_ver 4      # from october 2024 calibration?
+highconcref_ver 3  # from... end of calibration? after reconnect to EGADS?  should be latter
 
 #calibcurve_ver 3
 
 # updated versions after fixing code and redoing calibration data extraction (w/ April data)
-#calib_curve_275_A cal_a_new.root
-#cal_tf1_name_275_A led_a_calcurve
-#calib_curve_275_B cal_b_new.root
-#cal_tf1_name_275_B led_b_calcurve
+calib_curve_275_A cal_a_new.root
+cal_tf1_name_275_A led_a_calcurve
+calib_curve_275_B cal_b_new.root
+cal_tf1_name_275_B led_b_calcurve
 
-calib_curve_275_A calcurve_rough_oct_2024_egads_hack.root
-calib_curve_275_B calcurve_rough_oct_2024_egads_hack.root
-cal_tf1_name_275_A 275_A
-cal_tf1_name_275_B 275_B
+#calib_curve_275_A calcurve_rough_oct_2024_egads_hack.root
+#calib_curve_275_B calcurve_rough_oct_2024_egads_hack.root
+#cal_tf1_name_275_A 275_A
+#cal_tf1_name_275_B 275_B
 
 

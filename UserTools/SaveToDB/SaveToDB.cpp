@@ -1564,6 +1564,8 @@ bool SaveToDB::NewMatthewAnalysis(){
 		Log("SaveToDB::NewMatthewAnalysis measurement number for this measurement database entry: "
 		    +std::to_string(measurementnum),v_debug,verbosity);
 		
+		std::string meas_info = "{\"run\":"+std::to_string(runnum)+", \"measurement\":"+std::to_string(measurementnum)+", \"ledname\":\""+ledname+"\"}";
+		
 		// make the DB entry that maps the measurement number to root file and tree entry numbers
 		std::string rawfile_json = "{\"rawfile\": \""+rawfilename+"\", "
 		                           +"\"ledEntry\":" +std::to_string(treeentrynums.first)+", "
@@ -1693,7 +1695,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "dark_subtracted_data_in",   // name
 			                                 gd_data_inside_absregion,    // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert dark subtracted data withinin "
 				    "absorption region into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1706,7 +1708,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "dark_subtracted_data_out",  // name
 			                                 gd_data_outside_absregion,   // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert dark subtracted data outside "
 				    "absorption region into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1817,7 +1819,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "pure_scaled",               // name
 			                                 pure_scaled_json,            // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert new scaled pure data "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1904,7 +1906,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "absorbance_trace",          // name
 			                                 absorbance_json,             // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert absorbance trace "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1948,7 +1950,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "absfit",                    // name
 			                                 absfit_json,                 // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert new absorption fit data "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
