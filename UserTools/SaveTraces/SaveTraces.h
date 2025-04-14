@@ -22,6 +22,8 @@ class SaveTraces: public Tool {
  
   TFile* file=nullptr;
   std::string lastname="";
+  int overwrite=0;
+  
   int verbosity=1;
   int v_error=0;
   int v_warning=1;

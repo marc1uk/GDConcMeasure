@@ -69,6 +69,7 @@ class MarcusScheduler: public Tool {
 	void DoShutter(std::string the_command);
 	void DoMeasure(std::string the_command);
 	void DoMeasureWRef(std::string the_command);
+	void DoMonitoring(std::string the_command);
 	void DoWait(std::string the_command);
 	void SimpleWaitForDuration(std::string wait_string);
 	void WaitForDuration(std::string wait_string);

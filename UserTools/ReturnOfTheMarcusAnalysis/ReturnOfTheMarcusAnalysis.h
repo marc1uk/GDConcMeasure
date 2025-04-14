@@ -91,6 +91,13 @@ class ReturnOfTheMarcusAnalysis: public Tool {
 	double ref_max, corrected_ref_max, ref_min;
 	double gad_max, gad_min;
 	
+	// for ROI
+	bool init=true;
+	double min_wl=200;
+	double max_wl=800;
+	int min_wl_index=-1;
+	int max_wl_index=-1;
+	
 	// to save traces to output file (for debug, for now?)
 	bool save_trees=false;
 	TFile* outfile=nullptr; // used when putting debug in a separate file

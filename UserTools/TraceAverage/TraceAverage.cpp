@@ -313,7 +313,7 @@ bool TraceAverage::CheckFifo(){
 		fifo.close();
 		pipeclosed=false;
 	} 
-	std::cout<<"fifo check: "<<fifo.is_open()<<std::endl;
+	//std::cout<<"fifo check: "<<fifo.is_open()<<std::endl;
 	if(fifo.is_open()){
 		if(!fifo.good()) fifo.clear();
 		return true;
@@ -323,7 +323,7 @@ bool TraceAverage::CheckFifo(){
 	std::swap(buf,*fifo.rdbuf());
 	fifo.clear();
 	//fifo.open(fifoname);
-	std::cout<<"tried to open fifo: "<<fifo.is_open()<<std::endl;
+	//std::cout<<"tried to open fifo: "<<fifo.is_open()<<std::endl;
 	return fifo.is_open();
 }
 

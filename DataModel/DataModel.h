@@ -102,9 +102,9 @@ public:
   //		void DeleteGdTree(std::string name);
   //		int SizeGdTree();
   
-  Store vars;
-  BoostStore CStore;
-  std::map<std::string,BoostStore*> Stores;
+  //Store vars;
+  //BoostStore CStore;
+  //std::map<std::string,BoostStore*> Stores;
   
   //Logging *Log;
   

@@ -54,6 +54,10 @@ bool MarcusScheduler::Initialise(std::string configfile, DataModel &data){
 	break_loop_flagfile_name = "UserTools/MarcusScheduler/breakloop";
 	m_variables.Get("break_loop_flagfile",break_loop_flagfile_name);
 	
+	// delete it if it already exists
+	std::string syscmd="rm -f "+break_loop_flagfile_name;
+	system(syscmd.c_str());
+	
 	// put set of commands into DataModel for display on website by later tool
 	m_data->CStore.Set("MarcusSchedulerCommands",commands);
 	
@@ -539,6 +543,9 @@ void MarcusScheduler::ProcessCommand(std::string& the_command){
 		// if no argument given, continue to use current basename
 		SetFile(the_command);
 		
+	} else if(the_command.substr(0,7)=="monitor"){
+		DoMonitoring(the_command);
+		
 	} else if(the_command.substr(0,5)=="dummy"){
 		// dummy command, do nothing
 		
@@ -718,10 +725,14 @@ void MarcusScheduler::WaitForDuration(std::string wait_string){
 		// sleep for 1 second
 		sleep(1);
 		
+		// check to see if user has requested break of toolchain
+		if(check_for_break_file()) break;
+		
 		// update our remaining time
 		current=boost::posix_time::second_clock::local_time();
 		lapse=boost::posix_time::time_duration(m_period - (current - last));
 	}
+	printf("\n");
 }
 
 // ««-------------- ≪ °◇◆◇° ≫ --------------»»
@@ -847,54 +858,6 @@ void MarcusScheduler::SetDir(std::string the_command){
 
 void MarcusScheduler::SetFile(std::string the_command){
 	// set the file the next `save` command will save to
-	// if no argument given, this propagates the old file basename
-	// which can be set in the local override of the MarcusScheduler config
-	// otherwise if desired a new basename can be given
-	
-	// strip off the preceding 'setFile' to check for a new basename
-	std::string newoutputbasename = the_command.substr(7,std::string::npos);
-	
-	// trim comments
-	newoutputbasename = newoutputbasename.substr(0,newoutputbasename.find('#'));
-	
-	// we may have a new filename, or just whitespace, or an empty string at this point
-	// trim preceding whitespace (separator between 'setFile' and new name)
-	if(newoutputbasename.find_first_not_of(' ')!=std::string::npos){
-		// this is the only one we need to check validity of since starting index may be invalid if not found
-		newoutputbasename = newoutputbasename.substr(newoutputbasename.find_first_not_of(' '),std::string::npos);
-	}
-	// trim trailing whitespace (we don't allow spaces in names)
-	newoutputbasename = newoutputbasename.substr(0,newoutputbasename.find(' '));
-	
-	// ok, should be down to just the new basename, or empty
-	if(!newoutputbasename.empty()){
-		std::string logmessage = "MarcusScheduler::setFile updating output file basename from '"
-		                        +outputbasename+"' to '"+newoutputbasename+"'";
-		outputbasename = newoutputbasename;
-	}
-	
-	// if we're looping and not overwriting save files, add the loop index to the output filename
-	std::string output_file = outputbasename;
-	if(looping && !overwrite_saves){
-		// check if an extension was supplied and strip it off if so
-		std::string filenamesub = outputbasename.substr(0,outputbasename.find(".root"));
-		std::string file_num_padded;
-		char file_num_buf[6];
-		int written = snprintf(file_num_buf,6,"%05d",file_num);
-		if((written>=6) || (written<0)){
-			std::string logmessage="MarcusScheduler::SetFile error building filename for loop "
-			                       + std::to_string(file_num) + " - too many loop iterations!";
-			Log(logmessage,v_error,verbosity);
-			file_num_padded = std::to_string(file_num);
-		} else {
-			file_num_padded = std::string(file_num_buf);
-		}
-		output_file = filenamesub+"_"+file_num_padded+".root";
-		// increment each time we save a file
-		++file_num;
-	} else if(output_file.length()<6 || output_file.substr(output_file.length()-5,std::string::npos)!=".root"){
-		output_file+=".root";
-	}
 	
 	// directory location will be based on the date
 	time_t rawtime;
@@ -909,7 +872,8 @@ void MarcusScheduler::SetFile(std::string the_command){
 	snprintf(monthchr,3,"%02d",month);
 	if(datadir.back()!='/') datadir += "/";
 	std::string outputdir = std::string(datadir)+yearchr+"/"+monthchr;
-	// make the directory in case it doesn't already exist.
+	
+	// make the output directory in case it doesn't already exist.
 	// there appears to be no c++ equivalent to `mkdir -p`, so we'll just call that.
 	std::string cmd = std::string("mkdir -p ") + outputdir;
 	std::string errmsg;
@@ -918,24 +882,86 @@ void MarcusScheduler::SetFile(std::string the_command){
 	if(get_ok!=0){
 		Log(std::string("MarcusScheduler::SetFile failed to make output directory ")
 		    +outputdir+" with error "+errmsg,0,0);
+		outputdir="."; // FIXME bad fallback...! could run out of disk space....!!
+	}
+	
+	// if no argument given, this propagates the old file basename
+	// which can be set in the local override of the MarcusScheduler config
+	// otherwise if desired a new basename can be given
+	
+	// strip off the preceding 'setFile' to check for a new basename
+	std::string newoutputbasename = the_command.substr(7,std::string::npos);
+	
+	// trim comments
+	newoutputbasename = newoutputbasename.substr(0,newoutputbasename.find('#'));
+	
+	// trim preceding whitespace (separator between 'setFile' and new name)
+	if(newoutputbasename.find_first_not_of(' ')!=std::string::npos){
+		// this is the only one we need to check validity of since starting index may be invalid if not found
+		newoutputbasename = newoutputbasename.substr(newoutputbasename.find_first_not_of(' '),std::string::npos);
+	}
+	// trim trailing whitespace (we don't allow spaces in names)
+	newoutputbasename = newoutputbasename.substr(0,newoutputbasename.find(' '));
+	
+	// ok, we should have a new basename or an empty string at this point
+	if(!newoutputbasename.empty()){
+		std::string logmessage = "MarcusScheduler::setFile updating output file basename from '"
+		                        +outputbasename+"' to '"+newoutputbasename+"'";
+		outputbasename = newoutputbasename;
+	}
+	
+	// if we're looping and not overwriting save files, add the loop index to the output filename
+	std::string output_file = outputbasename;
+	if(looping && !overwrite_saves){
+		// check if an extension was supplied and strip it off if so
+		std::string filenamesub = outputbasename.substr(0,outputbasename.find(".root"));
+		std::string file_num_padded;
+		char file_num_buf[6];
+		while(true){
+			
+			// turn file number into a fixed-width string
+			int written = snprintf(file_num_buf,6,"%05d",file_num);
+			if((written>=6) || (written<0)){
+				std::string logmessage="MarcusScheduler::SetFile error building filename for loop "
+				                       + std::to_string(file_num) + " - too many loop iterations!";
+				Log(logmessage,v_error,verbosity);
+				file_num_padded = std::to_string(file_num);
+			} else {
+				file_num_padded = std::string(file_num_buf);
+			}
+			output_file = filenamesub+"_"+file_num_padded+".root";
+			
+			// turn run number into a fixed-width string (unless it's a debug run)
+			int run_num=-1;
+			if(!debugrun){
+				get_ok = m_data->postgres_helper.GetCurrentRun(run_num);
+			}
+			if(run_num >= 0){
+				char prefix[8];
+				snprintf(prefix, 7, "%05d_", run_num);  // fixed-width run number
+				output_file = std::string(prefix)+output_file;
+			}
+			
+			// combine dir, run, filenum: e.g. 'data/${YEAR}/${MONTH}/${RUNNUM}_${filename}_${loopindex}.root'
+			output_file = outputdir+"/"+output_file;
+			
+			// check to see if this file already exists.
+			std::string type;
+			if(CheckPath(output_file, type)){
+				Log("MarcusScheduler::SetFile found "+output_file+" already exists, moving to next file",v_warning,verbosity);
+				++file_num;
+				continue;
+			}
+			
+			break;
+			
+		} // loop until we make a filename that doesn't exist
 		
-	} else {
+		// increment file num each time we save a file so next file will have a unique name
+		++file_num;
 		
-		// filename will also be prefixed with the current run number (unless it's a debug run)
-		int run_num=-1;
-		if(!debugrun){
-			get_ok = m_data->postgres_helper.GetCurrentRun(run_num);
-		}
-		
-		if(run_num >= 0){
-			char prefix[8];
-			snprintf(prefix, 7, "%05d_", run_num);  // fixed-width run number
-			output_file = std::string(prefix)+output_file;
-		}
-		
-		output_file = outputdir+"/"+output_file;
-		// combine components e.g. 'data/${YEAR}/${MONTH}/${RUNNUM}_${filename}_${loopindex}.root'
-		
+	} else if(output_file.length()<6 || output_file.substr(output_file.length()-5,std::string::npos)!=".root"){
+		output_file+=".root";
 	}
 	
 	// set it in the datamodel
@@ -955,6 +981,29 @@ void MarcusScheduler::DoSave(std::string the_command){
 		",\"Overwrite\",\""+std::to_string(overwrite_saves)+"\"}";
 	Log(std::string("Queuing action: ")+json_string,v_debug,verbosity);
 	m_data->CStore.JsonParser(json_string);
+	
+	// advance to the next command
+	++current_command;
+}
+
+// ««-------------- ≪ °◇◆◇° ≫ --------------»»
+
+void MarcusScheduler::DoMonitoring(std::string the_command){
+	// set the flag in the datamodel to send monitoring info
+	
+	// strip off the preceding 'monitor'
+	std::string val = the_command.substr(7,std::string::npos);
+	
+	// trim trailing comments
+	val = val.substr(0,val.find('#'));
+	
+	// discard whitespace
+	val = val.substr(0,val.find_last_not_of(' '));
+	size_t pos=val.find_first_not_of(' ');
+	if(pos!=std::string::npos) val = val.substr(pos,std::string::npos);
+	
+	// pass to the datamodel
+	m_data->CStore.Set("Monitor", val);
 	
 	// advance to the next command
 	++current_command;
@@ -1274,6 +1323,7 @@ void MarcusScheduler::DoMeasureWRef(std::string the_command){
 	// > open ref
 	// > measure <LED>
 	// > close ref
+	// > sleep 2s for cooldown
 	// > measure Dark
 	// > open gad
 	// > measure <LED>
@@ -1298,6 +1348,7 @@ void MarcusScheduler::DoMeasureWRef(std::string the_command){
 	                                  {"measure "+led_list},
 	                                  {"shutter ref close"},
 	                                  {"measure Dark"},
+	                                  {"wait 2"},
 	                                  {"shutter gad open"},
 	                                  {"measure "+led_list},
 	                                  {"shutter gad close"}};

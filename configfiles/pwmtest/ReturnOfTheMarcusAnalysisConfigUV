@@ -1,7 +1,7 @@
 verbosity 2
 save_trees 1
-#ledToAnalyse 275_A
-ledToAnalyse White
+ledToAnalyse 275_A
+#ledToAnalyse White
 #ledToAnalyse 275_B
 
 # trace for pure water down GAD arm
@@ -11,5 +11,5 @@ ledToAnalyse White
 #pureref_file g_pure_fromviosys.root
 #pureref_file g_pure_leds.root
 #pureref_file create   # will create from first measurement
-#pureref_file PureWaterTransparencyWhite_08_mar_2025.root
-pureref_file PureWaterTransparencyWhite_28_mar_2025.root
+#pureref_file PureWaterTransparency275_A_08_mar_2025.root
+pureref_file PureWaterTransparency275_A_28_mar_2025.root

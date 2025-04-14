@@ -37,7 +37,7 @@ bool ArduinoController::Dark(){
 	// turn off lights
 	std::string resp;
 	get_ok = arduino.SendAndReceive("DARK",resp);
-	return get_ok && (resp=="Disabling all lights");
+	return get_ok; // && (resp=="Disabling all lights");
 }
 
 bool ArduinoController::ShutItDown(){
@@ -76,7 +76,7 @@ bool ArduinoController::ShutItDown(){
 	std::string resp;
 	bool allok = arduino.SendAndReceive("OFF",resp);
 	
-	return (allok && resp=="Turning everything off");
+	return allok; // && resp=="Turning everything off");
 }
 
 bool ArduinoController::GetLedTemp(double& led_temp){
@@ -188,6 +188,7 @@ bool ArduinoController::GetFlowRate(double& flow_rate){
 		Log(m_unique_name+"::GetFlowRate error '"+resp+"'",v_error,verbosity);
 		return false;
 	}
+	Log(m_unique_name+"::GetFlowRate sensor value: "+std::to_string(flow_rate),v_debug,verbosity);
 	return true;
 }
 
@@ -213,7 +214,7 @@ bool ArduinoController::GetLeakStatus(int& leak_sensor_val){
 	}
 	Log(m_unique_name+"::GetLeakStatus sensor value: "+std::to_string(leak_sensor_val),v_debug,verbosity);
 	std::string status_msg = (leak_sensor_val<700) ? "WARNING: GOT WATER!" : "OK: no water";
-	std::cout<<"Leak_Status: "<<status_msg<<std::endl;
+	//std::cout<<"Leak_Status: "<<status_msg<<std::endl;
 	return true;
 }
 #endif

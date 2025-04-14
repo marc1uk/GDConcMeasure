@@ -4,6 +4,7 @@
 #include <locale>
 #include <errno.h>
 #include <string.h>
+#include <sys/stat.h> // for stat() test to see if file or folder
 
 int SystemCall(std::string cmd, std::string& retstring){
   // execute command, capture return status and any output
@@ -46,4 +47,28 @@ int SystemCall(std::string cmd, std::string& retstring){
   
   return retstatus;
   
+}
+
+
+bool CheckPath(std::string path, std::string& type){
+	struct stat s;
+	if(stat(path.c_str(),&s)==0){
+		if(s.st_mode & S_IFDIR){        // mask to extract if it's a directory?? how does this work?
+			type="d";  //it's a directory
+			return true;
+		} else if(s.st_mode & S_IFREG){ // mask to check if it's a file??
+			type="f"; //it's a file
+			return true;
+		} else {
+			// exists, but neither file nor directory?
+			type="???";
+			return false;
+			//assert(false&&"Check input path: stat says it's neither file nor directory..?");
+		}
+	} else {
+		// does not exist - could be a pattern, e.g. "/path/to/rootfiles_*.root"
+		type="none";
+		return false;
+	}
+	return false;
 }

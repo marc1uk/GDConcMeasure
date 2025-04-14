@@ -22,7 +22,6 @@ class Monitoring: public Tool {
 	int send_period_s = 10; // seconds
 	
 	std::string m_configfile;
-	int verbosity=1;
 	int v_error=0;
 	int v_warning=1;
 	int v_message=2;

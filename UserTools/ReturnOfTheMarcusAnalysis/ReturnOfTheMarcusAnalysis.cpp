@@ -45,6 +45,17 @@ bool ReturnOfTheMarcusAnalysis::Initialise(std::string configfile, DataModel &da
 	if(ledToAnalyse=="") throw std::runtime_error(m_unique_name+" has no LedToAnalyse!");
 	Log(m_unique_name+" will analyse LED "+ledToAnalyse,v_debug,verbosity);
 	
+	// set ROI - plots will be trimmed to this region
+	if(ledToAnalyse.find("275")!=std::string::npos){
+		// UV LED
+		min_wl=240;
+		max_wl=340;
+	} else {
+		// white LED
+		min_wl=400;
+		max_wl=800;
+	}
+	
 	// see if saving traces to ROOT file (debug)
 	m_variables.Get("save_trees",save_trees);
 	
@@ -114,10 +125,6 @@ bool ReturnOfTheMarcusAnalysis::Execute(){
 			Log(m_unique_name+" updating DataModel",v_debug,verbosity);
 			UpdateDataModel();
 			
-			// Inform downstream tools that a new measurement is available
-			// maybe we could use the value to indicate if the data is good?
-			m_data->CStore.Set("NewMarcusAnalyse",ledToAnalyse);
-			
 		} catch(std::exception& e){
 			Log(m_unique_name+" Error! Caught "+e.what(),v_error,verbosity);
 			return false;
@@ -184,10 +191,12 @@ bool ReturnOfTheMarcusAnalysis::GetPureWaterTransparency(){
 		if(pureref_file=="create"){
 			// create one from first measurement seen.
 			// output file is hard-coded - bail if it exists rather than clobbering FIXME?
-			TFile fout("PureWaterTransparency.root","OPEN");
+			// FIXME this spits out a misleading warning about not existing; use a better check (std::filesystem)
+			std::string newfname="PureWaterTransparency"+ledToAnalyse+".root";
+			TFile fout(newfname.c_str(),"OPEN");
 			if(!fout.IsZombie()){
 				throw std::runtime_error(m_unique_name+" pureref_file 'create' given,"
-				      " please remove existing 'PureWaterTransparency.root'");
+				      " please remove existing file '"+newfname+"'");
 				fout.Close();
 			}
 			make_pureref=true;
@@ -419,24 +428,46 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 	ReadBranch(dark_tree, "value", dark_tree->GetEntries()-2, ref_darkp);
 	ReadBranch(dark_tree, "value", dark_tree->GetEntries()-1, gad_darkp);
 	
-	if(g_ref.GetN()==0) g_ref.Set(wavelengths.size());
-	if(g_gad.GetN()==0) g_gad.Set(wavelengths.size());
+	// trim to ROI
+	if(init){
+		// these will need resizing again in a minute
+		g_ref.Set(wavelengths.size());
+		g_gad.Set(wavelengths.size());
+	}
 	
 	// do dark subtraction
 	Log(m_unique_name+" doing dark subtraction",v_debug,verbosity);
 	try {
+		int j=0;
 		for(size_t i=0; i<wavelengths.size(); ++i){
+			
+			// do dark subtraction
 			gad_values.at(i) -= gad_dark.at(i);
 			ref_values.at(i) -= ref_dark.at(i);
 			
+			// check for errors
 			if(TMath::IsNaN(gad_values.at(i)) || TMath::IsNaN(ref_values.at(i)) ||
 			  !TMath::Finite(gad_values.at(i)) || !TMath::Finite(ref_values.at(i)) ){
 				throw std::runtime_error(m_unique_name+" NaN value in trace point "+std::to_string(i)
 				     +"gad: "+std::to_string(gad_values.at(i))+", ref: "+std::to_string(ref_values.at(i)));
 			}
 			
-			g_gad.SetPoint(i, wavelengths.at(i), gad_values.at(i));
-			g_ref.SetPoint(i, wavelengths.at(i), ref_values.at(i));
+			// fill to graphs if within ROI
+			if(wavelengths.at(i)<min_wl) continue;
+			if(init){
+				if(min_wl_index<0) min_wl_index=i;
+				if(wavelengths.at(i)<max_wl) max_wl_index=i;
+			}
+			if(wavelengths.at(i)>max_wl) break;
+			
+			g_gad.SetPoint(j, wavelengths.at(i), gad_values.at(i));
+			g_ref.SetPoint(j, wavelengths.at(i), ref_values.at(i));
+			++j;
+		}
+		if(init){
+			g_gad.Set(j);
+			g_ref.Set(j);
+			init=false;
 		}
 	} catch(std::out_of_range& e){
 		std::stringstream ss;
@@ -454,7 +485,7 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 	// in the database. The dark trace should be pretty flat, so we'll histogram it,
 	// fit it with a gaussian, and record the mean and sigma. - do this just for gad arm measurement.
 	TH1D tmphist("tmphist","title",100,*std::min_element(gad_dark.begin(), gad_dark.end()),
-		                               *std::max_element(gad_dark.begin(), gad_dark.end()));
+	                                   *std::max_element(gad_dark.begin(), gad_dark.end()));
 	for(size_t i=0; i<gad_dark.size(); ++i){
 		tmphist.Fill(gad_dark.at(i));
 	}
@@ -463,12 +494,11 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 	dark_sigma = tmphist.GetFunction("gaus")->GetParameter(2);
 	
 	// for the raw LED-on trace we'll record the maximum and minimum value of the trace
-	// within the absorption region.
-	ref_max = *std::max_element(ref_values.begin(), ref_values.end());
-	ref_min = *std::min_element(ref_values.begin(), ref_values.end());
+	ref_max = *std::max_element(g_ref.GetY(), g_ref.GetY()+g_ref.GetN());
+	ref_min = *std::min_element(g_ref.GetY(), g_ref.GetY()+g_ref.GetN());
 	
-	gad_max = *std::max_element(gad_values.begin(), gad_values.end());
-	gad_min = *std::min_element(gad_values.begin(), gad_values.end());
+	gad_max = *std::max_element(g_gad.GetY(), g_gad.GetY()+g_gad.GetN());
+	gad_min = *std::min_element(g_gad.GetY(), g_gad.GetY()+g_gad.GetN());
 	
 	Log(m_unique_name+" ref arm max: "+std::to_string(ref_max)
 	   +", gad arm max: "+std::to_string(gad_max),v_debug,verbosity);
@@ -486,27 +516,37 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	// 1. from fluctuations in LED output between the two measurements (hopefully small)
 	// 2. from variations in absorption down the gad arm since the 'water transparency' reference was taken - e.g. solarization of the fibres
 	
-	if(g_ref_corr.GetN()==0) g_ref_corr.Set(wavelengths.size());
-	if(g_abs.GetN()==0) g_abs.Set(wavelengths.size());
+	if(g_ref_corr.GetN()==0) g_ref_corr.Set(g_gad.GetN());
+	if(g_abs.GetN()==0) g_abs.Set(g_gad.GetN());
 	if(ref_corr_values.size()==0) ref_corr_values.resize(wavelengths.size());
 	if(absorbances.size()==0) absorbances.resize(wavelengths.size());
 	
+	int j=0;
 	for(size_t i=0; i<wavelengths.size(); ++i){
 		// correct reference arm values for water transparency (and other GAD optical path elements)
 		// to obtain expected GAD arm measurement for pure water
 		double ref_value_corr = ref_values.at(i) * g_pure_absorbance.GetY()[i];
 		ref_corr_values[i]=ref_value_corr;
-		g_ref_corr.SetPoint(i, wavelengths.at(i), ref_value_corr);
-		// we'll get NaN if the argument to log10 is negative; i.e. if either value in the ratio is negative
-		// while technically we cannot have negative light, after dark subtraction we can get negative vlaues.
-		// if ref arm is <=0, call absorbance 0. If gad arm is <=0, set gad value to 1*
-		// if gad arm is > ref arm, this is probably noise, so also set absorbance to 0
-		// *a gad value of 0 means ref/gad is inf, so set to 1 ADC count.
-		if(gad_values.at(i)<=0) gad_values.at(i)=1.;
+		
+		// absorbance is derived from 1- gad_arm / ref_arm.
+		// this way provided (gad_arm < ref_arm), then absorbance ranges 0-1, in theory
 		double absval=-1;
-		if(ref_value_corr<=0) absval=1.; // assume no absorbance, since nothing to absorb? no generally appropriate value tbh
-		else if(gad_values.at(i)>ref_value_corr) absval=1.; // FIXME sanity check that ref value is very small?
-		else absval = ref_value_corr/gad_values.at(i); //log10(ref_value_corr/gad_values.at(i));
+		// if no ref arm light, assume no absorbance, since nothing to absorb
+		if(ref_value_corr<=0) absval=0.;
+		// if gad arm > corrected ref arm, assume no absorbance
+		//else if(gad_values.at(i)>ref_value_corr) absval=0.;
+		else {
+			// we don't (for now) take the log, but we may want to in the future, in which case
+			// values should be positive definite. If either value is negative (no light, dark subtraction)
+			// we'll get NaN; so coerce to 0.
+			absval = std::max(0.0001,gad_values.at(i))/std::max(0.0001,ref_value_corr);
+			//absval=log10(absval);
+		}
+		
+		//std::cout<<"wl: "<<wavelengths.at(i)<<", gad: "<<gad_values.at(i)<<", ref: "<<ref_values.at(i)
+		//         <<", pure: "<<g_pure_absorbance.GetY()[i]<<", ref_corr: "<<ref_value_corr
+		//         <<", abs: "<<absval<<std::endl;
+		
 		if(TMath::IsNaN(absval) || !TMath::Finite(absval)){
 			throw std::runtime_error(m_unique_name+" NaN absorbance value "+std::to_string(absval)
 			                        +" for datapoint "+ std::to_string(i)
@@ -515,12 +555,17 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 			                        + std::to_string(ref_value_corr));
 		}
 		absorbances[i]=absval;
-		g_abs.SetPoint(i, wavelengths.at(i), absval);
+		
+		if(i>=min_wl_index && i<=max_wl_index){
+			g_ref_corr.SetPoint(j, wavelengths.at(i), ref_value_corr);
+			g_abs.SetPoint(j, wavelengths.at(i), absval);
+			++j;
+		}
 	}
 	corrected_ref_max = *std::max_element(g_ref_corr.GetY(),g_ref_corr.GetY()+g_ref_corr.GetN());
 	
 	if(!save_trees) return true;
-	static std::vector<double> puretranspvals(g_pure_absorbance.GetY(),g_pure_absorbance.GetY()+g_pure_absorbance.GetN());
+	static std::vector<double> puretranspvals(g_pure_absorbance.GetY()+min_wl_index,g_pure_absorbance.GetY()+min_wl_index+g_pure_absorbance.GetN());
 	static std::vector<double>* puretranspvalsp = &puretranspvals;
 	
 	// save calculated traces to output tree if requested
@@ -597,13 +642,13 @@ void ReturnOfTheMarcusAnalysis::UpdateDataModel(){
 //	m_data->CStore.Set("purerefData", puregraphp);                                        // pointer to TGraph of pure water transparency
 	
 	// results from analysis
-	m_data->CStore.Set("NewMarcusAnalysis",ledToAnalyse);                                  // A flag informing downstream tools that new results from this Tool are available
+	m_data->CStore.Set("NewMarcusAnalyse",ledToAnalyse);                                  // A flag informing downstream tools that new results from this Tool are available
 	
 	m_data->CStore.Set("data_gad",reinterpret_cast<intptr_t>(&g_gad));                    // plot this
 	m_data->CStore.Set("data_ref_corrected",reinterpret_cast<intptr_t>(&g_ref_corr));     // and this on webpage
 	m_data->CStore.Set("data_ref",reinterpret_cast<intptr_t>(&g_ref));                    // this can be plotted but hidden by default
 	
-	m_data->CStore.Set("absorbance_all",reinterpret_cast<intptr_t>(&g_abs));              // full wl range
+	m_data->CStore.Set("absorbance_all",reinterpret_cast<intptr_t>(&g_abs));              // 
 	
 	m_data->CStore.Set("dark_mean",dark_mean);                                            // TODO maybe by storing dark info for both gad & ref,
 	m_data->CStore.Set("dark_sigma",dark_sigma);                                          // we could tell if the spectrometer was warming up?
@@ -619,9 +664,33 @@ void ReturnOfTheMarcusAnalysis::UpdateDataModel(){
 	// and extract the LED intensity from that. For now we have no Gd absorption so fit is unnecessary.
 	m_data->monitoring_store.Set("gad_arm_"+ledToAnalyse+"_intensity",gad_max);
 	
-	// send absorbance graph
-	std::string graph_json = TBufferJSON::ToJSON(&g_abs).Data();
-	std::string graph_name = "absorbance_"+ledToAnalyse;
+	// send each of the latest traces.
+	std::string graph_json, graph_name;
+	// gad arm
+	graph_json = TBufferJSON::ToJSON(&g_gad).Data();
+	graph_name = "gad_"+ledToAnalyse;
+	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	/*
+	size_t xstart = graph_json.find("\"fX\"")+5;
+	size_t xend = graph_json.find(']',xstart);
+	std::string xarr = graph_json.substr(xstart,xend-xstart+1);
+	size_t ystart = graph_json.find("\"fY\"")+5;
+	size_t yend = graph_json.find(']',ystart);
+	std::string yarr = graph_json.substr(ystart,yend-ystart+1);
+	m_data->services->SendMonitoringData("{\"name\":\""+graph_name+"\", \"x\":"+xarr+", \"y\":"+yarr+"}");
+	// wait this is just the same as the original ROOT json....
+	*/
+	// ref arm
+	graph_json = TBufferJSON::ToJSON(&g_ref).Data();
+	graph_name = "ref_"+ledToAnalyse;
+	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	// ref arm after correction for optical path transparency
+	graph_json = TBufferJSON::ToJSON(&g_ref_corr).Data();
+	graph_name = "ref_corr_"+ledToAnalyse;
+	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	// absorbance
+	graph_json = TBufferJSON::ToJSON(&g_abs).Data();
+	graph_name = "absorbance_"+ledToAnalyse;
 	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	
 	return;
@@ -638,15 +707,11 @@ bool ReturnOfTheMarcusAnalysis::GeneratePureWaterTransparency(){
 	TGraph pure_water_transp(wavelengths.size());
 	for(size_t i=0; i<wavelengths.size(); ++i){
 		
-		// we'll get NaN if the argument to log10 is negative; i.e. if either value in the ratio is negative
-		// while technically we cannot have negative light, after dark subtraction we can get negative vlaues.
-		// if ref arm is <=0, call absorbance 0. If gad arm is <=0, set gad value to 1*
-		// if gad arm is > ref arm, this is probably noise, so also set absorbance to 0
-		// *a gad value of 0 means ref/gad is inf, so set to 1 ADC count.
-		double absval=-99;
-		if(ref_values.at(i)<=0) ref_values.at(i)=1.;
-		if(gad_values.at(i)>ref_values.at(i)) absval=0;
-		else absval = gad_values.at(i) / ref_values.at(i); //log10(gad_values.at(i)/ref_values.at(i));
+		double absval=-1;
+		if(ref_values.at(i)<=0) absval=0.;
+		else if(gad_values.at(i)>ref_values.at(i)) absval=0.;
+		else absval = std::max(0.0001,gad_values.at(i))/std::max(0.0001,ref_values.at(i));
+		
 		if(TMath::IsNaN(absval) || !TMath::Finite(absval)){
 			throw std::runtime_error(m_unique_name+" NaN absorbance value "+std::to_string(absval)
 			                        +" for datapoint "+ std::to_string(i)
@@ -657,19 +722,17 @@ bool ReturnOfTheMarcusAnalysis::GeneratePureWaterTransparency(){
 		
 		pure_water_transp.SetPoint(i, wavelengths.at(i), absval);
 	}
-	// N.B. This should *not* be normalised!
-	// (no scaling unless we have some way to externally measure the relative intensity of the LED during GAD and Ref arm
-	//  measurements of this pure water measurement, in which case we can account for that here... but we don't. so we can't.)
 	
-	TFile fout("PureWaterTransparency.root","CREATE");
+	std::string newfname="PureWaterTransparency"+ledToAnalyse+".root";
+	TFile fout(newfname.c_str(),"CREATE");
 	if(fout.IsZombie()){
-		throw std::runtime_error(m_unique_name+" transparency file exists!?");
+		throw std::runtime_error(m_unique_name+" transparency '"+newfname+"' file exists!?");
 	}
 	pure_water_transp.Write();
 	fout.Close();
 	make_pureref = false;
 	
-	m_variables.Set("pureref_file","PureWaterTransparency.root");
+	m_variables.Set("pureref_file",newfname);
 	GetPureWaterTransparency();
 	
 	return true;

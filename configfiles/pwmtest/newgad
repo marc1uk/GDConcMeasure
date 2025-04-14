@@ -1,25 +1,47 @@
 start
 power up
 connect
-setFile wcte_test_uv
+
+#setFile trashme
+#start_loop 50
+#valve gad open
+#valve parallel close
+#wait 60
+#monitor
+#valve parallel open
+#valve gad close
+#wait 10
+#measure2 White
+#measure2 275_A
+#save
+#setFile
+#wait 300
+#loop
+
+setFile wcte_28_mar_restart
+
 start_loop
 valve gad open
 valve parallel close
 # mixing time in seconds
 wait 60
+monitor
 valve parallel open
 valve gad close
 # settling time in seconds
 wait 10
 # N.B. measure2 includes Darks
 measure2 White
-#measure2 275_A
+analyse White
+measure2 275_A
+analyse 275_A
 #measure2 275_B
-#analyse 275_B
 # if saving in a loop we must call the next 2 commands before loop
 # FIXME in MarcusScheduler
 save
 setFile
+wait 300
 loop
+
 power down
 quit

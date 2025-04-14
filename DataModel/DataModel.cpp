@@ -1,6 +1,10 @@
 #include "DataModel.h"
 
-DataModel::DataModel(): CStore(false,0), postgres_helper(this) {}
+DataModel::DataModel(): DAQDataModelBase(), postgres_helper(this) {
+	// we must do this with modern ToolDAQFramework to turn off
+	// typechecking with the CStore, which is necessary for use with JsonParser
+	CStore = BoostStore(false,0);
+}
 
 
 TTree* DataModel::GetTTree(std::string name){

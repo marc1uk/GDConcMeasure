@@ -6,6 +6,7 @@
 #include <string>
 
 int SystemCall(std::string cmd, std::string& errmsg);
+bool CheckPath(std::string path, std::string& type);
 
 template <typename Arg, typename... Args>
 void Print(std::ostream& out, Arg&& arg, Args&&... args){

@@ -1,9 +1,9 @@
 # placeholder, nothing needed here
 verbosity 1
 fifo /tmp/gadpipe
-#livedraw 1
+livedraw 1
 hold_max_plot 0
 hold_max_range 1
-#plot_gd_region 1
+plot_gd_region 0
 live_darksub 1
 #normalise_livedraw 1

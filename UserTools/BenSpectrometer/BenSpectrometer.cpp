@@ -54,6 +54,7 @@ bool BenSpectrometer::Execute(){
   if(m_data->CStore.Get("Connect",connect)){
     if(connected){
       Log("spectrometer already connected",v_debug,verbosity);
+      m_data->CStore.Remove("Connect");
     } else {
       
       Log("spectrometer on",v_message,verbosity);
@@ -80,12 +81,13 @@ bool BenSpectrometer::Execute(){
       if(not ok){
         Log("BenSpectrometer::Execute failed to connect to spectrometer",v_error,verbosity);
         return false;
-      } else {
-        Log("BenSpectrometer::Execute successfully connected to spectrometer",v_message,verbosity);
       }
+      Log("BenSpectrometer::Execute successfully connected to spectrometer",v_message,verbosity);
       
       // update our internal connection status
       connected=true;
+      
+      m_data->CStore.Remove("Connect");
       
       // update connection status in DataModel for display on website
       m_data->CStore.Set("SpectrometerConnected",true);
@@ -94,7 +96,8 @@ bool BenSpectrometer::Execute(){
   
   // we'll also be disconnected if power went down
   std::string Power="";
-  if(m_data->CStore.Get("Power",Power) && Power==false){
+  if(m_data->CStore.Get("Power",Power) && Power=="OFF"){
+      Log("BenSpectrometer: Got Power off",v_debug,verbosity);
       connected=false;
       m_data->CStore.Set("SpectrometerConnected",false);
   }

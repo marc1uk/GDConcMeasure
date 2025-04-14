@@ -106,10 +106,6 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 			Log(m_unique_name+" updating DataModel",v_debug,verbosity);
 			UpdateDataModel();
 			
-			// Inform downstream tools that a new measurement is available
-			// maybe we could use the value to indicate if the data is good?
-			m_data->CStore.Set("NewMarcusAnalyseEp2",ledToAnalyse);
-			
 		} catch(std::exception& e){
 			Log(m_unique_name+" Error! Caught "+e.what(),v_error,verbosity);
 			return false;
@@ -724,7 +720,7 @@ void ReturnOfTheMarcusAnalysisEpisode2::ReInit(){
 	
 	// Remove outputs from previous Executions, so we don't carry over results
 	// from a previous fit if we bail early
-	m_data->CStore.Remove("NewMarcusAnalyse");
+	m_data->CStore.Remove("NewMarcusAnalyseEp2");
 	
 	m_data->CStore.Remove("data_gad");
 	m_data->CStore.Remove("data_ref_corrected");
@@ -761,7 +757,7 @@ void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 //	m_data->CStore.Set("purerefData", puregraphp);                                        // pointer to TGraph of pure water transparency
 	
 	// results from analysis
-	m_data->CStore.Set("NewMarcusAnalysis",ledToAnalyse);                                  // A flag informing downstream tools that new results from this Tool are available
+	m_data->CStore.Set("NewMarcusAnalyseEp2",ledToAnalyse);                                  // A flag informing downstream tools that new results from this Tool are available
 	
 	m_data->CStore.Set("data_gad",reinterpret_cast<intptr_t>(&g_gad));                    // plot this
 	m_data->CStore.Set("data_ref_corrected",reinterpret_cast<intptr_t>(&g_ref_corr));     // and this on webpage

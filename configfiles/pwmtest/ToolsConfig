@@ -3,5 +3,8 @@ myMarcusScheduler     MarcusScheduler         configfiles/pwmtest/MarcusSchedule
 myArduinoControl      ArduinoControl          configfiles/pwmtest/ArduinoControlConfig
 myBenSpectrometer     BenSpectrometer         configfiles/pwmtest/SpectrometerConfig
 myTraceAverage        TraceAverage            configfiles/pwmtest/TraceAverageConfig
-myAnalysis            ReturnOfTheMarcusAnalysis configfiles/pwmtest/ReturnOfTheMarcusAnalysisConfig
+myAnalysisUV          ReturnOfTheMarcusAnalysis configfiles/pwmtest/ReturnOfTheMarcusAnalysisConfigUV
+myAnalysisVis         ReturnOfTheMarcusAnalysis configfiles/pwmtest/ReturnOfTheMarcusAnalysisConfigVis
 mySaveTraces          SaveTraces              configfiles/pwmtest/SaveTracesConfig
+mySaveToDB            SaveToDB                configfiles/pwmtest/SaveToDBConfig
+myMonitoring          Monitoring              configfiles/pwmtest/MonitoringConfig

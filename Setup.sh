@@ -10,7 +10,7 @@ else
 fi
 alias root='root -l'
 
-export LD_LIBRARY_PATH=${ToolDAQapp}/lib:${ToolDAQapp}/ToolDAQ/zeromq-4.0.7/lib:${ToolDAQapp}/ToolDAQ/boost_1_66_0/install/lib:${ToolDAQapp}/ToolDAQ/seabreeze-3.0.11/SeaBreeze/lib:${ToolDAQapp}/ToolDAQ/libpqxx-6.4.7/install/lib:${ToolDAQapp}/ToolDAQ/SerialCpp:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=${ToolDAQapp}/lib:${ToolDAQapp}/ToolDAQ/zeromq-4.0.7/lib:${ToolDAQapp}/ToolDAQ/boost_1_66_0/install/lib:${ToolDAQapp}/ToolDAQ/seabreeze-3.0.11/SeaBreeze/lib:${ToolDAQapp}/ToolDAQ/libpqxx-6.4.7/install/lib:${ToolDAQapp}/ToolDAQ/SerialCpp:${ToolDAQapp}/ToolDAQ/ToolDAQFramework/lib:${ToolDAQapp}/ToolDAQ/ToolFrameworkCore/lib:$LD_LIBRARY_PATH
 
 if [ -f /var/lib/postgresql/setup_db.sh ]; then
 	. /var/lib/postgresql/setup_db.sh
