@@ -43,7 +43,7 @@ bool Monitoring::Initialise(std::string configfile, DataModel &data){
 		Log(m_unique_name+"::Initialise - Warning - no arduino controller found in datamodel!",v_error,m_verbose);
 	}
 	
-	m_data->vars.Set("Status","Initialising");
+	//m_data->vars.Set("Status","Initialising");
 	
 	return true;
 }
@@ -51,7 +51,7 @@ bool Monitoring::Initialise(std::string configfile, DataModel &data){
 
 bool Monitoring::Execute(){
 	
-	m_data->vars.Set("Status","Running");
+	//m_data->vars.Set("Status","Running");
 	
 	auto secs_since_last_send = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - last_send);
 	
@@ -126,6 +126,6 @@ bool Monitoring::Execute(){
 
 bool Monitoring::Finalise(){
 	
-	m_data->vars.Set("Status","Stopped");
+	//m_data->vars.Set("Status","Stopped");
 	return true;
 }

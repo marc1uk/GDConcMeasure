@@ -143,6 +143,7 @@ bool MarcusScheduler::Execute(){
 			Log(std::string("Processing command ")+std::to_string(current_command)
 				+" step "+std::to_string(command_step),v_debug,verbosity);
 			Log(std::string("current command is '")+the_command+"'",v_debug,verbosity);
+			m_data->vars.Set("Status",the_command);
 			
 			// to allow infinite loops we support the presence of a 'loop' command.
 			// a 'start_loop' line in the command file marks the beginning of a loop.
