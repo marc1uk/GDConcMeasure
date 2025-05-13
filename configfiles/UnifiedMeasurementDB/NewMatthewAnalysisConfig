@@ -1,7 +1,23 @@
 verbosity 1
 savedebug 1
 
-calib_curve_275_A cal_a_new.root
-cal_tf1_name_275_A led_a_calcurve
-calib_curve_275_B cal_b_new.root
-cal_tf1_name_275_B led_b_calcurve
+# before oct 2024 calib
+#calib_curve_275_A cal_a_new.root
+#cal_tf1_name_275_A led_a_calcurve
+#calib_curve_275_B cal_b_new.root
+#cal_tf1_name_275_B led_b_calcurve
+
+# temporary after oct 2024 calib (before ex-situ calib adjustments)
+pureref_ver 4
+highconcref_ver 3
+#calib_curve_275_A calcurve_rough_oct_2024_egads_hack.root
+#calib_curve_275_B calcurve_rough_oct_2024_egads_hack.root
+#calib_curve_275_A calcurve_oct2024_gadonly.root
+# below based on file 100 from after reconnect to egads as highconc ref
+# and pure from start of calib
+#calib_curve_275_B calcurve_oct2024_gadonly.root
+# below based on above but with linear component hacked to give EGADS measured metrics = 0.06%
+calib_curve_275_A calcurve_oct2024_gadonlyhack.root
+calib_curve_275_B calcurve_oct2024_gadonlyhack.root
+cal_tf1_name_275_A 275_A
+cal_tf1_name_275_B 275_B
