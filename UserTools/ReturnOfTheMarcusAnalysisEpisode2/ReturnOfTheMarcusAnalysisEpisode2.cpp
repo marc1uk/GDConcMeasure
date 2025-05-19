@@ -1,5 +1,6 @@
 #include "ReturnOfTheMarcusAnalysisEpisode2.h"
 #include <stdexcept>
+#include "TBufferJSON.h"
 
 ReturnOfTheMarcusAnalysisEpisode2::ReturnOfTheMarcusAnalysisEpisode2():Tool(){}
 
@@ -165,10 +166,12 @@ void ReturnOfTheMarcusAnalysisEpisode2::SetGraphTitles(){
 // -------------------------------------------------------------------------//
 
 bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsorbance(){
+	
 	intptr_t g_ptr=0;
 	get_ok = m_data->CStore.Get("absorbance_all",g_ptr);
 	TGraph* g_abs_ptr = reinterpret_cast<TGraph*>(g_ptr);
 	g_abs_gd = TGraph(*g_abs_ptr);
+	
 	return get_ok;
 }
 
@@ -420,6 +423,16 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsFunc(){
 	}
 	Log(m_unique_name+" functional fit TF1 constructed",v_debug,verbosity);
 	
+	// note in CStore for recording in DB
+	std::string formula_str = bg_abs_fct->GetExpFormula().Data(); // or bg_abs_fct->GetTitle();
+	std::string params_str;
+	for(size_t i=0; i<bg_abs_fct->GetNpar(); ++i){
+		if(i!=0) params_str+=", ";
+		params_str+=std::to_string(bg_abs_fct->GetParameter(i));
+	}
+	std::string absbgjson = "{ \"type\":\"configfile\",\"function\":\""+formula_str+"\",\"params\":\""+params_str+"\" }";
+	m_data->CStore.Set("bgfitfunc_"+ledToAnalyse,absbgjson);
+	
 	return true;
 }
 
@@ -666,9 +679,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::RemoveBackgroundAbsorbance(){
 	bgfitresptr = g_abs_masked.Fit(bg_abs_fct,"RNMQS"); // or make a new one and call it 'tmp'
 	//bgfitresptr = TFitResultPtr((TFitResult*)tmp->Clone());  // i don't know if Clone is required
 	
-	g_abs_masked.SetName("g_abs_masked");
-	g_abs_masked.SaveAs("g_abs_masked.root");
-	bg_abs_fct->SaveAs("f_bg_fit.root");
+	//g_abs_masked.SetName("g_abs_masked");
+	//g_abs_masked.SaveAs("g_abs_masked.root");
+	//bg_abs_fct->SaveAs("f_bg_fit.root");
 	
 	// record status of fit. probably redundant as none of these turned out to be reliable
 	if(bgfitresptr->IsEmpty() || !bgfitresptr->IsValid() || bgfitresptr->Status()!=0){
@@ -706,9 +719,12 @@ bool ReturnOfTheMarcusAnalysisEpisode2::RemoveBackgroundAbsorbance(){
 		bgfitvalues[i] = next_bg;
 		g_bgfit.SetPoint(i, next_wl, next_bg);
 		g_abs_bgrem.SetPoint(i, next_wl, g_abs_gd.GetY()[i] - next_bg);
+		// we could 'reconstruct' the GAD arm data without Gd at this point
+		//g_gad_fit.SetPoint(i,next_wl,next_bg*g_ref.GetY()[i]); // g_ref: reference arm graph
+		// .... but there's no real reason to?
 	}
 	
-	g_abs_bgrem.SaveAs("g_abs_bgrem.root");
+	//g_abs_bgrem.SaveAs("g_abs_bgrem.root");
 	
 	if(!save_trees) return bgfit_success;
 	
@@ -831,6 +847,7 @@ void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 	m_data->CStore.Set("absfit",reinterpret_cast<intptr_t>(&g_absfit));
 	
 	// results for DB
+	m_data->CStore.Set("bgfitresptr", reinterpret_cast<intptr_t>(&bgfitresptr));
 	m_data->CStore.Set("absfitresptr", reinterpret_cast<intptr_t>(&absfitresptr));
 	m_data->CStore.Set("bgfit_success",bgfit_success);
 	m_data->CStore.Set("absfit_success",absfit_success);
@@ -841,6 +858,22 @@ void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 	//m_data->CStore.Set("gad_fitted_max",gad_fitted_max);
 	// led intensity down gad arm, obtained by fitting corrected ref to gad data in sidebands
 	// (this could be used to measure e.g. solarization?)
+	
+	// send stuff to WCTE DB
+	m_data->monitoring_store.Set("gd_conc",conc_and_err.first);
+	
+	std::string graph_json, graph_name;
+	graph_name = "g_abs_bgrem";
+	graph_json = TBufferJSON::ToJSON(&g_abs_bgrem).Data();
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	
+	graph_name = "g_absfit";
+	graph_json = TBufferJSON::ToJSON(&g_absfit).Data();
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	
+	graph_name = "g_bgfit";
+	graph_json = TBufferJSON::ToJSON(&g_bgfit).Data();
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	
 	return;
 	

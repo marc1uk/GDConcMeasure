@@ -604,7 +604,7 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	
 	// SaveTraces deletes all entries of m_data->m_trees when save is called
 	// so we'll need to make a new one next Execute
-	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")==0 && outfile!=nullptr){
+	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")!=0){
 		outtree=nullptr;
 	}
 	

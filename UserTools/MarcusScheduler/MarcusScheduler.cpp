@@ -102,7 +102,7 @@ bool MarcusScheduler::Execute(){
 	Log("MarcusScheduler Executing...",v_debug,verbosity);
 	
 	// update current commandfile line number in datamodel for display on website
-	m_data->CStore.Set("MarcusSchedulerCurrentCommand",current_command);
+	m_data->CStore.Set("MarcusSchedulerCurrentCommand",current_command+1);
 	m_data->CStore.Set("MarcusSchedulerCommandStep",command_step);
 	// also note the current execution status of any ongoing loops
 	m_data->CStore.Set("MarcusSchedulerLoopStarts",loop_starts);
