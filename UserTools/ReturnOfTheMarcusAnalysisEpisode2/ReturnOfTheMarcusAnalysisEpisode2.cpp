@@ -50,20 +50,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Initialise(std::string configfile, DataM
 	// get calibration cofficients for converting absorbance to gd concentration
 	GetCalibrationCurve();
 	
-	// set up pointers for getting data from Trees
-	wavelengthsp = &wavelengths;
-	gad_valuesp= &gad_values;
-	ref_valuesp= &ref_values;
-	gad_darkp= &gad_dark;
-	ref_darkp= &ref_dark;
-	
-	// see if saving traces to ROOT file (debug)
-	m_variables.Get("save_trees",save_trees);
-	
 	// pointers for writing data output to Trees
-	ref_corr_valuesp = &ref_corr_values;
-	absorbancesp = &absorbances;
 	absfitvaluesp = &absfitvalues;
+	bgfitvaluesp = &bgfitvalues;
 	
 	// probably not strictly necessary
 	SetGraphTitles();
@@ -87,13 +76,22 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 			Log(m_unique_name+" reinitializing variables",v_debug,verbosity);
 			ReInit();
 			
+			// get debug tree if requested
+			if(save_trees && m_data->m_trees.count("rotma")){
+				outtree = m_data->m_trees.at("rotma");
+			} else {
+				save_trees=false;
+			}
+			
 			// get absorbance data
 			Log(m_unique_name+" getting absorbance data",v_debug,verbosity);
 			GetAbsorbance();
 			
 			// fit absorbance trace with reference Gd absorbance shape
-			Log(m_unique_name+" fitting absorbance",v_debug,verbosity);
-			FitAbsorbance();
+			Log(m_unique_name+" fitting background absorbance",v_debug,verbosity);
+			RemoveBackgroundAbsorbance();
+			Log(m_unique_name+" fitting gd absorbance",v_debug,verbosity);
+			FitAbsorbance(true);
 			
 			// fit absorption peaks to obtain difference and convert to concentration.
 			// for each fitting method, calculate the difference in absorbtion peak heights
@@ -105,6 +103,14 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 			// place results into DataModel for storage
 			Log(m_unique_name+" updating DataModel",v_debug,verbosity);
 			UpdateDataModel();
+			
+			// write debug tree
+			if(save_trees){
+				outtree->Fill();
+				TFile* outfile = outtree->GetCurrentFile();
+				outfile->Write("",TObject::kOverwrite);
+				outtree->ResetBranchAddresses();
+			}
 			
 		} catch(std::exception& e){
 			Log(m_unique_name+" Error! Caught "+e.what(),v_error,verbosity);
@@ -132,13 +138,11 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Finalise(){
 
 bool ReturnOfTheMarcusAnalysisEpisode2::ReadyToAnalyse(){
 	
-	// XXX XXX XXX NEEDS FIXING TODO XXX FIXME
-	// Checks if analyse flag for our LED has been set by scheduler. Removes it if found.
+	// check if ReturnOfTheMarcusAnalysis tool has set flag indicating results
 	bool ready = false;
 	std::string currentLED="";
 	m_data->CStore.Get("NewMarcusAnalyse", currentLED);
 	if (currentLED == ledToAnalyse){
-		m_data->CStore.Remove("Analyse");
 		ready = true;
 	}
 	
@@ -147,8 +151,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::ReadyToAnalyse(){
 
 void ReturnOfTheMarcusAnalysisEpisode2::SetGraphTitles(){
 	
-	std::vector<TGraph*>     graphs{ &g_ref,  &g_gad,  &g_ref_corr,  &g_gadfit,  &g_abs,  &g_abs_gd,  &g_absfit  };
-	std::vector<std::string> names { "g_ref", "g_gad", "g_ref_corr", "g_gadfit", "g_abs", "g_abs_gd", "g_absfit" };
+	
+	std::vector<TGraph*>     graphs{&g_abs_gd,  &g_absfit  };
+	std::vector<std::string> names {"g_abs_gd", "g_absfit" };
 	for(int i=0; i<graphs.size(); ++i){
 		graphs.at(i)->SetName(names.at(i).c_str());
 		graphs.at(i)->SetTitle(names.at(i).c_str());
@@ -160,7 +165,11 @@ void ReturnOfTheMarcusAnalysisEpisode2::SetGraphTitles(){
 // -------------------------------------------------------------------------//
 
 bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsorbance(){
-	return true;
+	intptr_t g_ptr=0;
+	get_ok = m_data->CStore.Get("absorbance_all",g_ptr);
+	TGraph* g_abs_ptr = reinterpret_cast<TGraph*>(g_ptr);
+	g_abs_gd = TGraph(*g_abs_ptr);
+	return get_ok;
 }
 
 //==========================================================================//
@@ -189,6 +198,18 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsorptionRef(){
 	std::string absname="g_absref_"+ledToAnalyse;
 	g_absorption_ref.SetName(absname.c_str());
 	g_absorption_ref.SetTitle(absname.c_str());
+	
+	// current Gd absorption graph (ratio_abs_purev4_highv3.root) is taken from
+	// EGADS since it seems to fit the data very well, and is expected to be Gd in very clean water.
+	// however, for unknown reasons it is defined as purewater/gdloaded rather than vice versa.
+	// convert it to the more sensible gdloaded/purewater (which should have a nice range of 0->1).
+	// we also subtract off the baseline so that the range is from 0->-1, where 0 is no absorption.
+	// Note that this baseline will be ~1 outside the Gd absorption peaks in EGADS
+	// (since both purewater and gdloaded are measured in water), but will always be <1 in WCTE
+	// (since the reference arm is fibre so has no water absorption)
+	for(int i=0; i<g_absorption_ref.GetN(); ++i){
+		g_absorption_ref.GetY()[i] = (1./g_absorption_ref.GetY()[i])-1.;
+	}
 	
 	// also store a pointer to the graph for plotting on the webpage
 	intptr_t absrefgraphp = reinterpret_cast<intptr_t>(&g_absorption_ref);
@@ -335,39 +356,67 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsFunc(){
 	// construct functional fit of reference gd absorption
 	Log(m_unique_name+" constructing functional fit TF1 from reference Gd absorbance trace",v_debug,verbosity);
 	
-	// We'll scale it, and add a linear background to account for contaminants.
-	// TODO we could potentially make this a pol2 or pol3 background,
-	// but we should constrain it to being very small
+	// We'll scale it, and add a background to account for contaminants.
+	// during calibration a 3rd-order polynomial background was needed to extract clean Gd peaks,
+	// but this could prove problematic when trying to fit both together....
+	// it may be better to fit the background separately first, masking out the absorbance region
+	// then subtract the background fit and fit the absorbance separately
+	// (this is actually what was done to generate the calibration curves)
 	std::string name="f_absfit_"+ledToAnalyse;
-	const int n_absfit_pars = 3;
+	const int n_absfit_pars = 1;
 	
 	// for reasons explained in MarcusAnalysis, the easiest way to make a functional fit
 	// is to make a lambda function that captures a pointer to the fitted TGraph member
 	TGraph* g_abs_ref_p = &g_absorption_ref;
 	abs_fct = new TF1(name.c_str(),
 		[g_abs_ref_p](double* x, double* par) -> double {
+			/* old linear baseline
 			// par [0] = y-scaling
 			// par [1] = baseline offset (c)
 			// par [2] = baseline gradient (m)
 			double abs = par[0]*g_abs_ref_p->Eval(x[0]);
 			double baseline = par[2]*(x[0]-276) + par[1];
 			return (abs + baseline);
+			*/
+			double abs = par[0]*g_abs_ref_p->Eval(x[0]);
+			/* -- yea looks like we need to split it
+			// new, 3rd-order baseline
+			// "[0]+[1]*(x-[2])+[3]*(x-[2])*(x-[2])+[4]*(x-[2])*(x-[2])*(x-[2])"
+			double baseline = par[1]+
+			                  par[2]*(x[0]-par[3])+
+			                  par[4]*(x[0]-par[3])*(x[0]-par[3])+
+			                  par[5]*(x[0]-par[3])*(x[0]-par[3])*(x[0]-par[3]);
+			return (abs + baseline);
+			*/
+			return abs;
 		},
 		ROI_min, ROI_max, n_absfit_pars);
 	
-	// set default parameters
-	// TODO is it worth making these configuration parameters?
-	// particularly if we don't reset them between Execute loops, probably not...
-	std::vector<double> init_params{1,0,0};
-	abs_fct->SetParameters(init_params.data());
+	// set initial parameters
+	// TODO make these configuration parameters
+	//std::vector<double> init_params{1,0,0};
+	absfunc_init_params = std::vector<double>{0};
+	abs_fct->SetParameters(absfunc_init_params.data());
 	
-	// set parameter limits
+	// a separate function for fitting baseline absorbance (absorbance of pure water + contaminants etc)
+	name = "f_bgfit_"+ledToAnalyse;
+	int n_bgfit_pars = 5;
+	bg_abs_fct = new TF1(name.c_str(),"[0]+[1]*(x-[2])+[3]*(x-[2])*(x-[2])+[4]*(x-[2])*(x-[2])*(x-[2])", ROI_min, ROI_max);
+	bgfunc_init_params = std::vector<double>{0.0603867,-0.00111141,265,0.000341765,-7.3633e-06};
+	bg_abs_fct->SetParameters(bgfunc_init_params.data());
+	
+	// set parameter limits FIXME really should do this
+	/*
 	abs_fct->SetParLimits(0,0,20);         // y scaling
 	abs_fct->SetParLimits(1,-0.2,1.2);     // y offset
 	abs_fct->SetParLimits(2,-20,20);       // linear baseline gradient
+	*/
 	
 	if(!abs_fct->IsValid()){
-		throw std::runtime_error(m_unique_name+" GetAbsFunc failed to construct valid TF1");
+		throw std::runtime_error(m_unique_name+" GetAbsFunc failed to construct valid Gd TF1");
+	}
+	if(!bg_abs_fct->IsValid()){
+		throw std::runtime_error(m_unique_name+" GetAbsFunc failed to construct valid background TF1");
 	}
 	Log(m_unique_name+" functional fit TF1 constructed",v_debug,verbosity);
 	
@@ -487,10 +536,13 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetCalibrationCurveFromFile(){
 	}
 	
 	// check the TF1 is valid
+	// uh, for some reason it fails this test, even though it draws and evals just fine. :|
+	/*
 	if(!calib_curve.IsValid()){
 		throw std::runtime_error(m_unique_name+" calibration curve retrieved from file '"
 		                        +filename+"' is not valid!");
 	}
+	*/
 	
 	Log(m_unique_name+" constructed calibration function from local file '"+filename
 	    +"' successfully",v_debug,verbosity);
@@ -592,47 +644,93 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetCalibrationCurveFromDB(){
 
 // -------------------------------------------------------------------------//
 
-bool ReturnOfTheMarcusAnalysisEpisode2::GetROI(){
-	// get array indices corresponding to region of UV LED / Gd absorption
-	Log(m_unique_name+" extracting ROI",v_debug,verbosity);
+bool ReturnOfTheMarcusAnalysisEpisode2::RemoveBackgroundAbsorbance(){
+	// fit absorbance in UV excluding gd absorbance region with background poly, then subtract the fit across the whole UV ROI
 	
-	npoints_all = wavelengths.size();
-	npoints_gd = 0;
-	int ROI_min_light=50; // FIXME make configurable
-	for(int i=0; i<npoints_all; ++i){
-		if(wavelengths.at(i)>ROI_max || (end_gd>start_gd && (gad_values.at(i)<ROI_min_light || ref_values.at(i)<ROI_min_light))) break;
-		if(wavelengths.at(i)<ROI_min) continue;
-		if(npoints_gd==0) start_gd=i;
-		end_gd=i;
-		++npoints_gd;
+	// initialise fit parameters (skip to carry over previous values)
+	//bg_abs_fct->SetParameters(bgfunc_init_params.data());
+	
+	// make a TGraph with the gd absorbance region masked
+	if(bg_indices.size()==0){
+		for(size_t i=0; i<g_abs_gd.GetN(); ++i){
+			if(g_abs_gd.GetX()[i]<269 || g_abs_gd.GetX()[i]>281) bg_indices.push_back(i);
+			
+		}
+		g_abs_masked.Set(bg_indices.size());
 	}
-	Log(m_unique_name+": ROI spans "+std::to_string(ROI_min)+" to "+std::to_string(ROI_max)
-	    +" nm, corresponding to indices "+std::to_string(start_gd)+" to "+std::to_string(end_gd),
-	    v_debug,verbosity);
-	return true;
+	for(size_t i=0; i<bg_indices.size(); ++i){
+		g_abs_masked.SetPoint(i,g_abs_gd.GetX()[bg_indices.at(i)],g_abs_gd.GetY()[bg_indices.at(i)]);
+	}
+	
+	// fit with background function
+	bgfitresptr = g_abs_masked.Fit(bg_abs_fct,"RNMQS"); // or make a new one and call it 'tmp'
+	//bgfitresptr = TFitResultPtr((TFitResult*)tmp->Clone());  // i don't know if Clone is required
+	
+	g_abs_masked.SetName("g_abs_masked");
+	g_abs_masked.SaveAs("g_abs_masked.root");
+	bg_abs_fct->SaveAs("f_bg_fit.root");
+	
+	// record status of fit. probably redundant as none of these turned out to be reliable
+	if(bgfitresptr->IsEmpty() || !bgfitresptr->IsValid() || bgfitresptr->Status()!=0){
+		std::string fitstat;
+		fitstat += " IsEmpty=" + std::to_string(bgfitresptr->IsEmpty());
+		fitstat += " IsValid=" + std::to_string(bgfitresptr->IsValid());
+		fitstat += " Status=" + std::to_string(bgfitresptr->Status());
+		Log(m_unique_name+" Warning: abs bg fit status: "+fitstat,v_error,verbosity);
+		// do not return false, these are not robust checks of a bad fit.
+		// TODO implement a better check based on chi2
+		// TODO based on past experience, do the fit multiple times
+		//bgfit_success = false;
+	}
+	// we do it manually instead
+	bgfit_success =  !bgfitresptr->IsEmpty() &&
+	                  bgfitresptr->IsValid() &&
+	                  bgfitresptr->Status()==0 &&
+	                ((bgfitresptr->Chi2()/bgfitresptr->Ndf()) < 10.) &&
+	    !TMath::IsNaN(bgfitresptr->GetParams()[0]) &&
+	                 (bgfitresptr->GetErrors()[0] < 0.5);
+	
+	//  make a new background-subtracted TGraph of UV region
+	if(g_bgfit.GetN()==0){
+		g_bgfit.Set(g_abs_gd.GetN());
+		bgfitvalues.resize(g_abs_gd.GetN());
+		g_abs_bgrem.Set(g_abs_gd.GetN());
+	}
+	for (int i = 0; i < g_abs_gd.GetN(); ++i){
+		double next_wl = g_abs_gd.GetX()[i];
+		double next_bg = bg_abs_fct->Eval(next_wl);
+		if(TMath::IsNaN(next_bg)){
+			Log("abs fit function eval to NaN",v_error,verbosity);
+			next_bg = 0;
+		}
+		bgfitvalues[i] = next_bg;
+		g_bgfit.SetPoint(i, next_wl, next_bg);
+		g_abs_bgrem.SetPoint(i, next_wl, g_abs_gd.GetY()[i] - next_bg);
+	}
+	
+	g_abs_bgrem.SaveAs("g_abs_bgrem.root");
+	
+	if(!save_trees) return bgfit_success;
+	
+	// maybe save some stuff here for debug, or don't
+	if(!outtree->GetBranch("bgfit")) outtree->Branch("bgfit",&bgfitvaluesp);
+	else outtree->SetBranchAddress("bgfit",&bgfitvaluesp);
+	
+	return bgfit_success;
+	
 }
 
-bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(){
+// -------------------------------------------------------------------------//
+
+
+bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(bool bgrem){
 	// fit absorbance in UV region with reference shape and extract the scaling required
-	
-	// extract ROI
-	// for absorbance fit to work best, we need to only fit the region where there is light
-	// so do this on every execution, as our range of wavelengths for which this is true can shift
-	GetROI();  // find indices of 260nm - 300nm range
-	if(absfitvalues.size()==0){
-		g_abs_gd.Set(npoints_gd);
-		absfitvalues.resize(npoints_gd);
-	}
-	
-	// extract subset of absorbance around Gd region
-	for(size_t i=start_gd, j=0; i<end_gd; ++i, ++j){
-		g_abs_gd.SetPoint(j, wavelengths.at(i), g_abs.GetY()[i]);
-	}
 	
 	// initialise fit parameters (skip to carry over previous values)
 	//abs_fct->SetParameters(absfunc_init_params.data());
 	
-	absfitresptr = g_abs_gd.Fit(abs_fct,"RNMQS"); // or make a new one and call it 'tmp'
+	TGraph& g_tofit = bgrem ? g_abs_bgrem : g_abs_gd;
+	absfitresptr = g_tofit.Fit(abs_fct,"RNMQS"); // or make a new one and call it 'tmp'
 	//absfitresptr = TFitResultPtr((TFitResult*)tmp->Clone());  // i don't know if Clone is required
 	
 	if(absfitresptr->IsEmpty() || !absfitresptr->IsValid() || absfitresptr->Status()!=0){
@@ -648,16 +746,19 @@ bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(){
 	}
 	
 	absfit_success =  !absfitresptr->IsEmpty() &&
-	                       absfitresptr->IsValid() &&
-	                       absfitresptr->Status()==0 &&
-	                     ((absfitresptr->Chi2()/absfitresptr->Ndf()) < 10.) &&
-	                     !TMath::IsNaN(absfitresptr->GetParams()[0]) &&
-	                      (absfitresptr->GetErrors()[0] < 0.5);
+	                    absfitresptr->IsValid() &&
+	                    absfitresptr->Status()==0 &&
+	                  ((absfitresptr->Chi2()/absfitresptr->Ndf()) < 10.) &&
+	      !TMath::IsNaN(absfitresptr->GetParams()[0]) &&
+	                   (absfitresptr->GetErrors()[0] < 0.5);
 	
 	// make a TGraph of the fit for the website....
-	if(g_absfit.GetN()==0) g_absfit.Set(npoints_gd);
-	for (int i = 0; i < npoints_gd; ++i){
-		double next_wl = wavelengths[i+start_gd];
+	if(g_absfit.GetN()==0){
+		g_absfit.Set(g_abs_gd.GetN());
+		absfitvalues.resize(g_abs_gd.GetN());
+	}
+	for (int i = 0; i < g_abs_gd.GetN(); ++i){
+		double next_wl = g_abs_gd.GetX()[i];
 		double next_abs = abs_fct->Eval(next_wl);
 		if(TMath::IsNaN(next_abs)){
 			Log("abs fit function eval to NaN",v_error,verbosity);
@@ -667,23 +768,10 @@ bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(){
 		g_absfit.SetPoint(i, next_wl, next_abs);
 	}
 	
-	/*
-	TCanvas c_ttmp("c_ttmp","c_ttmp",1024,800);
-	g_sideband.SetMarkerColor(kBlue);
-	g_inband.SetMarkerColor(kRed);
-	abs_fct->SetLineWidth(1);
-	abs_fct->SetLineColor(kBlack);
-	g_sideband.Draw("AX*");
-	g_inband.Draw("same X*");
-	abs_fct->Draw("same");
-	c_ttmp.SaveAs("absfit.png");
-	*/
-	
 	if(!save_trees) return absfit_success;
 	
-	TBranch* absbranch = outtree->Branch("absfit",&absfitvaluesp);
-	absbranch->Fill();
-	outtree->ResetBranchAddresses();
+	if(!outtree->GetBranch("absfit")) outtree->Branch("absfit",&absfitvaluesp);
+	else outtree->SetBranchAddress("absfit",&absfitvaluesp);
 	
 	return absfit_success;
 }
@@ -705,11 +793,10 @@ bool ReturnOfTheMarcusAnalysisEpisode2::CalculateConcentration(){
 	
 	if(!save_trees) return get_ok;
 	
-	TBranch* bptr = nullptr;
-	bptr = outtree->Branch("metric",&metric);
-	bptr->Fill();
-	bptr = outtree->Branch("gd_conc",&gd_conc);
-	bptr->Fill();
+	if(!outtree->GetBranch("metric")) outtree->Branch("metric",&metric);
+	else outtree->SetBranchAddress("metric",&metric);
+	if(!outtree->GetBranch("gd_conc")) outtree->Branch("gd_conc",&gd_conc);
+	else outtree->SetBranchAddress("gd_conc",&gd_conc);
 	
 	return get_ok;
 }
@@ -722,66 +809,38 @@ void ReturnOfTheMarcusAnalysisEpisode2::ReInit(){
 	// from a previous fit if we bail early
 	m_data->CStore.Remove("NewMarcusAnalyseEp2");
 	
-	m_data->CStore.Remove("data_gad");
-	m_data->CStore.Remove("data_ref_corrected");
-	m_data->CStore.Remove("data_ref");
-	m_data->CStore.Remove("gad_fit");
-	
-	m_data->CStore.Remove("absorbance_all");
-	m_data->CStore.Remove("absorbance_gd");
 	m_data->CStore.Remove("absfit");
-	
 	m_data->CStore.Remove("absfitresptr");
 	m_data->CStore.Remove("absfit_success");
+	m_data->CStore.Remove("bgfit_success");
 	
 	m_data->CStore.Remove("metric_and_err");
 	m_data->CStore.Remove("conc_and_err");
-	
-	m_data->CStore.Remove("dark_mean");
-	m_data->CStore.Remove("dark_sigma");
-	m_data->CStore.Remove("raw_ref_max");
-	m_data->CStore.Remove("corrected_ref_max");
-	//m_data->CStore.Remove("gad_max");
-	m_data->CStore.Remove("gad_fitted_max");
 	
 	return;
 }
 
 void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 	
-	// static parameters from Initialization
-	// since these don't change, don't bother re-setting them each time
-//	m_data->CStore.Set("absrefID", filename);                                             // filename or DB version ID of reference absorption trace
-//	m_data->CStore.Set("absrefData", absrefgraphp);                                       // pointer to TGraph of reference absorption trace
-//	m_data->CStore.Set("purerefID", filename);                                            // filename or DB version ID of pure water transparency trace
-//	m_data->CStore.Set("purerefData", puregraphp);                                        // pointer to TGraph of pure water transparency
+	// A flag informing downstream tools that new results from this Tool are available
+	m_data->CStore.Set("NewMarcusAnalyseEp2",ledToAnalyse);
 	
-	// results from analysis
-	m_data->CStore.Set("NewMarcusAnalyseEp2",ledToAnalyse);                                  // A flag informing downstream tools that new results from this Tool are available
+	// for website
+	m_data->CStore.Set("bgfit",reinterpret_cast<intptr_t>(&g_bgfit));
+	m_data->CStore.Set("bg_rem_abs",reinterpret_cast<intptr_t>(&g_abs_bgrem));
+	m_data->CStore.Set("absfit",reinterpret_cast<intptr_t>(&g_absfit));
 	
-	m_data->CStore.Set("data_gad",reinterpret_cast<intptr_t>(&g_gad));                    // plot this
-	m_data->CStore.Set("data_ref_corrected",reinterpret_cast<intptr_t>(&g_ref_corr));     // and this on webpage
-	m_data->CStore.Set("data_ref",reinterpret_cast<intptr_t>(&g_ref));                    // this can be plotted but hidden by default
-	m_data->CStore.Set("gad_fit",reinterpret_cast<intptr_t>(&g_gadfit));                  // this can be plotted but hidden by default, used mainly for gad arm intensity extraction
+	// results for DB
+	m_data->CStore.Set("absfitresptr", reinterpret_cast<intptr_t>(&absfitresptr));
+	m_data->CStore.Set("bgfit_success",bgfit_success);
+	m_data->CStore.Set("absfit_success",absfit_success);
+	m_data->CStore.Set("metric_and_err",metric_and_err);
+	m_data->CStore.Set("conc_and_err",conc_and_err);
 	
-	m_data->CStore.Set("absorbance_all",reinterpret_cast<intptr_t>(&g_abs));              // full wl range
-	m_data->CStore.Set("absorbance_gd",reinterpret_cast<intptr_t>(&g_abs_gd));            // 260-300nm wl range
-	m_data->CStore.Set("absfit",reinterpret_cast<intptr_t>(&g_absfit));                   // these two plotted in separate expansion
-	
-	m_data->CStore.Set("absfitresptr", reinterpret_cast<intptr_t>(&absfitresptr));        // results for DB
-	m_data->CStore.Set("absfit_success",absfit_success);                                  // results for DB
-	
-	m_data->CStore.Set("metric_and_err",reinterpret_cast<intptr_t>(&metric_and_err));     // results for DB
-	m_data->CStore.Set("conc_and_err",reinterpret_cast<intptr_t>(&conc_and_err));         // results for DB
-	
-	m_data->CStore.Set("dark_mean",dark_mean);                                            // TODO maybe by storing dark info for both gad & ref,
-	m_data->CStore.Set("dark_sigma",dark_sigma);                                          // we could tell if the spectrometer was warming up?
-	m_data->CStore.Set("raw_ref_max",ref_max);                                            // led intensity down ref arm
-	m_data->CStore.Set("corrected_ref_max",corrected_ref_max);                            // *expected* led intensity down gad arm
-//	m_data->CStore.Set("gad_max",gad_max);                                                // probably not terribly useful by itself
-	m_data->CStore.Set("gad_fitted_max",gad_fitted_max);                                  // TODO *~measured* led intensity down gad arm
-	                                                                                      // (obtained by fitting corrected ref to gad data in sidebands)
-	                                                                                      // this could be used to measure e.g. solarization.
+	// TODO
+	//m_data->CStore.Set("gad_fitted_max",gad_fitted_max);
+	// led intensity down gad arm, obtained by fitting corrected ref to gad data in sidebands
+	// (this could be used to measure e.g. solarization?)
 	
 	return;
 	

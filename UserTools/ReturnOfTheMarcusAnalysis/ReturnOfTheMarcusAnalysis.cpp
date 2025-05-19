@@ -458,11 +458,11 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 				if(min_wl_index<0) min_wl_index=i;
 				if(wavelengths.at(i)<max_wl) max_wl_index=i;
 			}
-			if(wavelengths.at(i)>max_wl) break;
-			
-			g_gad.SetPoint(j, wavelengths.at(i), gad_values.at(i));
-			g_ref.SetPoint(j, wavelengths.at(i), ref_values.at(i));
-			++j;
+			if(wavelengths.at(i)<max_wl){
+				g_gad.SetPoint(j, wavelengths.at(i), gad_values.at(i));
+				g_ref.SetPoint(j, wavelengths.at(i), ref_values.at(i));
+				++j;
+			}
 		}
 		if(init){
 			g_gad.Set(j);
@@ -472,11 +472,11 @@ bool ReturnOfTheMarcusAnalysis::ReadValues(){
 	} catch(std::out_of_range& e){
 		std::stringstream ss;
 		ss << m_unique_name << " Caught " << e.what() << " doing dark subtraction!\n"
-		   << "\twavelengths.size() = "+std::to_string(wavelengths.size())<<"\n"
-		   << "\tGAD values.size() = "+std::to_string(gad_values.size())<<"\n"
-		   << "\tref values.size() = "+std::to_string(ref_values.size())<<"\n"
-		   << "\tGAD darks.size() = "+std::to_string(gad_dark.size())<<"\n"
-		   << "\tref darks.size() = "+std::to_string(ref_dark.size())<<"\n";
+		   << "\twavelengths.size() = "<<wavelengths.size()<<"\n"
+		   << "\tGAD values.size() = "<<gad_values.size()<<"\n"
+		   << "\tref values.size() = "<<ref_values.size()<<"\n"
+		   << "\tGAD darks.size() = "<<gad_dark.size()<<"\n"
+		   << "\tref darks.size() = "<<ref_dark.size()<<"\n";
 		Log(ss.str(),v_error,verbosity);
 		throw std::runtime_error(m_unique_name+" Error getting data from trees");
 	}
@@ -523,6 +523,7 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	
 	int j=0;
 	for(size_t i=0; i<wavelengths.size(); ++i){
+		
 		// correct reference arm values for water transparency (and other GAD optical path elements)
 		// to obtain expected GAD arm measurement for pure water
 		double ref_value_corr = ref_values.at(i) * g_pure_absorbance.GetY()[i];
@@ -570,7 +571,7 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	
 	// save calculated traces to output tree if requested
 	std::string filename;
-	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")==0){
+	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")==0 && outfile==nullptr){
 		// if we're processing offline we won't have an open file being written
 		// (perhaps we also should put debug info into an alternative file anyway?)
 		Log("making rotma file",v_debug,verbosity);
@@ -594,14 +595,16 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 		outtree->SetBranchAddress("ref_corr",&ref_corr_valuesp);
 		outtree->SetBranchAddress("abs",&absorbancesp);
 	}
-	outtree->Fill();
-	if(outfile) outfile->Write("",TObject::kOverwrite);
-	outtree->ResetBranchAddresses();
+	m_data->m_trees.emplace("rotma",outtree);
 	
-	if(m_data->CStore.Get("Filename",filename)){
-		m_data->m_trees.emplace("rotma",outtree);
-		// SaveTraces deletes all entries of m_data->m_trees when save is called
-		// so we'll need to make a new one next Execute
+	/// moved to Episode2
+	//outtree->Fill();
+	//outfile->Write("",TObject::kOverwrite);
+	//outtree->ResetBranchAddresses();
+	
+	// SaveTraces deletes all entries of m_data->m_trees when save is called
+	// so we'll need to make a new one next Execute
+	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")==0 && outfile!=nullptr){
 		outtree=nullptr;
 	}
 	
@@ -669,7 +672,7 @@ void ReturnOfTheMarcusAnalysis::UpdateDataModel(){
 	// gad arm
 	graph_json = TBufferJSON::ToJSON(&g_gad).Data();
 	graph_name = "gad_"+ledToAnalyse;
-	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	/*
 	size_t xstart = graph_json.find("\"fX\"")+5;
 	size_t xend = graph_json.find(']',xstart);
@@ -683,15 +686,15 @@ void ReturnOfTheMarcusAnalysis::UpdateDataModel(){
 	// ref arm
 	graph_json = TBufferJSON::ToJSON(&g_ref).Data();
 	graph_name = "ref_"+ledToAnalyse;
-	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	// ref arm after correction for optical path transparency
 	graph_json = TBufferJSON::ToJSON(&g_ref_corr).Data();
 	graph_name = "ref_corr_"+ledToAnalyse;
-	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	// absorbance
 	graph_json = TBufferJSON::ToJSON(&g_abs).Data();
 	graph_name = "absorbance_"+ledToAnalyse;
-	m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	
 	return;
 	

@@ -1363,6 +1363,9 @@ void MarcusScheduler::DoMeasureWRef(std::string the_command){
 		std::cout<<"\n]"<<std::endl;
 	}
 	
+	// update the web database so the tracking on the website works
+	m_data->CStore.Set("MarcusSchedulerCommands",commands);
+	
 	// don't increment current_command - we'll pick up the new set of expanded commands on next loop
 	return;
 }

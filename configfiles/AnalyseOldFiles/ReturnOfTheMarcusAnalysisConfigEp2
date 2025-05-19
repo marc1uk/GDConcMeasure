@@ -1,0 +1,5 @@
+verbosity 1
+ledToAnalyse 275_A
+save_trees 1
+absref_file ratio_abs_purev4_highv3.root
+cal_curve_file cal_curve_2025-03-27.root

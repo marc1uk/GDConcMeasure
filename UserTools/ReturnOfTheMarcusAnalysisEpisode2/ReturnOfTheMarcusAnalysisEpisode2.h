@@ -6,7 +6,7 @@
 
 #include "Tool.h"
 #include "DataModel.h"
-
+// &g_ref,  &g_gad,  &g_ref_corr,  &g_gadfit,  &g_abs
 namespace {
 	const double ROI_min = 260; // nm
 	const double ROI_max = 300; // nm
@@ -24,7 +24,7 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	
 	private:
 	
-	// Initialise:	
+	// Initialise:
 	bool GetCalibrationCurve();
 	bool GetCalibrationCurveFromConfigs();
 	bool GetCalibrationCurveFromFile();
@@ -35,72 +35,51 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	bool GetAbsorptionRef(std::string filename);
 	bool GetAbsFunc();
 	
+	std::string ledToAnalyse;
+	TGraph g_absorption_ref;     // gd absorption reference shape, scaled to fit data
+	TGraph g_abs_gd;             // gd region only (from ReturnOfTheMarcusAnalysis Tool)
+	TF1* bg_abs_fct;
+	std::vector<double> bgfunc_init_params;
+	TF1* abs_fct;
+	std::vector<double> absfunc_init_params; // TODO read from config, add param limits
+	TF1 calib_curve;
+	
 	// Execute:
 	bool ReadyToAnalyse();
 	void ReInit();
 	void SetGraphTitles();
-	bool GetROI();
 	bool GetAbsorbance();
-	bool FitAbsorbance();
+	bool RemoveBackgroundAbsorbance();
+	bool FitAbsorbance(bool bgrem);
 	bool CalculateConcentration();
 	void UpdateDataModel();
 	
-	std::string ledToAnalyse;
-	
-	// filled during initialise
-	TGraph g_pure_absorbance;    // absorbance of pure water (ideally normalised)
-	TGraph g_absorption_ref;
-	TF1 calib_curve;
-	TF1* abs_fct;
-	
-	// filled in ReadValues
-	TGraph g_ref;                // reference arm data
-	TGraph g_gad;                // gad arm data
-	
-	// filled in CalculateAbsorbance
-	TGraph g_ref_corr;           // ref arm corrected for water transparency
-	TGraph g_gadfit;             // corrected ref arm fitted to gad arm sidebands
-	TGraph g_abs;                // log(ratio) of corrected ref arm to gad arm
+	// filled in RemoveBackgroundAbsorbance
+	TGraph g_bgfit;
+	TGraph g_abs_masked; // absorbance in UV region but with gd region masked (used to fit background)
+	std::vector<size_t> bg_indices;
+	TGraph g_abs_bgrem;
+	TFitResultPtr bgfitresptr;
+	bool bgfit_success = false; // our own metric as we can't trust the status of TFitResultPtr
 	
 	// filled in FitAbsorbance
-	TGraph g_abs_gd;             // gd region only
 	TGraph g_absfit;
 	TFitResultPtr absfitresptr;
 	bool absfit_success = false; // our own metric as we can't trust the status of TFitResultPtr
+	double gad_fitted_max;
+	
+	// filled in CalculateConcentration
 	double metric, gd_conc;
 	std::pair<double,double> metric_and_err;
 	std::pair<double,double> conc_and_err;
 	
-	std::vector<double> absfunc_init_params; // TODO populate - read from config? fit limits?
-	
-	// indices of ROI
-	size_t npoints_all = 0;
-	size_t npoints_gd = 0;
-	size_t start_gd = 0;
-	size_t end_gd = 0;
-	
-	// TODO update these according to Tool needs
-	std::vector<double> gad_values, ref_values, gad_dark, ref_dark, wavelengths;
-	
-	std::vector<double>* gad_valuesp= nullptr;
-	std::vector<double>* ref_valuesp = nullptr;
-	std::vector<double>* gad_darkp = nullptr;
-	std::vector<double>* ref_darkp = nullptr;
-	std::vector<double>* wavelengthsp = nullptr;
-	
-	// for random stats tracking
-	double dark_mean, dark_sigma;
-	double ref_max, corrected_ref_max, ref_min;
-	double gad_max, gad_min;
-	double gad_fitted_max;
-	
 	// to save traces to output file (for debug, for now?)
-	bool save_trees=false;
-	TTree* outtree=nullptr;
-	// branches
-	std::vector<double> ref_corr_values, absorbances, absfitvalues;
-	std::vector<double>* ref_corr_valuesp=nullptr;
-	std::vector<double>* absorbancesp=nullptr;
+	bool save_trees=true;   // let it follow ReturnOfTheMarcusAnalysis
+	TTree* outtree=nullptr; // made in ReturnOfTheMarcusAnalysis
+	// we add one new branch storing absorbance fit curve
+	std::vector<double> bgfitvalues;
+	std::vector<double>* bgfitvaluesp;
+	std::vector<double> absfitvalues;
 	std::vector<double>* absfitvaluesp=nullptr;
 	
 	std::string m_configfile;

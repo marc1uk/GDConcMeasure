@@ -1,9 +1,10 @@
-verbosity 10
+verbosity 1
 save_trees 1
-ledToAnalyse White
+ledToAnalyse 275_A
 
 # trace for pure water down GAD arm
 # use 'create' to make it from first entry
 #pureref_file create
-pureref_file PureWaterTransparency.root
+#pureref_file PureWaterTransparency.root
+pureref_file PureWaterTransparency275_A_28_mar_2025.root
 

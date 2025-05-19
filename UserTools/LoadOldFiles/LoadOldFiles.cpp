@@ -221,6 +221,9 @@ bool LoadOldFiles::Execute(){
 		darkTreeNew->Fill();
 	}
 	
+	// backward compatibility - remove the appended LED. Man this is hacky.
+	if(treename.substr(0,3)=="LED") treename=treename.substr(3,std::string::npos);
+	
 	//m_data->m_trees is a std::map<std::string, TTree*>
 	// we need to put the 'dark' tree and the 'led' tree in it,
 	// where 'led' tree name must match ledToAnalyse

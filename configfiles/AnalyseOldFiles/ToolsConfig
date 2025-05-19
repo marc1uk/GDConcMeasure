@@ -1,23 +1,9 @@
-# note we cannot enable two instances of LoadOldFiles or *Analyse in one ToolChain.
-# this is because LoadOldFiles sets the 'Analyse <LED>' flag in the datamodel,
-# which would be overriden by a second instance.
-# Similarly MarcusAnalysis sets things into the CStore and triggers SaveToDB,
-# and some CStore contents would be overridden by a second MarcusAnalyse instance.
-# And two SaveToDB tools would result in duplicate entries, because they do not
-# clear the NewMarcusAnalysis flag in the CStore... perhaps they could if we
-# can guarantee no other downstream tools want to take action on new analysis results.
-
-# tl;dr - only analyse one LED at a time
+### only analyse one LED at a time ###
 
 # LED A
 myLoadOldFiles LoadOldFiles configfiles/AnalyseOldFiles/LoadOldFilesConfig
-#myMarcusAnalyse MarcusAnalysis configfiles/AnalyseOldFiles/MarcusAnalysisConfig
-newMatthewAnalyse MatthewAnalysisStrikesBack configfiles/AnalyseOldFiles/NewMatthewAnalysisConfig
-
-# LED B
-#myLoadOldFiles2 LoadOldFiles configfiles/AnalyseOldFiles/LoadOldFilesConfig2
-#myMarcusAnalyse2 MarcusAnalysis configfiles/AnalyseOldFiles/MarcusAnalysisConfig2
-#newMatthewAnalyse MatthewAnalysisStrikesBack configfiles/AnalyseOldFiles/NewMatthewAnalysisConfig2
+myMarcusAnalyse ReturnOfTheMarcusAnalysis configfiles/AnalyseOldFiles/ReturnOfTheMarcusAnalysisConfig
+myMarcusAnalyseEp2 ReturnOfTheMarcusAnalysisEpisode2 configfiles/AnalyseOldFiles/ReturnOfTheMarcusAnalysisConfigEp2
 
 # DB
-#mySaveToDB SaveToDB configfiles/AnalyseOldFiles/SaveToDBConfig
+mySaveToDB SaveToDB configfiles/AnalyseOldFiles/SaveToDBConfig

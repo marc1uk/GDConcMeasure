@@ -142,70 +142,75 @@ bool SaveToDB::Execute(){
 	try{
 		Log(m_unique_name+" checking MarcusScheduler for DB results",v_debug,verbosity);
 		get_ok = MarcusScheduler();
-	} catch(...){ std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save marcusscheduler: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenPower for DB results",v_debug,verbosity);
 		get_ok = BenPower();
-	} catch(...){ std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save benpower: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking Valve for DB results",v_debug,verbosity);
 		get_ok = Valve();
-	} catch(...){ std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save valve: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenLED for DB results",v_debug,verbosity);
 		get_ok = BenLED();
-	} catch(...){ std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save benled: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenSpectrometer for DB results",v_debug,verbosity);
 		get_ok = BenSpectrometer();
-	} catch(...){ std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save benspec: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking TraceAverage for DB results",v_debug,verbosity);
 		get_ok = TraceAverage();
-	} catch(...){ std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save traceav: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking MatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = MatthewAnalysis();
-	} catch(...){ std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save mattana: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking SaveTraces for DB results",v_debug,verbosity);
 		get_ok = SaveTraces();
-	} catch(...){ std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save savetr: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking RoutineCalibration for DB results",v_debug,verbosity);
 		get_ok = RoutineCalibration();  // placeholder, Tool TODO
-	} catch(...){ std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save routinecalib: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
 	
 	// the following tools store information persistently into the database 'data' table
 	try{
 		Log(m_unique_name+" checking MarcusAnalysis for DB results",v_debug,verbosity);
 		get_ok = MarcusAnalysis();
-	} catch(...){ std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save marcusana: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking MatthewTransparency for DB results",v_debug,verbosity);
 		get_ok = MatthewTransparency();
-	} catch(...){ std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save matthewtransp: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking NewMatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = NewMatthewAnalysis();
-	} catch(...){ std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save newmatthewanalyse: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking NewMarcusAnalysis for DB results",v_debug,verbosity);
 		get_ok = NewMarcusAnalysis();
-	} catch(...){ std::cerr<<"failed to save newmarcusanalyse"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"failed to save newmarcusanalyse: "<<e.what()<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save newmarcusanalyse"<<std::endl; all_ok = false; }
+	try{
+		Log(m_unique_name+" checking NewMarcusAnalysisEp2 for DB results",v_debug,verbosity);
+		get_ok = NewMarcusAnalysisEp2();
+	} catch(std::exception& e){ std::cerr<<"failed to save newmarcusanalyseep2: "<<e.what()<<std::endl; all_ok = false; }
+	if(!get_ok) { std::cerr<<"failed to save newmarcusanalyseep2"<<std::endl; all_ok = false; }
 	
 	
 	return get_ok;
@@ -1243,7 +1248,6 @@ bool SaveToDB::MarcusAnalysis(){
 		}
 		
 		// 4. get fit(s) to absorption peaks
-		std::map<std::string, BoostStore>* results;
 		intptr_t resultsp;
 		Log("SaveToDB::MarcusAnalysis getting absorbance fit",v_debug,verbosity);
 		get_ok = m_data->CStore.Get("results",resultsp);
@@ -2629,18 +2633,35 @@ bool SaveToDB::NewMarcusAnalysis(){
 		}
 	}
 	
-	/*
-	disabled as the absorption fitting and conc extraction is moved to a ReturnOfTheMarcusAnalysisEpisode2
+		return all_ok;
+}
+
+bool SaveToDB::NewMarcusAnalysisEp2(){
+	
+	bool all_ok = true;
+	
+	// see if we have new data to add to DB
+	std::string ledname="";
+	get_ok = m_data->CStore.Get("NewMarcusAnalyseEp2",ledname);
+	
+	// do we have a new measurement?
+	if(!get_ok || ledname=="") return true;
+	
+	Log("SaveToDB::NewMarcusAnalysisEp2 recording new measurement",v_debug,verbosity);
+	
+	// get the timestamp - this was already set by NewMarcusAnalysis above
+	std::string dbtimestamp;
+	get_ok = m_data->CStore.Get("last_measurement_timestamp",dbtimestamp);  // e.g "2020-09-16 15:54:00"
 	
 	// 2B. store which reference gd absorbance trace was used
 	// for persistent db storage, just record the reference ID for this measurement
-	Log("SaveToDB::NewMarcusAnalysis saving reference absorbance trace ID",v_debug,verbosity);
+	Log("SaveToDB::NewMarcusAnalysisEp2 saving reference absorbance trace ID",v_debug,verbosity);
 	std::string absrefID;
-	key = "absrefID_"+ledname;
+	std::string key = "absrefID_"+ledname;
 	get_ok = m_data->CStore.Get(key, absrefID);
 	std::string absref_json = "{\"ID\":\""+absrefID+"\"}";
 	if(not get_ok){
-		Log("SaveToDB::NewMarcusAnalysis failed to get reference absorbance trace ID for led "+ledname+" from CStore!",
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get reference absorbance trace ID for led "+ledname+" from CStore!",
 		    v_error,verbosity);
 		all_ok = false;
 	} else {
@@ -2659,31 +2680,31 @@ bool SaveToDB::NewMarcusAnalysis(){
 		                                 "absref_ID",                 // name
 		                                 absref_json);                // values (jsonb)
 		if(!get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to save reference absorbance trace ID "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to save reference absorbance trace ID "
 			    "into database with error '"+error_ret+"'",v_error,verbosity); 
 			all_ok = false;
 		}
 	}
 	
 	// save the reference absorbance trace to the webpage for plotting
-	// N.B. we could move this to an Initialise call, since the pure trace doesn't change.
-	Log("SaveToDB::NewMarcusAnalysis saving absorbance reference trace",v_debug,verbosity);
+	// N.B. we could move this to an Initialise call, since the reference trace doesn't change.
+	Log("SaveToDB::NewMarcusAnalysisEp2 saving absorbance reference trace",v_debug,verbosity);
 	std::string absrefkey = "absrefData_"+ledname;
 	intptr_t reference_absp;
 	get_ok = m_data->CStore.Get(absrefkey, reference_absp);
 	if(!get_ok || reference_absp==0){
-		Log("SaveToDB::NewMarcusAnalysis failed to get 'absrefData_"+ledname+"' from CStore!",
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get 'absrefData_"+ledname+"' from CStore!",
 		    v_error,verbosity);
 	} else {
 		TGraph* reference_gd_absorbance = reinterpret_cast<TGraph*>(reference_absp);
 		// convert to json
-		Log("SaveToDB::NewMarcusAnalysis building reference_gd_absorbance",v_debug,verbosity);
+		Log("SaveToDB::NewMarcusAnalysisEp2 building reference_gd_absorbance",v_debug,verbosity);
 		std::string ref_gd_abs = BuildJson(reference_gd_absorbance);
 		// delete any existing entry so we don't keep accumulating them
 		query_string = "DELETE FROM webpage WHERE name = 'reference_gd_absorbance' AND data = '"+ledname+"'";
 		get_ok = m_data->postgres.ExecuteQuery(query_string);
 		if(not get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to delete existing reference_gd_absorbance record "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to delete existing reference_gd_absorbance record "
 			    "from webpage table",v_error,verbosity);
 		}
 		// insert a new record
@@ -2697,18 +2718,18 @@ bool SaveToDB::NewMarcusAnalysis(){
 		                                 ref_gd_abs,
 		                                 ledname);
 		if(!get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to insert new 'reference_gd_absorbance' "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to insert new 'reference_gd_absorbance' "
 			    "record into webpage table with error "+error_ret,v_error,verbosity);
 		}
 	}
 	
 	// 5. store calibration curve ID
-	Log("SaveToDB::NewMarcusAnalysis saving calibration curve ID",v_debug,verbosity);
+	Log("SaveToDB::NewMarcusAnalysisEp2 saving calibration curve ID",v_debug,verbosity);
 	std::string calibcurve_json;
 	key = "calcurve_"+ledname;
 	get_ok = m_data->CStore.Get(key, calibcurve_json);
 	if(not get_ok){
-		Log("SaveToDB::NewMarcusAnalysis failed to get calibcurve info for led "+ledname+" from CStore!",
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get calibcurve info for led "+ledname+" from CStore!",
 		    v_error,verbosity);
 		all_ok = false;
 	} else {
@@ -2727,7 +2748,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 		                                 "calibcurve_info",           // name
 		                                 calibcurve_json);            // values (jsonb)
 		if(!get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to save calibcurve info "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to save calibcurve info "
 			    "into database with error '"+error_ret+"'",v_error,verbosity);
 			all_ok = false;
 		}
@@ -2736,22 +2757,22 @@ bool SaveToDB::NewMarcusAnalysis(){
 	// TODO could also store the calibration curve for web page
 	
 	// store fit to the absorbance graph
-	Log("SaveToDB::NewMarcusAnalysis saving extracted absorbance trace",v_debug,verbosity);
+	Log("SaveToDB::NewMarcusAnalysisEp2 saving extracted absorbance trace",v_debug,verbosity);
 	intptr_t absfit_p;
 	get_ok = m_data->CStore.Get("absfit",absfit_p);
 	if(!get_ok || absfit_p==0){
-		Log("SaveToDB::NewMarcusAnalysis failed to get absorbance fit from CStore!",
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get absorbance fit from CStore!",
 		    v_error,verbosity);
 	} else {
 		TGraph* absfit = reinterpret_cast<TGraph*>(absfit_p);
 		// convert to json
-		Log("SaveToDB::NewMarcusAnalysis building absorbance fit",v_debug,verbosity);
+		Log("SaveToDB::NewMarcusAnalysisEp2 building absorbance fit",v_debug,verbosity);
 		std::string absfit_json = BuildJson(absfit);
 		// delete any existing entry so we don't keep accumulating them
 		query_string = "DELETE FROM webpage WHERE name = 'absfit' AND data = '"+ledname+"'";
 		get_ok = m_data->postgres.ExecuteQuery(query_string);
 		if(not get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to delete existing absfit entry "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to delete existing absfit entry "
 			    "from webpage table",v_error,verbosity);
 		}
 		// insert new record in its place
@@ -2766,7 +2787,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 		                                 absfit_json,                 // values (jsonb)
 		                                 ledname);                    // data (bytea)
 		if(!get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to insert new absorption fit data "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to insert new absorption fit data "
 			    "into database with error '"+error_ret+"'",v_error,verbosity);
 		}
 	}
@@ -2775,14 +2796,14 @@ bool SaveToDB::NewMarcusAnalysis(){
 	intptr_t absfitresptrp;
 	get_ok = m_data->CStore.Get("absfitresptr",absfitresptrp);
 	if(!get_ok || absfitresptrp==0){
-		Log("SaveToDB::NewMarcusAnalysis failed to get abs fit result pointer from CStore",
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get abs fit result pointer from CStore",
 		    v_error,verbosity);
 		all_ok = false;
 	} else {
 		TFitResultPtr* absfitresptr = reinterpret_cast<TFitResultPtr*>(absfitresptrp);
 		
 		// build json from fit parameters and errors
-		Log("SaveToDB::NewMarcusAnalysis saving abs fit parameters",v_debug,verbosity);
+		Log("SaveToDB::NewMarcusAnalysisEp2 saving abs fit parameters",v_debug,verbosity);
 		std::string abs_fit_pars = BuildJson(*absfitresptr,false);
 		
 		// store to db. These get stored persistently, not just temporarily for the webpage
@@ -2801,13 +2822,13 @@ bool SaveToDB::NewMarcusAnalysis(){
 		                                 "abs_fit_pars",              // name
 		                                 abs_fit_pars);               // values (jsonb)
 		if(!get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to insert new abs fit parameters "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to insert new abs fit parameters "
 			    "into database with error '"+error_ret+"'",v_error,verbosity);
 			all_ok = false;
 		}
 		
 		// Get info on fit success status and goodness
-		Log("SaveToDB::NewMarcusAnalysis abs fit result",v_debug,verbosity);
+		Log("SaveToDB::NewMarcusAnalysisEp2 abs fit result",v_debug,verbosity);
 		std::string fit_status = BuildJson(*absfitresptr,true);
 		// store to database
 		field_names = std::vector<std::string>
@@ -2825,7 +2846,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 		                                 "abs_fit_status",            // name
 		                                 fit_status);                 // values (jsonb)
 		if(!get_ok){
-			Log("SaveToDB::NewMarcusAnalysis failed to insert new abs fit status "
+			Log("SaveToDB::NewMarcusAnalysisEp2 failed to insert new abs fit status "
 			    "into database with error '"+error_ret+"'",v_error,verbosity);
 			all_ok = false;
 		}
@@ -2835,7 +2856,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 	// these are somwhat redundant with the TFitResultPtr statuses in the previous entries
 	// but that said those TFitResultPtr statuses aren't always robust metrics of whether
 	// the fit succeeded or not, so let's record our own manual assessment
-	int absfit_ok=0;
+	bool absfit_ok=0;
 	bool got_absfit_ok = m_data->CStore.Get("absfit_success", absfit_ok);
 	
 	// and of course the final result
@@ -2849,7 +2870,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 	
 	// success status of absorption fit
 	if(!got_absfit_ok){
-		Log("SaveToDB::NewMarcusAnalysis failed to get absorption fit status for led "+ledname,
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get absorption fit status for led "+ledname,
 		    v_error,verbosity);
 		all_ok = false;
 	} else {
@@ -2858,7 +2879,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 	
 	// metric and its error
 	if(!got_metric_ok){
-		Log("SaveToDB::NewMarcusAnalysis failed to get gd metric for led "+ledname,
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get gd metric for led "+ledname,
 		    v_error,verbosity);
 		all_ok = false;
 	} else {
@@ -2869,7 +2890,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 	
 	// concentration and its error
 	if(!got_conc_ok){
-		Log("SaveToDB::NewMarcusAnalysis failed to get gd concentration for led "+ledname,
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to get gd concentration for led "+ledname,
 		    v_error,verbosity);
 		all_ok = false;
 	} else {
@@ -2882,7 +2903,7 @@ bool SaveToDB::NewMarcusAnalysis(){
 	thismethodjson +="}";
 	
 	// store to db. These get stored persistently, not just temporarily for the webpage
-	Log("SaveToDB::NewMarcusAnalysis saving results",v_debug,verbosity);
+	Log("SaveToDB::NewMarcusAnalysisEp2 saving results",v_debug,verbosity);
 	field_names = std::vector<std::string>
 	      {"run","measurement","timestamp","ledname","tool","name","values"};
 	error_ret="";
@@ -2898,11 +2919,10 @@ bool SaveToDB::NewMarcusAnalysis(){
 	                                 "gdconcmeasure",             // name
 	                                 thismethodjson);             // values (jsonb)
 	if(!get_ok){
-		Log("SaveToDB::NewMarcusAnalysis failed to insert fit results "
+		Log("SaveToDB::NewMarcusAnalysisEp2 failed to insert fit results "
 		    "for led "+ledname+" into database with error '"+error_ret+"'",v_error,verbosity);
 		all_ok = false;
 	}
-	*/
 	
 	return all_ok;
 }
