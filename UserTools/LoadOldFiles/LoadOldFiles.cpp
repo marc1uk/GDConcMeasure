@@ -54,7 +54,7 @@ bool LoadOldFiles::Execute(){
 		// try to open the file
 		Log("LoadOldFiles: opening file",v_debug,verbosity);
 		if(nextfile) nextfile->Close();
-		if(darkTreeNew) delete darkTreeNew;
+		if(darkTreeNew){ delete darkTreeNew; darkTreeNew=nullptr; }
 		nextfile = TFile::Open(filename.c_str(),"READ");
 		if(nextfile==nullptr || nextfile->IsZombie()){
 			Log(std::string("LoadOldFiles failed to open file '")+filename+"'",v_error,verbosity);
@@ -251,6 +251,7 @@ bool LoadOldFiles::Finalise(){
 	if(tmpfile){
 		tmpfile->Close();
 		delete tmpfile;
+		tmpfile=nullptr;
 	}
 	if(nextfile){
 		nextfile->Close();

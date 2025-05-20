@@ -571,7 +571,8 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	
 	// save calculated traces to output tree if requested
 	std::string filename;
-	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")==0 && outfile==nullptr){
+	bool online=(strcmp(gDirectory->GetFile()->GetOption(),"READ"));
+	if(!online && outfile==nullptr){
 		// if we're processing offline we won't have an open file being written
 		// (perhaps we also should put debug info into an alternative file anyway?)
 		Log("making rotma file",v_debug,verbosity);
@@ -595,7 +596,7 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 		outtree->SetBranchAddress("ref_corr",&ref_corr_valuesp);
 		outtree->SetBranchAddress("abs",&absorbancesp);
 	}
-	m_data->m_trees.emplace("rotma",outtree);
+	m_data->m_trees["rotma"] = outtree;
 	
 	/// moved to Episode2
 	//outtree->Fill();
@@ -604,9 +605,7 @@ bool ReturnOfTheMarcusAnalysis::CalculateAbsorbance(){
 	
 	// SaveTraces deletes all entries of m_data->m_trees when save is called
 	// so we'll need to make a new one next Execute
-	if(strcmp(gDirectory->GetFile()->GetOption(),"READ")!=0){
-		outtree=nullptr;
-	}
+	if(online) outtree=nullptr;
 	
 	return true;
 }
