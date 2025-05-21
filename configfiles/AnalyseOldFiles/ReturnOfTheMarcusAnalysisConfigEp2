@@ -1,5 +1,12 @@
-verbosity 1
+verbosity 0
 ledToAnalyse 275_A
 save_trees 1
 absref_file ratio_abs_purev4_highv3.root
 cal_curve_file cal_curve_2025-03-27.root
+
+#cal_tf1_formula [0]+[1]*x[0]+[2]*TMath::Log(x[0]-[3])
+#cal_n_par 4
+#cal_par_0 0.0317167
+#cal_par_1 0.568497
+#cal_par_2 0.013012
+#cal_par_3 -0.093457

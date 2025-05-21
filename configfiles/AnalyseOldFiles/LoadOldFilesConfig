@@ -1,3 +1,5 @@
 verbosity 1
-file_list configfiles/AnalyseOldFiles/file_list_calib2.txt
+#file_list configfiles/AnalyseOldFiles/file_list_calib2.txt  # all measurements during march 2025 calib
+file_list configfiles/AnalyseOldFiles/file_list_calib3.txt   # only those used for calibration (every Nth after mixing)
+#file_list configfiles/AnalyseOldFiles/online_recent.txt
 max_files 200

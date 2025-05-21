@@ -70,6 +70,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::Execute(){
 	// is available for fitting
 	if (ReadyToAnalyse()){
 		
+		std::string filename;
+		m_data->CStore.Get("Filename",filename);
+		printf("file: %s\n",filename.c_str());
 		Log(m_unique_name+" Processing new measurement...",v_debug,verbosity);
 		
 		try {
@@ -153,8 +156,8 @@ bool ReturnOfTheMarcusAnalysisEpisode2::ReadyToAnalyse(){
 void ReturnOfTheMarcusAnalysisEpisode2::SetGraphTitles(){
 	
 	
-	std::vector<TGraph*>     graphs{&g_abs_gd,  &g_absfit  };
-	std::vector<std::string> names {"g_abs_gd", "g_absfit" };
+	std::vector<TGraph*>     graphs{&g_abs_gd,  &g_absfit, &g_absfit2  };
+	std::vector<std::string> names {"g_abs_gd", "g_absfit", "g_absfit2" };
 	for(int i=0; i<graphs.size(); ++i){
 		graphs.at(i)->SetName(names.at(i).c_str());
 		graphs.at(i)->SetTitle(names.at(i).c_str());
@@ -393,7 +396,8 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsFunc(){
 			*/
 			return abs;
 		},
-		ROI_min, ROI_max, n_absfit_pars);
+		//ROI_min, ROI_max, n_absfit_pars);
+		278, 280, n_absfit_pars);  // calibration procedure fits only 3rd peak!
 	
 	// set initial parameters
 	// TODO make these configuration parameters
@@ -401,12 +405,36 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetAbsFunc(){
 	absfunc_init_params = std::vector<double>{0};
 	abs_fct->SetParameters(absfunc_init_params.data());
 	
+	//////////
+	// experimental second fit: scaled version of the absorbance plus a quadratic
+	// reason for this is that in WCTE there appears to be a quadratic-shaped background
+	// in the 268-284nm range that perfectly matches the masked region during background fitting.
+	// so even with 0% gd there's a smooth dip in the gd absorbing range that the fitter fits with gd.
+	// ugh. let's hope the smooth baseline and the spikey gd absorbance aren't too degenerate for the fitter.
+	// at the very least we'll need to limit the parameters so it's not too sharp to avoid fitting a gd peak.
+	name="f_absfit_"+ledToAnalyse+"2";
+	abs_fct2 = new TF1(name.c_str(),
+		[g_abs_ref_p](double* x, double* par) -> double {
+			double abs = par[0]*g_abs_ref_p->Eval(x[0]);
+			double baseline = par[1]+par[2]*(x[0]-par[3])*(x[0]-par[3]);
+			return (abs + baseline);
+		},
+	//	ROI_min, ROI_max, 4);  // last number is num fit params
+		277, 281, 4);  // last number is num fit params
+	abs_fct2->SetParameters(0,0,0,275);
+	abs_fct2->SetParLimits(1,-0.03,0.03);
+	abs_fct2->SetParLimits(2,-0.0002,0.0007);
+	abs_fct2->SetParLimits(3,272,276);
+	abs_fct2->SetParLimits(0,0,0.5); // mainly just to stop the gd concentration going negative
+	//////////
+	
 	// a separate function for fitting baseline absorbance (absorbance of pure water + contaminants etc)
 	name = "f_bgfit_"+ledToAnalyse;
 	int n_bgfit_pars = 5;
-	bg_abs_fct = new TF1(name.c_str(),"[0]+[1]*(x-[2])+[3]*(x-[2])*(x-[2])+[4]*(x-[2])*(x-[2])*(x-[2])", ROI_min, ROI_max);
+	bg_abs_fct = new TF1(name.c_str(),"[0]+[1]*(x-[2])+[3]*(x-[2])*(x-[2])+[4]*(x-[2])*(x-[2])*(x-[2])", 265, 290);
 	bgfunc_init_params = std::vector<double>{0.0603867,-0.00111141,265,0.000341765,-7.3633e-06};
 	bg_abs_fct->SetParameters(bgfunc_init_params.data());
+	bg_abs_fct->FixParameter(2,265); // done in calib
 	
 	// set parameter limits FIXME really should do this
 	/*
@@ -504,6 +532,8 @@ bool ReturnOfTheMarcusAnalysisEpisode2::GetCalibrationCurveFromConfigs(){
 	
 	std::string calcurvejson = "{ \"type\":\"configfile\",\"function\":\""+formula_str+"\",\"params\":\""+params_str+"\" }";
 	m_data->CStore.Set("calcurve_"+ledToAnalyse,calcurvejson);
+	
+	std::cout<<"got calibration curve from configs"<<std::endl;
 	
 	return true;
 }
@@ -682,6 +712,11 @@ bool ReturnOfTheMarcusAnalysisEpisode2::RemoveBackgroundAbsorbance(){
 	//g_abs_masked.SetName("g_abs_masked");
 	//g_abs_masked.SaveAs("g_abs_masked.root");
 	//bg_abs_fct->SaveAs("f_bg_fit.root");
+	printf("baseline fit params:\n");
+	for(int i=0; i<bg_abs_fct->GetNpar(); ++i){
+		printf("%f\t",bg_abs_fct->GetParameter(i));
+	}
+	printf("\n");
 	
 	// record status of fit. probably redundant as none of these turned out to be reliable
 	if(bgfitresptr->IsEmpty() || !bgfitresptr->IsValid() || bgfitresptr->Status()!=0){
@@ -749,6 +784,15 @@ bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(bool bgrem){
 	absfitresptr = g_tofit.Fit(abs_fct,"RNMQS"); // or make a new one and call it 'tmp'
 	//absfitresptr = TFitResultPtr((TFitResult*)tmp->Clone());  // i don't know if Clone is required
 	
+	// also fit with our experimental alternative
+	absfitresptr2 = g_tofit.Fit(abs_fct2,"RNMQS");
+	
+	printf("abs fit params2:\n");
+	for(int i=0; i<abs_fct2->GetNpar(); ++i){
+		printf("%f\t",abs_fct2->GetParameter(i));
+	}
+	printf("\n");
+	
 	if(absfitresptr->IsEmpty() || !absfitresptr->IsValid() || absfitresptr->Status()!=0){
 		std::string fitstat;
 		fitstat += " IsEmpty=" + std::to_string(absfitresptr->IsEmpty());
@@ -771,6 +815,7 @@ bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(bool bgrem){
 	// make a TGraph of the fit for the website....
 	if(g_absfit.GetN()==0){
 		g_absfit.Set(g_abs_gd.GetN());
+		g_absfit2.Set(g_abs_gd.GetN());
 		absfitvalues.resize(g_abs_gd.GetN());
 	}
 	for (int i = 0; i < g_abs_gd.GetN(); ++i){
@@ -782,6 +827,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::FitAbsorbance(bool bgrem){
 		}
 		absfitvalues[i] = next_abs;
 		g_absfit.SetPoint(i, next_wl, next_abs);
+		
+		g_absfit2.SetPoint(i, next_wl, abs_fct2->Eval(next_wl));
+		
 	}
 	
 	if(!save_trees) return absfit_success;
@@ -806,6 +854,9 @@ bool ReturnOfTheMarcusAnalysisEpisode2::CalculateConcentration(){
 	
 	double gd_conc_err = metric_err * calib_curve.Derivative(metric);
 	conc_and_err = std::pair<double,double>{gd_conc, gd_conc_err};
+	
+	conc_and_err2 = std::pair<double,double>{calib_curve.GetX(absfitresptr2->Parameter(0)),
+	     absfitresptr2->GetErrors()[0]*calib_curve.Derivative(absfitresptr2->Parameter(0))};
 	
 	if(!save_trees) return get_ok;
 	
@@ -852,7 +903,7 @@ void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 	m_data->CStore.Set("bgfit_success",bgfit_success);
 	m_data->CStore.Set("absfit_success",absfit_success);
 	m_data->CStore.Set("metric_and_err",metric_and_err);
-	m_data->CStore.Set("conc_and_err",conc_and_err);
+	m_data->CStore.Set("conc_and_err",conc_and_err); // FINDME FIXME set back to normal
 	
 	// TODO
 	//m_data->CStore.Set("gad_fitted_max",gad_fitted_max);
@@ -861,6 +912,7 @@ void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 	
 	// send stuff to WCTE DB
 	m_data->monitoring_store.Set("gd_conc",conc_and_err.first);
+	m_data->monitoring_store.Set("gd_conc2",conc_and_err2.first);
 	
 	std::string graph_json, graph_name;
 	graph_name = "g_abs_bgrem";
@@ -869,6 +921,10 @@ void ReturnOfTheMarcusAnalysisEpisode2::UpdateDataModel(){
 	
 	graph_name = "g_absfit";
 	graph_json = TBufferJSON::ToJSON(&g_absfit).Data();
+	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
+	
+	graph_name = "g_absfit2";
+	graph_json = TBufferJSON::ToJSON(&g_absfit2).Data();
 	if(m_data->services) m_data->services->SendROOTplot(graph_name, "AL", graph_json, true);
 	
 	graph_name = "g_bgfit";

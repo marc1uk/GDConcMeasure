@@ -40,7 +40,7 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	TGraph g_abs_gd;             // gd region only (from ReturnOfTheMarcusAnalysis Tool)
 	TF1* bg_abs_fct;
 	std::vector<double> bgfunc_init_params;
-	TF1* abs_fct;
+	TF1* abs_fct, *abs_fct2;
 	std::vector<double> absfunc_init_params; // TODO read from config, add param limits
 	TF1 calib_curve;
 	
@@ -63,15 +63,15 @@ class ReturnOfTheMarcusAnalysisEpisode2: public Tool {
 	bool bgfit_success = false; // our own metric as we can't trust the status of TFitResultPtr
 	
 	// filled in FitAbsorbance
-	TGraph g_absfit;
-	TFitResultPtr absfitresptr;
+	TGraph g_absfit, g_absfit2;
+	TFitResultPtr absfitresptr, absfitresptr2;
 	bool absfit_success = false; // our own metric as we can't trust the status of TFitResultPtr
 	double gad_fitted_max;
 	
 	// filled in CalculateConcentration
 	double metric, gd_conc;
 	std::pair<double,double> metric_and_err;
-	std::pair<double,double> conc_and_err;
+	std::pair<double,double> conc_and_err, conc_and_err2;
 	
 	// to save traces to output file (for debug, for now?)
 	bool save_trees=true;   // let it follow ReturnOfTheMarcusAnalysis
