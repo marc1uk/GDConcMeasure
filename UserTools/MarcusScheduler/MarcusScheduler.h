@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "keyb.h"  // defines kbhit to wait for keypress
 
 #include "Tool.h"
 
@@ -65,6 +66,8 @@ class MarcusScheduler: public Tool {
 	void DoWait(std::string the_command);
 	void SimpleWaitForDuration(std::string wait_string);
 	void WaitForDuration(std::string wait_string);
+	void DoKeyWait(std::string the_command);
+	void DoEcho(std::string the_command);
 	void StartLoop(std::string the_command);
 	void EndLoop(std::string the_command);
 	void SetFile(std::string the_command);

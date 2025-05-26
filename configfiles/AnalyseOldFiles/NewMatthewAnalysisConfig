@@ -1,21 +1,39 @@
 verbosity 1
 savedebug 1
 
-#pureref_ver 3     # for jun-oct 2024 analysis (and before?)
-pureref_ver 4      # from october 2024 calibration?
-highconcref_ver 3  # from... end of calibration? after reconnect to EGADS?  should be latter
-
+#pureref_ver 3
+#highconcref_ver 0
 #calibcurve_ver 3
 
-# updated versions after fixing code and redoing calibration data extraction (w/ April data)
-calib_curve_275_A cal_a_new.root
-cal_tf1_name_275_A led_a_calcurve
-calib_curve_275_B cal_b_new.root
-cal_tf1_name_275_B led_b_calcurve
+# when did we switch to these?
+pureref_ver 4
+highconcref_ver 3
 
+# updated versions after fixing code and redoing calibration data extraction (w/ April data)
+#calib_curve_275_A cal_a_new.root
+#cal_tf1_name_275_A led_a_calcurve
+#calib_curve_275_B cal_b_new.root
+#cal_tf1_name_275_B led_b_calcurve
+
+# temporary after oct 2024 calib (before ex-situ calib adjustments)
+# i dunno what this is. maybe a calibration curve using our concs but old references?
 #calib_curve_275_A calcurve_rough_oct_2024_egads_hack.root
 #calib_curve_275_B calcurve_rough_oct_2024_egads_hack.root
-#cal_tf1_name_275_A 275_A
-#cal_tf1_name_275_B 275_B
+
+# below based on file 100 from after reconnect to egads as highconc ref
+# and pure from start of calib. no correction to calibration here.
+#calib_curve_275_A calcurve_oct2024_gadonly.root
+#calib_curve_275_B calcurve_oct2024_gadonly.root
+
+# below based on above but with linear component hacked to give EGADS measured metrics = 0.06%
+#calib_curve_275_A calcurve_oct2024_gadonlyhack.root
+#calib_curve_275_B calcurve_oct2024_gadonlyhack.root
+
+# below from oct2024 after AAS alignment
+calib_curve_275_A calcurve_oct2024_AAS_corrected.root
+calib_curve_275_B calcurve_oct2024_AAS_corrected.root
+
+cal_tf1_name_275_A 275_A
+cal_tf1_name_275_B 275_B
 
 

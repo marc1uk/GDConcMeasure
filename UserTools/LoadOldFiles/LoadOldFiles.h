@@ -11,6 +11,7 @@ struct oldfile{
 	std::string filename;
 	std::string treename;
 	int runnum;
+	int measnum=-1;
 };
 
 class LoadOldFiles: public Tool {

@@ -153,7 +153,8 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     //pars = std::vector<double>{1,0,0,0,0,0}; << initial for set 1
     //pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
     // below from 27-08-2024 restart, propagate last set for continuity.
-    pars = std::vector<double>{1.139877, 0.049598, -0.000643, 0.000000, 0.014598, -0.167741};
+    //pars = std::vector<double>{1.139877, 0.049598, -0.000643, 0.000000, 0.014598, -0.167741};
+    pars = std::vector<double>{1.0, 0, 0, 0.000000, 0, 0};
     /*
     // these kill the fit :/
     if(led_name=="275_A"){

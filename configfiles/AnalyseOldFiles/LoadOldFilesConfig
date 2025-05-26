@@ -19,8 +19,20 @@ verbosity 1
 #file_list configfiles/AnalyseOldFiles/oct_sep_2024_B.txt
 
 #file_list configfiles/AnalyseOldFiles/tmp.txt
-file_list configfiles/AnalyseOldFiles/oct_2024_calib_newpures_A.txt
+#file_list configfiles/AnalyseOldFiles/oct_2024_calib_newpures_A.txt
 #file_list configfiles/AnalyseOldFiles/oct_2024_calib_newpures_B.txt
 #file_list configfiles/AnalyseOldFiles/oct_2024_aftercalib_A.txt
 #file_list configfiles/AnalyseOldFiles/oct_2024_aftercalib_B.txt
 #max_files 1000
+
+
+####################################
+
+#file_list datasets/2024_jun_aug_A.txt
+#file_list datasets/2024_jun_aug_B.txt
+#file_list datasets/2024_aug_nov_A.txt
+#file_list datasets/2024_aug_nov_B.txt
+#file_list datasets/2024_nov_2025_may_A.txt
+#file_list datasets/2024_nov_2025_may_B.txt
+
+file_list redo.txt

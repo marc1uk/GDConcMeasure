@@ -140,13 +140,19 @@ auto MatthewTransparency::PopulateWavelength(TTree* tree) const -> std::array<do
   // Takes a TTree* and returns an N sized vector with wavelength values, this is split from usual TTree reading since we only need to calculate wavelength vector once.
   
   std::vector<double>* w_ptr = nullptr;
+  if(tree==nullptr){
+  	std::cerr<<"PopulateWavelength with null tree"<<std::endl;
+  	return std::array<double,N>{};
+  }
   tree->SetBranchAddress("wavelength", &w_ptr);
 
   if (w_ptr == nullptr){
     std::cout << "Failed to set branch address to retrieve wavelength" << std::endl;
+    return std::array<double,N>{};
   }
   else if (tree->GetEntriesFast() == 0){
     std::cout << "No entries in wavelength tree" << std::endl;
+    return std::array<double,N>{};
   }
 
   const bool success = tree->GetEntry(0);
@@ -242,7 +248,7 @@ auto MatthewTransparency::RetrievePureValuesFromFile(const std::string& fname, c
   return dark_sub;
 }
 
-void MatthewTransparency::SaveToMonthlyFile(const Transparency& t) const {
+void MatthewTransparency::SaveToMonthlyFile(const Transparency& t) {
   // Transparency values will be stored in a file that is newly generated once per month, 
   const std::array<double, N>* v_ptr = &(t.values);
   const std::array<int, 6>* t_ptr = &(t.date_time);
@@ -252,7 +258,16 @@ void MatthewTransparency::SaveToMonthlyFile(const Transparency& t) const {
 
   if (FileExists(fname)){
     std::unique_ptr<TFile> file(TFile::Open(fname.c_str(), "UPDATE"));
+    if(!file){
+        Log(m_unique_name+"::SaveToMonthlyFile unable to open file '"+fname+"'",v_error,verbosity);
+        return;
+    }
     TTree* tree = (TTree*) file->Get(transp_str.c_str());
+    if(!tree){
+        Log(m_unique_name+"::SaveToMonthlyFile failed to get tree '"+transp_str
+           +"' from file '"+fname+"'",v_error,verbosity);
+        return;
+    }
     tree->SetBranchAddress(val_str.c_str(), &v_ptr);
     tree->SetBranchAddress(dt_str.c_str(), &t_ptr);
     tree->Fill();
@@ -260,12 +275,22 @@ void MatthewTransparency::SaveToMonthlyFile(const Transparency& t) const {
   }
   else {
     std::unique_ptr<TFile> file(TFile::Open(fname.c_str(), "RECREATE"));
+    if(!file){
+        Log(m_unique_name+"::SaveToMonthlyFile failed to created new monthly file '"+fname+"'",v_error,verbosity);
+        return;
+    }
     std::unique_ptr<TTree> tree(new TTree(transp_str.c_str(), transp_str.c_str()));
+    if(!tree){
+        Log(m_unique_name+"::SaveToMonthlyFile failed to make new tree '"+transp_str
+                   +"' for file '"+fname+"'",v_error,verbosity);
+        return;
+    }
     tree->Branch(val_str.c_str(), &v_ptr);
     tree->Branch(dt_str.c_str(), &t_ptr);
     tree->Fill();
     file->Write();
   }
+  return;
 }
 
 bool MatthewTransparency::FileExists(std::string f) const {

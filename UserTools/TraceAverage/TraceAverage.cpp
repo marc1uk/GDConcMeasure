@@ -36,6 +36,7 @@ bool TraceAverage::Initialise(std::string configfile, DataModel &data){
   livedraw = false;
   m_variables.Get("livedraw",livedraw);
   if(livedraw){
+      Log("TraceAverage: live draw enabled, making TApp",v_debug,verbosity);
       // make a TApplication for live viewing the spectrum
 	  int tapp_users=1;
 	  if(m_data->CStore.Get("tapp_users",tapp_users)){
@@ -48,6 +49,7 @@ bool TraceAverage::Initialise(std::string configfile, DataModel &data){
 	    m_data->CStore.Set("tapp_users",tapp_users);
 	  }
 	  // make canvas to draw it on
+          Log("TraceAverage: making live plot canvas",v_debug,verbosity);
 	  cspec = new TCanvas("cspec","cspec",1200,700);
   }
   
