@@ -3,10 +3,20 @@ power on
 connect
 start_loop
 setFile
+#
+measure Dark
 measure 275_B
+analyse 275_B
+#
+measure Dark
 measure 275_A
+analyse 275_A
+#
+measure Dark
 measure R G B
+measure Dark
 measure White 385
+#
 save
 loop
 quit

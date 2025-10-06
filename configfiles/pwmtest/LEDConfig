@@ -1,7 +1,10 @@
 verbosity 50
 voltage_supply	5.0	# V, external supply
 delay		50	# %, delay for turning on LED in duty cycle percentage
-map_wiring	configfiles/pwmtest/wiring
 frequency       800     # Hz, frequency of the PWM scaler [24 Hz ~ 1526 Hz]
 resolution      12      # bit, of the internal counter
-PushPull        0       # open drain mode
+#PushPull        0       # open drain mode for new LED module
+
+#map_wiring configfiles/pwmtest/wiring
+#map_wiring /home/pi/GDConcMeasure/adjust_led_voltages.txt
+map_wiring /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring

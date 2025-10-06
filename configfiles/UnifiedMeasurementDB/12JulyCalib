@@ -1,0 +1,34 @@
+start
+power on
+pump on
+wait 900
+start_loop
+valve outlet open
+valve inlet open
+measure Dark
+measure Dark
+measure Dark
+measure Dark
+measure Dark
+valve inlet close
+valve outlet close
+wait 30
+measure Dark
+measure Dark
+measure Dark
+measure Dark
+measure Dark
+measure 275_B
+#analyse 275_B
+measure Dark
+measure 275_A
+#analyse 275_A
+
+measure Dark
+measure R G B
+measure Dark
+measure White 385
+
+save 12July22Calib
+loop
+quit

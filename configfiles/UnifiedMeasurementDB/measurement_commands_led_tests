@@ -1,0 +1,13 @@
+start
+power on
+wait 900
+start_loop 5
+measure 275_A
+measure Dark
+measure 275_B
+measure Dark
+wait 3600
+save led_tests_long_both
+loop
+quit
+

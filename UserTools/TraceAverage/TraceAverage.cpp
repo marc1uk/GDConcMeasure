@@ -117,6 +117,7 @@ bool TraceAverage::Execute(){
     }
     
     // retrieve data from datamodel, averaging over spectrometer acquisitions
+    double maxval=0;
     for(int i=0;i<m_data->wavelength.size(); i++){
       double valsum=0;
       double errorsum=0;
@@ -124,6 +125,7 @@ bool TraceAverage::Execute(){
       for(int trace=0;trace<m_data->traceCollect.size(); trace++){
         
         valsum+=m_data->traceCollect.at(trace).at(i)/((double)m_data->traceCollect.size());
+        if(m_data->traceCollect.at(trace).at(i)>maxval) maxval=m_data->traceCollect.at(trace).at(i);
       }
       for(int trace=0;trace<m_data->traceCollect.size(); trace++){
         
@@ -133,6 +135,11 @@ bool TraceAverage::Execute(){
       errorsum =sqrt(errorsum)/sqrt(m_data->traceCollect.size());
       value.push_back(valsum);
       error.push_back(errorsum);
+    }
+    if((name=="Dark" || name=="dark") && maxval>2000){
+      Log("TraceAverage tool found Dark trace with peak value of "+std::to_string(maxval)+" - could be LED stuck on! "
+          "Terminating toolchain to power down as a precaution!",v_error,verbosity);
+      m_data->vars.Set("StopLoop",1);
     }
     
     // fill TTree

@@ -49,7 +49,9 @@ bool BenLED::Initialise(std::string configfile, DataModel &data){
   m_variables.Get("resolution", resolution);
   resolution = static_cast<unsigned int>(pow(2, resolution)) - 1;
   
-  m_variables.Get("voltage_supply", fVin);
+  bool got = m_variables.Get("voltage_supply", fVin);
+  std::cout<<"got fvin: "<<got<<", value "<<fVin<<std::endl;
+  fVin=5;
   m_variables.Get("delay", fDelay);
   
   // read LED pin mapping from the appropriate source
@@ -107,6 +109,11 @@ bool BenLED::Execute(){
         Log("BenLED::Execute error Initializing LED states to off!",0,0);
         return false;
       }
+    } else if(Power=="OFF") {
+      // power is down, mark file handle as closed
+      file_descript=0;
+    } else {
+      Log("BenLED::Execute found Power in CStore with unknown value "+Power,v_error,verbosity);
     }
     
   }
@@ -602,10 +609,10 @@ bool BenLED::WakeUpDriver(){
   // the RESTART bit (7bit of MODE1) must be cleared by writing 1
   
   bool ret;
-  for(int tries=0; tries<3; ++tries){
+  for(int tries=0; tries<10; ++tries){
     if(tries>0){
       Log("Trying again...",0,0);
-      usleep(500);
+      usleep(2500);
     }
     
     //read MODE1 first
@@ -621,7 +628,7 @@ bool BenLED::WakeUpDriver(){
     
     //clear SLEEP bit and enable AI        : 0010xxxx         <--- NO AUTO INCREMENT
     ret = Write(0x00, (0x0 << 4) | mode1);
-    usleep(500);        //wait at lest 500 us to use driver
+    usleep(1500);        //wait at lest 500 us to use driver
     if(!ret){
       Log("BenLED::WakeUpDriver failed to clear SLEEP bit and enable AI!!!",0,0);
       continue;
@@ -633,6 +640,16 @@ bool BenLED::WakeUpDriver(){
     if(!ret){
       Log("BenLED::WakeUpDriver failed to clear restart!!!",0,0);
       continue;
+    }
+  }
+  
+  if(!ret){
+    Log("BenLED::TurnLEDoff failed to turn LED off after 10 attempts, stopping toolchain",v_error,verbosity);
+    std::ofstream fout("./UserTools/MarcusScheduler/breakloop",std::ofstream::out);
+    if(!fout.is_open()){
+      m_data->vars.Set("StopLoop",1); // fallback, but flag file is more graceful
+    } else {
+      fout.close();
     }
   }
   
@@ -715,7 +732,7 @@ bool BenLED::TurnLEDon(std::string ledName){
     
     if(tries>0){
       Log("Trying again... ",0,0);
-      usleep(500);
+      usleep(2500);
     }
     
     akg = Write(reg_LED, time2on  & 0xff);           //LEDn_ON_L
@@ -760,11 +777,11 @@ bool BenLED::TurnLEDoff(std::string ledName){
   int reg_LED = 4 * mLED_chan[ledName] + 6;
   
   bool akg;
-  for(int tries=0; tries<3; ++tries){
+  for(int tries=0; tries<10; ++tries){
     
     if(tries>0){
       Log("Trying again...",0,0);
-      usleep(500);
+      usleep(2500);
     }
     
     akg = Write(reg_LED, 0x00);             //LEDn_ON_L
@@ -782,6 +799,15 @@ bool BenLED::TurnLEDoff(std::string ledName){
       Log("BenLED::TurnLEDoff failed to turn off LED "+ledName,0,0);
     } else {
       break;
+    }
+  }
+  if(!akg){
+    Log("BenLED::TurnLEDoff failed to turn LED off after 10 attempts, stopping toolchain",v_error,verbosity);
+    std::ofstream fout("./UserTools/MarcusScheduler/breakloop",std::ofstream::out);
+    if(!fout.is_open()){
+      m_data->vars.Set("StopLoop",1); // fallback, but flag file is more graceful
+    } else {
+      fout.close();
     }
   }
   
