@@ -8,12 +8,12 @@ verbosity 1
 #command_file configfiles/UnifiedMeasurementDB/06JunCalib
 #command_file configfiles/UnifiedMeasurementDB/08JunCalib
 #command_file configfiles/UnifiedMeasurementDB/pwm_test
-#command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same as db commands 19-jul-2023
+command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same as db commands 19-jul-2023
 #command_file configfiles/UnifiedMeasurementDB/30Oct2024Calib
-command_file configfiles/UnifiedMeasurementDB/test_led
+#command_file configfiles/UnifiedMeasurementDB/test_led
 
 # now taken from database
-outfilebase test_led
+#outfilebase test_led
 #outfilebase 24MarPureStability
 #outfilebase 17Apr_EGADS_Calibration
 #outfilebase 25_Apr_2023_EGADS_Run
@@ -26,4 +26,5 @@ outfilebase test_led
 #outfilebase Oct_2024_EGADS_reconnect_tempcalib
 #outfilebase May_2025_EGADS_AAS_calib
 #outfilebase Aug_2025_EGADS_recirc_restart
+outfilebase Oct_2025_EGADS_oldmodule
 datadir /mnt/data/

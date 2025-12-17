@@ -1,4 +1,6 @@
 verbosity 1
 
 #map_wiring /home/pi/GDConcMeasure/adjust_led_voltages.txt
-map_wiring /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring
+#map_wiring /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring   ## EGADS
+#map_wiring /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring_oldmodule ## OLD MODULE
+#PushPull 1      # open drain mode for new LED module  ## OLD MODULE=1, NEW=0

@@ -1,0 +1,35 @@
+start
+power up
+connect
+
+#start_loop
+echo turning on UV LED 1
+{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"1","275_B":"0","LED":"Change"}
+wait 2
+echo turning on UV LED 2
+{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"1","LED":"Change"}
+wait 2
+echo turning on 385
+{"R":"0","G":"0","B":"0","White":"0","385":"1","275_A":"0","275_B":"0","LED":"Change"}
+wait 2
+#loop
+
+#start_loop
+echo turning on white LED
+{"R":"0","G":"0","B":"0","White":"1","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+wait 2
+echo turning on R
+{"R":"1","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+wait 2
+echo turning on G
+{"R":"0","G":"1","B":"0","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+wait 2
+echo turning on B
+{"R":"0","G":"0","B":"1","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+wait 2
+#loop
+echo turning off LEDs
+{"R":"0","G":"0","B":"0","White":"0","385":"0","275_A":"0","275_B":"0","LED":"Change"}
+echo done
+power down
+quit

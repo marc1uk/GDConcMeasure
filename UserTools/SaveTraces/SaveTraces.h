@@ -15,6 +15,7 @@ class SaveTraces: public Tool {
   bool Initialise(std::string configfile,DataModel &data);
   bool Execute();
   bool Finalise();
+  bool DoSave();
 
 
  private:

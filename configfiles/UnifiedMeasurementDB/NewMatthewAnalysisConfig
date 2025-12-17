@@ -8,7 +8,7 @@ savedebug 1
 #cal_tf1_name_275_B led_b_calcurve
 
 # temporary after oct 2024 calib (before ex-situ calib adjustments)
-pureref_ver 4
+#pureref_ver 4
 highconcref_ver 3
 #calib_curve_275_A calcurve_rough_oct_2024_egads_hack.root
 #calib_curve_275_B calcurve_rough_oct_2024_egads_hack.root
@@ -25,3 +25,15 @@ calib_curve_275_A calcurve_oct2024_AAS_corrected.root
 calib_curve_275_B calcurve_oct2024_AAS_corrected.root
 cal_tf1_name_275_A 275_A
 cal_tf1_name_275_B 275_B
+
+# after LED module rust repair, oct 2025
+# esimated without calibration - replace pureref_ver 4
+#pure_fname fake_pures_13-oct-2025.root
+#pure_offset 0 # dummy
+
+# back to old module oct 2025 as that repair didn't last
+# but we don't have pures for the old module, sooo what works best?
+# the thing is both the highconc ref and pure ref need to be from the same measurement
+# because matthew generates the gd absorption in Initialise every time. Argh!
+pureref_ver 1
+abs_file DBv1_ratioabs.root

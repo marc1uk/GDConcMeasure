@@ -40,10 +40,24 @@ bool SaveTraces::Execute(){
   Log("SaveTraces Executing...",v_debug,verbosity);
   
   std::string save="";
-  std::string name="";
-  int overwrite=1;
     
   if(m_data->CStore.Get("Save",save) && save=="Save"){
+    return DoSave();
+  }
+  
+  return true;
+}
+
+bool SaveTraces::DoSave(){
+    
+    if(m_data->m_trees.size()==0){
+        Log("SaveTraces nothing to save",v_message,verbosity);
+        return true;
+    }
+    
+    std::string save="";
+    std::string name="";
+    int overwrite=1;
     
     //m_data->CStore.Print();
     save="";
@@ -74,15 +88,11 @@ bool SaveTraces::Execute(){
     
     m_data->m_trees.clear();
     
-    
-  }
-  
-  
-  return true;
+    return true;
 }
-
 
 bool SaveTraces::Finalise(){
   
-  return true;
+  return DoSave();
+  
 }

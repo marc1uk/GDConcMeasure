@@ -2,6 +2,6 @@ myGracefulStop        GracefulStop            configfiles/pwmtest/GracefulStopCo
 myMarcusScheduler     MarcusScheduler         configfiles/pwmtest/MarcusSchedulerConfig
 myBenPower            BenPower                configfiles/pwmtest/PowerConfig
 myBenLED              BenLED                  configfiles/pwmtest/LEDConfig
-myBenSpectrometer     BenSpectrometer         configfiles/pwmtest/SpectrometerConfig
-myTraceAverage        TraceAverage            configfiles/pwmtest/TraceAverageConfig
-mySaveTraces          SaveTraces              configfiles/pwmtest/SaveTracesConfig
+#myBenSpectrometer     BenSpectrometer         configfiles/pwmtest/SpectrometerConfig
+#myTraceAverage        TraceAverage            configfiles/pwmtest/TraceAverageConfig
+#mySaveTraces          SaveTraces              configfiles/pwmtest/SaveTracesConfig

@@ -84,6 +84,7 @@ bool TraceAverage::Execute(){
     // get trace name - we'll use this for the TTree name
     std::string name="";
     m_data->CStore.Get("Trace",name);
+    std::cout<<"TraceAverage of trace '"<<name<<"'"<<std::endl;
     if(name=="") name="test";
     
     // see if we have this TTree in the datamodel, or build one if not
@@ -118,6 +119,9 @@ bool TraceAverage::Execute(){
     
     // retrieve data from datamodel, averaging over spectrometer acquisitions
     double maxval=0;
+    int maxtrace=0;
+    double max_wl=0;
+    int max_i=0;
     for(int i=0;i<m_data->wavelength.size(); i++){
       double valsum=0;
       double errorsum=0;
@@ -125,7 +129,6 @@ bool TraceAverage::Execute(){
       for(int trace=0;trace<m_data->traceCollect.size(); trace++){
         
         valsum+=m_data->traceCollect.at(trace).at(i)/((double)m_data->traceCollect.size());
-        if(m_data->traceCollect.at(trace).at(i)>maxval) maxval=m_data->traceCollect.at(trace).at(i);
       }
       for(int trace=0;trace<m_data->traceCollect.size(); trace++){
         
@@ -136,10 +139,30 @@ bool TraceAverage::Execute(){
       value.push_back(valsum);
       error.push_back(errorsum);
     }
-    if((name=="Dark" || name=="dark") && maxval>2000){
-      Log("TraceAverage tool found Dark trace with peak value of "+std::to_string(maxval)+" - could be LED stuck on! "
-          "Terminating toolchain to power down as a precaution!",v_error,verbosity);
-      m_data->vars.Set("StopLoop",1);
+    // originally did this on per-trace basis but occasionally a trace would have a sporadic ADC value
+    // in the thousands that would trigger it. :/ Guess we'll have to use the average.
+    for(int i=0; i<value.size(); i++){
+        if(m_data->wavelength.at(i)>200 && m_data->wavelength.at(i)<800 && value.at(i)>maxval){
+          maxval=value.at(i); // only check max values between 200-800nm as there are peaks at edge
+          max_wl=m_data->wavelength.at(i);
+          max_i=i;
+        }
+    }
+    if((name=="Dark" || name=="dark") && maxval>3000){
+      Log("TraceAverage tool found Dark trace with peak value of "+std::to_string(maxval)+" at "+std::to_string(max_wl)
+          + "nm - LED stuck on! Terminating toolchain to power down as a precaution!",v_error,verbosity);
+      std::ofstream fout("./UserTools/MarcusScheduler/breakloop",std::ofstream::out);
+      /*
+      std::ofstream xfout("./BadDark.csv",std::ofstream::out);
+      for(int x=0; x<m_data->wavelength.size(); ++x){
+      	xfout<<m_data->wavelength.at(x)<<" ";
+      }
+      for(int x=0; x<m_data->wavelength.size(); ++x){
+      	xfout<<m_data->traceCollect.at(maxtrace).at(x)<<" ";
+      }
+      xfout.close();
+      */
+      //m_data->vars.Set("StopLoop",1); // don't break immediately as it doesn't save the waveform for debugging
     }
     
     // fill TTree

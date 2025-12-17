@@ -1,3 +1,4 @@
 verbosity 1
 #command_file configfiles/pwmtest/measurement_commands
-command_file configfiles/pwmtest/livedraw_commands
+#command_file configfiles/pwmtest/livedraw_commands
+command_file configfiles/pwmtest/lighttest

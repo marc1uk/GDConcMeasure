@@ -48,20 +48,23 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     Log(m_unique_name+"::Initialise - Getting info for LED: "+led_name, v_debug,m_verbose);
     LEDInfo& led_info = led_info_map[led_name];
     
+    // get calibration curve
+    Log(m_unique_name+" getting calibration curve for LED: "+led_name, v_debug,m_verbose);
+    led_info.calibration_curve_ptr = GetCalibrationCurve(led_name);
+    
     //retrieve reference pure and non-pure 
     Log(m_unique_name+" getting pure reference trace for LED "+led_name, v_debug,m_verbose);
     const TGraph pure_ds = TrimGraph(GetPure(led_name));
     SaveDebug(&pure_ds, std::string{"g_ref_pure_"}+led_name);
     
+    /* ----  old, use high concentration data curve and calculate gd absorption
+    ------------------------------------
     Log(m_unique_name+" getting high concentration reference trace for LED "+led_name, v_debug,m_verbose);
     const TGraph high_conc_ds = TrimGraph(GetHighConc(led_name));
     SaveDebug(&high_conc_ds, std::string{"g_ref_highconc_"}+led_name);
     
-    // get calibration curve
-    Log(m_unique_name+" getting calibration curve for LED: "+led_name, v_debug,m_verbose);
-    led_info.calibration_curve_ptr = GetCalibrationCurve(led_name);
-    
     // ===================== pure fitting part ======================= //
+    // fit pure to high conc reference in the sidebands 
     
     //create FunctionalFit object to do initial "simple", ie remove Gd region and fit sidebands
     FunctionalFit simple_fit = FunctionalFit(new SimplePureFunc(pure_ds), "simple");
@@ -78,12 +81,21 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     Log(m_unique_name+" doing simple fit of pure reference on high conc reference for LED: "+led_name, v_debug,m_verbose);
     simple_fit.PerformFitOnData(RemoveRegion(high_conc_ds, abs_region_low, abs_region_high));
     
+    // the result is our pure scaled to match the same height as our high conc ref in the sidebands
     const TGraph simple_fit_result = simple_fit.GetGraph();
     SaveDebug(&simple_fit_result, std::string{"g_ref_simple_fit_"}+led_name);
     Log(m_unique_name+" extracting gd shape for LED: "+led_name, v_debug,m_verbose);
     const TGraph gd_abs_attenuation = CalculateGdAbs(simple_fit_result, high_conc_ds); // normalised to 1!
-    // gd_abs_attenuation is defined as Normalise(1-highconc[x]/pure[x])
+    // gd_abs_attenuation is defined as Normalise(1-highconc[x]/pure[x]) - this is positive going ratio peaking at 1
     SaveDebug(&gd_abs_attenuation, std::string{"g_ref_atten_"}+led_name);
+    ------------------------------------
+    ---- new, just get it from file ---- */
+    std::string abs_f_name;
+    m_variables.Get("abs_file",abs_f_name);
+    TFile f_abs(abs_f_name.c_str());
+    TGraph* gd_abs_atten = (TGraph*)f_abs.Get(led_name.c_str());
+    const TGraph gd_abs_attenuation(*gd_abs_atten);
+    /* ------------------------------------ */
     
     //create FunctionalFit object to do inital pure removal fit
     led_info.combined_func = std::make_unique<CombinedGdPureFunc_DATA>(pure_ds, gd_abs_attenuation);
@@ -132,17 +144,16 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     // for the calibration mapping. We'll do the latter as it's quicker for now,
     // and if we're going to regenerate the calibration curve we should use a normalised one.
     // get the amplitude of this curve. by definition it has an offset of 1 (and should be >1 at all points)
-    /*  -- disabled as we regenerated the calibration mapping
-    double r_amp = *std::max_element(ratio_absorbance.GetY(),ratio_absorbance.GetY()+ratio_absorbance.GetN()) - 1.;
-    // the following are the max elements from the absorbances used during calibration
-    double c_amp = ((strcmp(led_name,"275_A")==0) ? 3.6979136 : 3.6221790) - 1.;
-    for(int i=0; i<ratio_absorbance.GetN(); ++i){
-      // rescale the new absorbance reference (extracted from new pure and highconc refs)
-      // to the same amplitude as that used during calibration.
-      ratio_absorbance.GetY()[i] = (ratio_absorbance.GetY()[i]-1)*(c_amp/r_amp) + 1.;
-    }
-    SaveDebug(&ratio_absorbance, std::string{"g_ref_abs_"}+led_name);
-    */
+// -- disabled as we regenerated the calibration mapping
+//    double r_amp = *std::max_element(ratio_absorbance.GetY(),ratio_absorbance.GetY()+ratio_absorbance.GetN()) - 1.;
+//    // the following are the max elements from the absorbances used during calibration
+//    double c_amp = ((strcmp(led_name,"275_A")==0) ? 3.6979136 : 3.6221790) - 1.;
+//    for(int i=0; i<ratio_absorbance.GetN(); ++i){
+//      // rescale the new absorbance reference (extracted from new pure and highconc refs)
+//      // to the same amplitude as that used during calibration.
+//      ratio_absorbance.GetY()[i] = (ratio_absorbance.GetY()[i]-1)*(c_amp/r_amp) + 1.;
+//    }
+//    SaveDebug(&ratio_absorbance, std::string{"g_ref_abs_"}+led_name);
     
     //create FunctionalFit object to do absorbance fit on data
     led_info.abs_func = std::make_shared<AbsFunc>(ratio_absorbance);
@@ -252,11 +263,6 @@ bool MatthewAnalysisStrikesBack::Execute(){
   
   // y_scaling, x_translation, x_scaling, absorbance_scaling, 2nd order bg, 1st order bg, constant bg
   //TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
-  // FIXME HACK: the fit's not working, so mask out the absorbance region and just fit the sidebands
-  curr_comb_fit.fit_funct.FixParameter(3,0);
-  // also the way the 'zeroth order background' parameter is implemented, it's redundant with the pure
-  // scaling (parameter 0)
-  curr_comb_fit.fit_funct.FixParameter(7,0);
   
   /* -- nah this still doesn't work
   // fix the pure parts
@@ -269,6 +275,12 @@ bool MatthewAnalysisStrikesBack::Execute(){
   curr_comb_fit.fit_funct.SetParLimits(3,0,1.1);
   TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
   */
+  
+  // FIXME HACK: the fit's not working, so mask out the absorbance region and just fit the sidebands
+  curr_comb_fit.fit_funct.FixParameter(3,0);
+  // also the way the 'zeroth order background' parameter is implemented, it's redundant with the pure
+  // scaling (parameter 0)
+  curr_comb_fit.fit_funct.FixParameter(7,0);
   
   // we'll repeat the fit multiple times, this seems to be the easiest and most robust
   // way to prevent misfits! stop once the chi2 stabilises.
@@ -308,7 +320,6 @@ bool MatthewAnalysisStrikesBack::Execute(){
   
   // debug
   purefitgraph = curr_comb_fit.GetGraph();
-  // FIXME this fit is baaaad.
   SaveDebug(&purefitgraph, std::string{"datafit_"}+current_led+"_"+std::to_string(measurementnum));
   
   // update the datamodel
@@ -654,7 +665,10 @@ TGraph MatthewAnalysisStrikesBack::GetPure(const std::string& led_name) {
   if (ok && pure_fname != "" && pure_offset != -1){
     Log(m_unique_name+" getting pure trace for led "+led_name+" from "+pure_fname
         +" entry "+std::to_string(pure_offset), v_debug,m_verbose);
-    result = GetDarkSubtractFromFile(pure_fname, led_name, pure_offset);
+    //result = GetDarkSubtractFromFile(pure_fname, led_name, pure_offset);
+    TFile f(pure_fname.c_str());
+    TGraph* g = (TGraph*)f.Get(led_name.c_str());
+    result = TGraph(*g);
     pureID = pure_fname + "::" + std::to_string(pure_offset);
   }
   else {
