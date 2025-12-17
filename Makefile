@@ -1,6 +1,6 @@
 ToolDAQPath=ToolDAQ
 
-CPPFLAGS= -Wno-psabi -std=c++14 #-fsanitize=address -O1 -fno-omit-frame-pointer -g
+CPPFLAGS= -Wno-psabi -std=c++14 -g #-fsanitize=address -O1 -fno-omit-frame-pointer
 
 ZMQLib= -L $(ToolDAQPath)/zeromq-4.0.7/lib -lzmq
 ZMQInclude= -I $(ToolDAQPath)/zeromq-4.0.7/include/
@@ -52,7 +52,7 @@ lib/libToolChain.so: $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/* | lib/libLo
 	@echo -e "\n*************** Making " $@ "****************"
 	#cp $(ToolDAQPath)/ToolDAQFramework/UserTools/Factory/*.h include/
 	cp $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/*.h include/
-	g++ -g $(CPPFLAGS) -fPIC -shared $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/ToolChain.cpp -I include -lpthread -L lib -lStore -lDataModel -lServiceDiscovery -lLogging -lMyTools -o lib/libToolChain.so $(DataModelInclude) $(DataModelib) $(ZMQLib) $(ZMQInclude) $(MyToolsInclude) $(MyToolsLib) $(BoostLib) $(BoostInclude)
+	g++ $(CPPFLAGS) -fPIC -shared $(ToolDAQPath)/ToolDAQFramework/src/ToolChain/ToolChain.cpp -I include -lpthread -L lib -lStore -lDataModel -lServiceDiscovery -lLogging -lMyTools -o lib/libToolChain.so $(DataModelInclude) $(DataModelib) $(ZMQLib) $(ZMQInclude) $(MyToolsInclude) $(MyToolsLib) $(BoostLib) $(BoostInclude)
 
 
 clean:
@@ -66,13 +66,13 @@ clean:
 lib/libDataModel.so: DataModel/* lib/libLogging.so | lib/libStore.so
 	@echo -e "\n*************** Making " $@ "****************"
 	cp DataModel/*.h include/
-	g++ -g $(CPPFLAGS) -fPIC -shared DataModel/*.cpp -I include -L lib -lStore  -lLogging  -o lib/libDataModel.so $(DataModelInclude) $(DataModelLib) $(ZMQLib) $(ZMQInclude)  $(BoostLib) $(BoostInclude) $(PostgresInclude) $(PostgresLib)
+	g++ $(CPPFLAGS) -fPIC -shared DataModel/*.cpp -I include -L lib -lStore  -lLogging  -o lib/libDataModel.so $(DataModelInclude) $(DataModelLib) $(ZMQLib) $(ZMQInclude)  $(BoostLib) $(BoostInclude) $(PostgresInclude) $(PostgresLib)
 
 lib/libMyTools.so: UserTools/*/* UserTools/* | include/Tool.h lib/libDataModel.so lib/libLogging.so lib/libStore.so
 	@echo -e "\n*************** Making " $@ "****************"
 	cp UserTools/*/*.h include/
 	cp UserTools/Factory/*.h include/
-	g++ -g $(CPPFLAGS) -fPIC -shared  UserTools/Factory/Factory.cpp -I include -L lib -lStore -lDataModel -lLogging -o lib/libMyTools.so $(MyToolsInclude) $(MyToolsLib) $(DataModelInclude) $(DataModelib) $(ZMQLib) $(ZMQInclude) $(BoostLib) $(BoostInclude)
+	g++ $(CPPFLAGS) -fPIC -shared  UserTools/Factory/Factory.cpp -I include -L lib -lStore -lDataModel -lLogging -o lib/libMyTools.so $(MyToolsInclude) $(MyToolsLib) $(DataModelInclude) $(DataModelib) $(ZMQLib) $(ZMQInclude) $(BoostLib) $(BoostInclude)
 
 RemoteControl:
 	cd $(ToolDAQPath)/ToolDAQFramework/ && make RemoteControl
@@ -105,10 +105,10 @@ update:
 	git pull
 
 make_pureref_DB_entry: make_pure_ref.cpp plotter.h plotter.cpp
-	g++ -g -std=c++11 $< plotter.cpp -I./ `root-config --cflags --libs` -o $@
+	g++ $(CPPFLAGS) $< plotter.cpp -I./ `root-config --cflags --libs` -o $@
 
 make_calcurve_DB_entry: make_cal_curve.cpp
-	g++ -g -std=c++11 $^ `root-config --cflags --libs` -o $@
+	g++ $(CPPFLAGS) $^ `root-config --cflags --libs` -o $@
 	
 make_calcurve_DB_entry2: make_cal_curve2.cpp
-	g++ -g -std=c++11 $^ `root-config --cflags --libs` -o $@
+	g++ $(CPPFLAGS) $^ `root-config --cflags --libs` -o $@

@@ -45,7 +45,7 @@ if [ $powerison -eq 0 ]; then
 	ret=$(/home/pi/poweron.sh)
 	echo "poweron.sh returned $ret"
 	if [ ! ret == 0 ]; then
-		"powerup error"
+		echo "powerup error"
 		exit 1
 	fi
 fi

@@ -98,7 +98,8 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     /* ------------------------------------ */
     
     //create FunctionalFit object to do inital pure removal fit
-    led_info.combined_func = std::make_unique<CombinedGdPureFunc_DATA>(pure_ds, gd_abs_attenuation);
+    //led_info.combined_func = std::make_unique<CombinedGdPureFunc_DATA>(pure_ds, gd_abs_attenuation);
+    led_info.combined_func = std::unique_ptr<CombinedGdPureFunc_DATA>(new CombinedGdPureFunc_DATA(pure_ds, gd_abs_attenuation));
     // CombinedGdPureFunc_DATA should use gd_abs_attenuation, but shouldn't there be a log10 somewhere in here?
     led_info.combined_fit = FunctionalFit(led_info.combined_func.get(), "combined");
     led_info.combined_fit.SetExampleGraph(pure_ds);
