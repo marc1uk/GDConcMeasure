@@ -26,5 +26,7 @@ command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same
 #outfilebase Oct_2024_EGADS_reconnect_tempcalib
 #outfilebase May_2025_EGADS_AAS_calib
 #outfilebase Aug_2025_EGADS_recirc_restart
-outfilebase Oct_2025_EGADS_oldmodule
+#outfilebase Oct_2025_EGADS_oldmodule
+#outfilebase Dec_2025_EGADS_oldmodule_bothboxes
+outfilebase Feb_2026_EGADS_nothingchanged
 datadir /mnt/data/

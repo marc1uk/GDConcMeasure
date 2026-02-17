@@ -82,6 +82,7 @@ private:
   std::map<std::string, double>::iterator iLduty;
   
   std::string power;
+  int error_count=0;
   
   int verbosity=1;
   int v_error=0;

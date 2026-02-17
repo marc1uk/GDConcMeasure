@@ -73,6 +73,8 @@ bool BenLED::Initialise(std::string configfile, DataModel &data){
   //lastTime = newTime;
   power="OFF";
   
+  error_count=0; // keep track of i2c errors
+  
   return true;
 }
 
@@ -207,6 +209,7 @@ bool BenLED::Execute(){
       else ok &= TurnLEDoff("LED385L");
       //delete entries after maybe??
     }
+    printf("BenLED: running error count: %d\n",error_count);
     m_data->CStore.Remove("LED");
    
   }
@@ -592,7 +595,7 @@ bool BenLED::IsSleeping(){
   int mode1;
   bool ret = Read(0x00, mode1);
   if (ret) return mode1 & 0x10;        //true if sleep
-  else        return false;
+  return false;
   
 }
 
@@ -731,7 +734,7 @@ bool BenLED::TurnLEDon(std::string ledName){
   for(int tries=0; tries<3; ++tries){
     
     if(tries>0){
-      Log("Trying again... ",0,0);
+      Log("Trying again...",0,0);
       usleep(2500);
     }
     
@@ -831,8 +834,10 @@ bool BenLED::Read(int reg, int &data){
   if (file_descript){
     
     data = wiringPiI2CReadReg8(file_descript, reg);
-    if (data < 0) return false;
-    else return true;
+    if (data < 0){
+      ++error_count;
+      return false;
+    } else return true;
   
   } else {
     Log("BenLED::Read called with null i2c address!",0,0);
@@ -847,8 +852,10 @@ bool BenLED::Write(int reg, int data){
   if (file_descript){
     
     int ret = wiringPiI2CWriteReg8(file_descript, reg, data & 0xff);
-    if (ret < 0) return false;
-    else return true;
+    if (ret < 0){
+      ++error_count;
+      return false;
+    } else return true;
   }
   
   else return false;
@@ -864,7 +871,10 @@ bool BenLED::ReadAI(int reg, int num_reg, std::vector<int> &block){
     
     //read first register manually
     int data = wiringPiI2CReadReg8(file_descript, reg);
-    if (data < 0) return false;
+    if (data < 0){
+      ++error_count;
+      return false;
+    }
     
     block.push_back(data);
     
@@ -872,7 +882,10 @@ bool BenLED::ReadAI(int reg, int num_reg, std::vector<int> &block){
     for (int i = 1; i < num_reg; ++i){
       
       data = wiringPiI2CRead(file_descript);
-      if (data < 0)return false;
+      if (data < 0){
+        ++error_count;
+        return false;
+      }
       block.push_back(data);
     }
     
@@ -891,7 +904,10 @@ bool BenLED::WriteAI(int reg, const std::vector<int> &block){
     
     //write first register manually
     int ret = wiringPiI2CWriteReg8(file_descript, reg, block.front() & 0xff);
-    if (ret < 0) return false;
+    if (ret < 0){
+      ++error_count;
+      return false;
+    }
     int data = wiringPiI2CRead(file_descript);
     
     //write following registers sequentially
@@ -899,7 +915,10 @@ bool BenLED::WriteAI(int reg, const std::vector<int> &block){
       
       ret = wiringPiI2CWrite(file_descript, block.at(i) & 0xff);
       data = wiringPiI2CRead(file_descript);
-      if (ret < 0)return false;
+      if (ret < 0){
+        ++error_count;
+        return false;
+      }
       
     }
     

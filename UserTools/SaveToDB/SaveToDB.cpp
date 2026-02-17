@@ -139,64 +139,64 @@ bool SaveToDB::Execute(){
 	try{
 		Log(m_unique_name+" checking MarcusScheduler for DB results",v_debug,verbosity);
 		get_ok = MarcusScheduler();
-	} catch(...){ std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save marcusscheduler"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusscheduler"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenPower for DB results",v_debug,verbosity);
 		get_ok = BenPower();
-	} catch(...){ std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save benpower"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benpower"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking Valve for DB results",v_debug,verbosity);
 		get_ok = Valve();
-	} catch(...){ std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save valve"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save valve"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenLED for DB results",v_debug,verbosity);
 		get_ok = BenLED();
-	} catch(...){ std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save benled"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benled"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking BenSpectrometer for DB results",v_debug,verbosity);
 		get_ok = BenSpectrometer();
-	} catch(...){ std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save benspec"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save benspec"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking TraceAverage for DB results",v_debug,verbosity);
 		get_ok = TraceAverage();
-	} catch(...){ std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save traceav"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save traceav"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking MatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = MatthewAnalysis();
-	} catch(...){ std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save mattana"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save mattana"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking SaveTraces for DB results",v_debug,verbosity);
 		get_ok = SaveTraces();
-	} catch(...){ std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save savetr"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save savetr"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking RoutineCalibration for DB results",v_debug,verbosity);
 		get_ok = RoutineCalibration();  // placeholder, Tool TODO
-	} catch(...){ std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save routinecalib"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save routinecalib"<<std::endl; all_ok = false; }
 	
 	// the following tools store information persistently into the database 'data' table
 	try{
 		Log(m_unique_name+" checking MarcusAnalysis for DB results",v_debug,verbosity);
 		get_ok = MarcusAnalysis();
-	} catch(...){ std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save marcusana"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save marcusana"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking MatthewTransparency for DB results",v_debug,verbosity);
 		get_ok = MatthewTransparency();
-	} catch(...){ std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save matthewtransp"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save matthewtransp"<<std::endl; all_ok = false; }
 	try{
 		Log(m_unique_name+" checking NewMatthewAnalysis for DB results",v_debug,verbosity);
 		get_ok = NewMatthewAnalysis();
-	} catch(...){ std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
+	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save newmatthewanalyse"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
 	
 	return get_ok;
