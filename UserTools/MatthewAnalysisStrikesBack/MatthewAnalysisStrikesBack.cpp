@@ -427,6 +427,11 @@ bool MatthewAnalysisStrikesBack::Execute(){
   last_conc_prediction = conc_prediction;
   */
   
+  // Postgres complains is we try to insert NaN which can happen if GetX call fails
+  // due to really bad fits (which happens at very low concentrations), so protect against that
+  if(TMath::IsNaN(metric)) metric=0;
+  if(TMath::IsNaN(conc_prediction)) conc_prediction=0;
+  
   // calculate suitable errors
   double metric_err = absfitresp->GetErrors()[0];
   std::pair<double,double> metric_and_err{metric, metric_err};
@@ -701,6 +706,11 @@ TGraph MatthewAnalysisStrikesBack::GetPure(const std::string& led_name) {
     //result = GetDarkSubtractFromFile(pure_fname, led_name, pure_offset);
     TFile f(pure_fname.c_str());
     TGraph* g = (TGraph*)f.Get(led_name.c_str());
+    if(g==nullptr){
+      Log(m_unique_name+" getting pure trace for led "+led_name+" from "+pure_fname
+              +" entry "+std::to_string(pure_offset)+" found no TGraph named "+led_name, v_error,m_verbose);
+      throw std::runtime_error("MatthewAnalysisStrikesBack::GetPure - no pure specified!");
+    }
     result = TGraph(*g);
     pureID = pure_fname + "::" + std::to_string(pure_offset);
   }
@@ -717,6 +727,7 @@ TGraph MatthewAnalysisStrikesBack::GetPure(const std::string& led_name) {
       throw std::runtime_error("MatthewAnalysisStrikesBack::GetPure - no pure specified!");
     }
   }
+  Log("got purerefID: "+pureID+" for led "+led_name,v_warning,m_verbose);
   
   std::string key = "purerefID_"+led_name;
   m_data->CStore.Set(key, pureID);

@@ -1,0 +1,4 @@
+verbosity 1
+type tube
+switching_pin 15
+holding_pin 18

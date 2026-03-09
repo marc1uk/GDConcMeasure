@@ -35,5 +35,9 @@ cal_tf1_name_275_B 275_B
 # but we don't have pures for the old module, sooo what works best?
 # the thing is both the highconc ref and pure ref need to be from the same measurement
 # because matthew generates the gd absorption in Initialise every time. Argh!
-pureref_ver 1
+#pureref_ver 1
 abs_file DBv1_ratioabs.root
+
+# back once again to the renegrade maste-- i mean to the new LED module
+#pure_fname 20_Feb_2026_pures.root
+#pure_offset 0 # dummy

@@ -1,6 +1,7 @@
 start
 power on
 connect
+valve tube open
 #wait 900
 start_loop
 setFile

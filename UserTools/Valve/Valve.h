@@ -20,12 +20,17 @@ class Valve: public Tool {
  private:
 
   int m_valve_pin;
+  int m_switching_pin;
+  int m_holding_pin;
   std::string valve;
   std::string CStoreKey;
+  std::string type;
   
   bool ValveOpen();
   bool ValveClose();
-
+  bool ConfigurePin(int pin_num);
+  bool SwitchPin(int pin_num, int state);
+  
   int verbosity=1;
   int v_error=0;
   int v_warning=1;

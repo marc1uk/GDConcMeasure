@@ -28,5 +28,10 @@ command_file configfiles/UnifiedMeasurementDB/measurement_commands_egads  # same
 #outfilebase Aug_2025_EGADS_recirc_restart
 #outfilebase Oct_2025_EGADS_oldmodule
 #outfilebase Dec_2025_EGADS_oldmodule_bothboxes
-outfilebase Feb_2026_EGADS_nothingchanged
+#outfilebase Feb_2026_EGADS_empytube_newmodulev2
+#outfilebase Feb_2026_EGADS_puretube_newmodulev2
+#outfilebase Feb_2026_EGADS_empty_horizontal_newmodulev2
+#outfilebase Feb_2026_EGADS_pure_horizontal_newmodulev2
+#outfilebase Feb_2026_EGADS_calibration
+outfilebase Feb_2026_EGADS_postcalibration_unstable
 datadir /mnt/data/

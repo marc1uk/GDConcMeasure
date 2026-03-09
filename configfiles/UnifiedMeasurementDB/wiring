@@ -1,8 +1,8 @@
 #LED list wired up to the raspPI
 #name		channel	voltage
 # duty cycles are calculated from ratio of voltage here to vsupply in LEDConfig
-LED385L         0       5.0  # sometimes saturates at 100% duty cycle
-LEDW            8       5.0
+LED385L         0       0.6  # sometimes saturates at 100% duty cycle
+LEDW            8       4.0
 LEDRGBAnnode	7	5.0   # connected to +5V
 LEDR		6	5.0
 LEDB		5	5.0

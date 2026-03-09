@@ -12,5 +12,5 @@ resolution      12      # bit, of the internal counter
 #PushPull        0       # open drain mode
 
 # OLD MODULE
-map_wiring      /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring_oldmodule
+#map_wiring      /home/pi/GDConcMeasure/configfiles/UnifiedMeasurementDB/wiring_oldmodule
 #PushPull        1

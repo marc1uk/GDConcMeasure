@@ -4,6 +4,7 @@ myBenPower          BenPower                configfiles/UnifiedMeasurementDB/Pow
 #myPump              Valve                   configfiles/UnifiedMeasurementDB/ValveConfig
 #myValveInlet        Valve                   configfiles/UnifiedMeasurementDB/ValveConfig_v1
 #myValveOutlet       Valve                   configfiles/UnifiedMeasurementDB/ValveConfig_v2
+myValveTube         Valve                   configfiles/UnifiedMeasurementDB/ValveConfig_tube
 BenLED              BenLED                  configfiles/UnifiedMeasurementDB/LEDConfig
 BenSpectrometer     BenSpectrometer         configfiles/UnifiedMeasurementDB/SpectrometerConfig
 TraceAverage        TraceAverage            configfiles/UnifiedMeasurementDB/TraceAverageConfig
