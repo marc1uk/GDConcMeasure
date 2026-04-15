@@ -23,6 +23,14 @@ switch to these after oct 2024 calib
 
 # temporary after oct 2024 calib (before ex-situ calib adjustments)
 # i dunno what this is. maybe a calibration curve using our concs but old references?
+#pureref_ver 4
+#highconcref_ver 2
+#calib_curve_275_A calcurve_rough_oct_2024_egads.root
+#calib_curve_275_B calcurve_rough_oct_2024_egads.root
+#
+# maybe then fudged the graph in excel to make it line up with 0.06% or sth
+#pureref_ver 4
+#highconcref_ver 1
 #calib_curve_275_A calcurve_rough_oct_2024_egads_hack.root
 #calib_curve_275_B calcurve_rough_oct_2024_egads_hack.root
 
