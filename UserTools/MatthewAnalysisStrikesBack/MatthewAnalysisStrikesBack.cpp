@@ -110,12 +110,14 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     //pars = std::vector<double>{20.222116, 0.065019, 0.809043, 0.000000, 0.001000, -0.048069, -0.310535}; // << last of set 1 - used for april-jul retroactive analysis with april calibration
     //pars = std::vector<double>{0.13,-0.02, 1.1, 0.0, 0.0, 0.0, 0.0};
     // below from 27-08-2024 restart, propagate last set for continuity.
-    //pars = std::vector<double>{0.659464, 0.049935, 1.023525, 0.000000, 0.000000, 0.003120, -0.051462};
+    pars = std::vector<double>{0.659464, 0.049935, 1.023525, 0.000000, 0.000000, 0.003120, -0.051462};
+    /*
     if(led_name=="275_A"){
     	pars = std::vector<double>{1.822243, -0.176774, 1.013252, 0.000000, 0.000000, -0.013862, -0.020580};
     } else {
     	pars = std::vector<double>{1.886775, -0.243534, 1.015764, 0.000000, 0.000000, -0.012532, -0.076639};
     }
+    */
     led_info.combined_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.1,50},{-1,1},{0.7,1.1},{0,1.1},{0.002,0.002}, {-0.1,0.1}, {-1,1} };
     led_info.combined_fit.SetFitParameterRanges(limits);
@@ -153,8 +155,8 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     //pars = std::vector<double>{1,0,0,0,0,0}; << initial for set 1
     //pars = std::vector<double>{0.328834, -0.043217, 0.000000, 0.000000, 0.000966, 0.406963}; // << last of set 1
     // below from 27-08-2024 restart, propagate last set for continuity.
-    //pars = std::vector<double>{1.139877, 0.049598, -0.000643, 0.000000, 0.014598, -0.167741};
-    pars = std::vector<double>{1.0, 0, 0, 0.000000, 0, 0};
+    pars = std::vector<double>{1.139877, 0.049598, -0.000643, 0.000000, 0.014598, -0.167741};
+    //pars = std::vector<double>{1.0, 0, 0, 0.000000, 0, 0};
     /*
     // these kill the fit :/
     if(led_name=="275_A"){
@@ -163,10 +165,11 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     	pars = std::vector<double>{1.281454, -4.572532, 0.006125, 0.000000, -0.134119, -0.040785};
     }
     */
+    
     led_info.absorbtion_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.01,100},{-10,10},{-2,2},{10,10},{-100,100},{-1000,1000} };
     led_info.absorbtion_fit.SetFitParameterRanges(limits);
-    led_info.absorbtion_fit.fit_funct.FixParameter(5,0);  // tendency to trade-off scaling with baseline offset
+    //led_info.absorbtion_fit.fit_funct.FixParameter(5,0);  // tendency to trade-off scaling with baseline offset
     
   }
   
