@@ -59,8 +59,8 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     
     std::vector<double> pars;
     std::vector<std::pair<double,double>> limits;
-    /* ----  old, use high concentration data curve and calculate gd absorption
-    ------------------------------------
+    // ------------------------------------
+    // old method, use high concentration data curve and calculate gd absorption
     Log(m_unique_name+" getting high concentration reference trace for LED "+led_name, v_debug,m_verbose);
     const TGraph high_conc_ds = TrimGraph(GetHighConc(led_name));
     SaveDebug(&high_conc_ds, std::string{"g_ref_highconc_"}+led_name);
@@ -90,8 +90,10 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     const TGraph gd_abs_attenuation = CalculateGdAbs(simple_fit_result, high_conc_ds); // normalised to 1!
     // gd_abs_attenuation is defined as Normalise(1-highconc[x]/pure[x]) - this is positive going ratio peaking at 1
     SaveDebug(&gd_abs_attenuation, std::string{"g_ref_atten_"}+led_name);
-    ------------------------------------
-    ---- new, just get it from file ---- */
+    // end old method
+    // ------------------------------------
+    // new method, just get it from file
+    /*
     std::string abs_f_name;
     Log(m_unique_name+" getting abs ref from file",v_debug,m_verbose);
     m_variables.Get("abs_file",abs_f_name);
@@ -103,7 +105,9 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     std::string key = "highconcrefID_"+std::string{led_name};
     std::string val="N/A";
     m_data->CStore.Set(key, val);
-    /* ------------------------------------ */
+    */
+    // end new method
+    // ------------------------------------
     
     Log(m_unique_name+" making functional fit for data",v_debug,m_verbose);
     //create FunctionalFit object to do inital pure removal fit
@@ -150,16 +154,19 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     // ranges 1-X where X>1, up to factor that pure is greater than high conc.
     // so if high conc absorbs at most 80%, remaining light drops to 20%, so 100% is 5x -> scale will be 1-5.
     // if this instead goes to 90%, scale goes up to 10.
-    /* old method, based on high conc and pure refs
+    // ------------------------------------
+    // old method, based on high conc and pure refs
     const TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);  // NOT normalised!
-    */
+    // end old method
     // ------------------------------------
     // new method, uh, from file. this isn't quite the same as it's not un-normalised?
+    /*
     double max_abs = 0.5; // properly, this is fraction of absorbed light at maximum absorption wavelength
     TGraph ratio_absorbance(gd_abs_attenuation.GetN());  // it must be >0 and <1.
     for(int i=0; i<ratio_absorbance.GetN(); ++i){
         ratio_absorbance.SetPoint(i,gd_abs_attenuation.GetX()[i], 1./(1. - max_abs*gd_abs_attenuation.GetY()[i]));
     }
+    */
     // end new method
     // ------------------------------------
     
@@ -703,7 +710,13 @@ TGraph MatthewAnalysisStrikesBack::GetPure(const std::string& led_name) {
   if (ok && pure_fname != "" && pure_offset != -1){
     Log(m_unique_name+" getting pure trace for led "+led_name+" from "+pure_fname
         +" entry "+std::to_string(pure_offset), v_debug,m_verbose);
-    //result = GetDarkSubtractFromFile(pure_fname, led_name, pure_offset);
+    // -----------------------
+    // old method - get from raw file
+    result = GetDarkSubtractFromFile(pure_fname, led_name, pure_offset);
+    // end old method
+    // -----------------------
+    // new method - user provide a file with a dark-subtraced TGraph. offset ignored.
+    /*
     TFile f(pure_fname.c_str());
     TGraph* g = (TGraph*)f.Get(led_name.c_str());
     if(g==nullptr){
@@ -712,6 +725,9 @@ TGraph MatthewAnalysisStrikesBack::GetPure(const std::string& led_name) {
       throw std::runtime_error("MatthewAnalysisStrikesBack::GetPure - no pure specified!");
     }
     result = TGraph(*g);
+    */
+    // end new method
+    // --------------
     pureID = pure_fname + "::" + std::to_string(pure_offset);
   }
   else {
