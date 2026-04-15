@@ -1,8 +1,16 @@
 #!/bin/bash
-echo "4" | sudo tee /sys/class/gpio/export
-echo "15" | sudo tee /sys/class/gpio/export
-echo "17" | sudo tee /sys/class/gpio/export
-echo "18" | sudo tee /sys/class/gpio/export
+if [ ! -d /sys/class/gpio/gpio4 ]; then
+	echo "4" | sudo tee /sys/class/gpio/export
+fi
+if [ ! -d /sys/class/gpio/gpio15 ]; then
+	echo "15" | sudo tee /sys/class/gpio/export
+fi
+if [ ! -d /sys/class/gpio/gpio17 ]; then
+	echo "17" | sudo tee /sys/class/gpio/export
+fi
+if [ ! -d /sys/class/gpio/gpio18 ]; then
+	echo "18" | sudo tee /sys/class/gpio/export
+fi
 
 echo "out" | sudo tee /sys/class/gpio/gpio4/direction
 echo "out" | sudo tee /sys/class/gpio/gpio15/direction

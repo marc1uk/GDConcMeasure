@@ -19,7 +19,7 @@ bool Valve::Initialise(std::string configfile, DataModel &data){
     bool get_ok = m_data->postgres_helper.GetToolConfig(m_unique_name, configtext);
     if(!get_ok){
       Log(m_unique_name+" Failed to get Tool config from database!",v_error,verbosity);
-      return false;
+      //return false; // FIXME add to the DB
     }
     // parse the configuration to populate the m_variables Store.
     if(configtext!="") m_variables.Initialise(std::stringstream(configtext));
@@ -61,10 +61,10 @@ bool Valve::Initialise(std::string configfile, DataModel &data){
     
     // tube type has two pins, but they both control inlet and outlet
     // one pin applies a switching voltage, the other applies only a holding voltage
-    m_switching_valve_pin=-1;
-    m_holding_valve_pin=-1;
-    if( (!m_variables.Get("switching_pin",m_switching_valve_pin))
-     || (!m_variables.Get("holding_pin",m_holding_valve_pin)) ){
+    m_switching_pin=-1;
+    m_holding_pin=-1;
+    if( (!m_variables.Get("switching_pin",m_switching_pin))
+     || (!m_variables.Get("holding_pin",m_holding_pin)) ){
       Log("Switching or holding pin not set",v_error,verbosity);
       return false;
     }
@@ -120,23 +120,27 @@ bool Valve::Finalise(){
 bool Valve::ValveOpen(){
   
   Log("valve open",v_message,verbosity);
-  if(m_valve_pin<0){
-    Log(CStoreKey+"::ValveOpen invalid valve pin "+std::to_string(m_valve_pin),v_error,verbosity);
-    return false;
-  }
   
   int ok;
   if(type!="tube"){
+    if(m_valve_pin<0){
+      Log(CStoreKey+"::ValveOpen invalid valve pin "+std::to_string(m_valve_pin),v_error,verbosity);
+      return false;
+    }
     ok = SwitchPin(m_valve_pin, 1);
   } else {
-    ok = SwitchPin(m_switching_pin, 1) &&
-         SwitchPin(m_holding_pin, 1);
+    if(m_switching_pin<0 || m_holding_pin<0) {
+        Log(CStoreKey+"::ValveOpen invalid valve pin "+std::to_string(m_valve_pin),v_error,verbosity);
+        return false;
+    }
+    ok =       SwitchPin(m_switching_pin, 1);
+    ok = ok || SwitchPin(m_holding_pin, 1);
     std::this_thread::sleep_for(std::chrono::seconds(1));
-    ok = ok && SwitchPin(m_switching_pin, 0);
+    ok = ok || SwitchPin(m_switching_pin, 0);
   }
   
   if(ok!=0){
-    Log(CStoreKey+"::ValveOpen "+errmsg,0,0);
+    Log(CStoreKey+"::ValveOpen failed",0,0);
     return false;
   }
   valve="OPEN";
@@ -146,21 +150,25 @@ bool Valve::ValveOpen(){
 bool Valve::ValveClose(){
   
   Log("valve close",v_message,verbosity);
-  if(m_valve_pin<0){
-    Log(CStoreKey+"::ValveClose invalid valve pin "+std::to_string(m_valve_pin),v_error,verbosity);
-    return false;
-  }
   
   int ok;
   if(type!="tube"){
+    if(m_valve_pin<0){
+      Log(CStoreKey+"::ValveClose invalid valve pin "+std::to_string(m_valve_pin),v_error,verbosity);
+      return false;
+    }
     ok = SwitchPin(m_valve_pin, 0);
   } else {
-    ok = SwitchPin(m_switching_pin, 0) &&
-         SwitchPin(m_holding_pin, 0);
+    if(m_switching_pin<0 || m_holding_pin<0) {
+      Log(CStoreKey+"::ValveClose invalid valve pin "+std::to_string(m_valve_pin),v_error,verbosity);
+      return false;
+    }
+    ok =       SwitchPin(m_switching_pin, 0);   // recall that SwitchPin returns the return from SystemCall
+    ok = ok || SwitchPin(m_holding_pin, 0);     // which is 0 for success
   }
   
   if(ok!=0){
-    Log(CStoreKey+"::ValveClose "+errmsg,0,0);
+    Log(CStoreKey+"::ValveClose failed",0,0);
     return false;
   }
   valve="CLOSE";
@@ -172,8 +180,8 @@ bool Valve::ConfigurePin(int pin_num){
   std::string errmsg;
   // configure for gpio control
   command<<"if [ ! -d /sys/class/gpio/gpio"<<pin_num<<" ]; then echo \""
-         <<m_valve_pin<<"\" > /sys/class/gpio/export; fi";
-  ok = SystemCall(command.str(), errmsg);
+         <<pin_num<<"\" > /sys/class/gpio/export; fi";
+  int ok = SystemCall(command.str(), errmsg);
   if(ok!=0){
     Log("Valve::ConfigurePin "+std::to_string(pin_num)+": "+errmsg,0,0);
     return false;

@@ -894,7 +894,7 @@ void MarcusScheduler::DoValves(std::string the_command){
 	ss >> prefix >> type >> open_or_close;
 	
 	// sanity check; type should be 'inlet' or 'outlet'
-	if(type!="inlet" && type!="outlet"){
+	if(type!="inlet" && type!="outlet" && type!="tube"){
 		Log("MarcusScheduler::DoValves - Unknown valve type '"+type+"'",v_error,verbosity);
 	} else {
 		
