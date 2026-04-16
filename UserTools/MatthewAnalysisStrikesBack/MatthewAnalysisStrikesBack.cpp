@@ -232,11 +232,38 @@ int MatthewAnalysisStrikesBack::SaveDebug(const TObject* obj, const std::string&
   return byteswritten;
 }
 
+int MatthewAnalysisStrikesBack::SaveDebug(const std::string& par, double val){
+  if(fdebug==nullptr) return 1;
+  TDirectory* fcur = gDirectory;
+  fdebug->cd();
+  TTree* t=(TTree*)fdebug->Get("t");
+  if(t==nullptr){
+    t = new TTree("t","t");
+  }
+  TBranch* b = t->GetBranch(par.c_str());
+  if(b==nullptr){
+    b = t->Branch(par.c_str(),&val);
+  } else {
+    b->SetAddress(&val);
+  }
+  int byteswritten = b->Fill();
+  if(byteswritten==0){
+    Log(m_unique_name+": Error debug saving "+par,v_error,m_verbose);
+  }
+  t->SetEntries(b->GetEntries());
+  b->ResetAddress();
+  fcur->cd();
+  return byteswritten;
+}
+
 bool MatthewAnalysisStrikesBack::Execute(){
   
   double* xv;
+  // should we save the results of this fit to debug file
+  bool saveit=true;
   
   // clear any previous results
+  Log(m_unique_name+" resetting DataModel",v_debug,m_verbose);
   ReinitDataModel();
   
   // waits for analysis flag
@@ -276,7 +303,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // calculate dark subtract from these traces
   Log(m_unique_name+" doing dark subtraction", v_debug,m_verbose);
   const TGraph darksubdata = DarkSubtractFromTreePtrs(led_tree_ptr, dark_tree_ptr);
-  SaveDebug(&darksubdata, std::string{"darksub_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&darksubdata, std::string{"darksub_"}+current_led+"_"+std::to_string(measurementnum));
   
   // update the datamodel
   Log(m_unique_name+" recording abs region",v_debug,m_verbose);
@@ -290,7 +317,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   m_data->CStore.Set("dark_subtracted_data_out", tmp_ptr_t);
   
   const TGraph current_dark_sub = TrimGraph(darksubdata);
-  SaveDebug(&current_dark_sub, std::string{"datatrimmed_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&current_dark_sub, std::string{"datatrimmed_"}+current_led+"_"+std::to_string(measurementnum));
   
   // retrieve the functional fit for this led
   LEDInfo& current_led_info = led_info_map.at(current_led);
@@ -356,22 +383,22 @@ bool MatthewAnalysisStrikesBack::Execute(){
     
   }
   
-  // debug
+  // get pure fit curve for webpage, debug and led intensity
   purefitgraph = curr_comb_fit.GetGraph();
-  SaveDebug(&purefitgraph, std::string{"datafit_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&purefitgraph, std::string{"datafit_"}+current_led+"_"+std::to_string(measurementnum));
   
   // update the datamodel
   purefitgraph = curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING});
   tmp_ptr_t = reinterpret_cast<intptr_t>(&purefitgraph);
   m_data->CStore.Set("purefit", tmp_ptr_t);
-  SaveDebug(&purefitgraph, std::string{"purefit_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&purefitgraph, std::string{"purefit_"}+current_led+"_"+std::to_string(measurementnum));
   
   // doesn't this need a log10???
   //current_ratio_absorbtion = PWLogRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);  -- the resulting concentrations from this are way off... did the calibration curve use log10?
   current_ratio_absorbtion = PWRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);
   // remove offset of 1
   //for(int i=0; i<current_ratio_absorbtion.GetN(); ++i){ current_ratio_absorbtion.GetY()[i] -= 1.; }
-  SaveDebug(&current_ratio_absorbtion, std::string{"ratioabs_"}+current_led+"_"+std::to_string(measurementnum));
+  if(saveit) SaveDebug(&current_ratio_absorbtion, std::string{"ratioabs_"}+current_led+"_"+std::to_string(measurementnum));
   
   // update the datamodel
   tmp_ptr_t = reinterpret_cast<intptr_t>(&current_ratio_absorbtion);
@@ -420,6 +447,8 @@ bool MatthewAnalysisStrikesBack::Execute(){
   //extract metric from fit result, then get the concentration prediction from the calibration curve
   double metric = curr_abs_fit.GetParameterValue(current_led_info.abs_func->ABS_SCALING);
   double conc_prediction = current_led_info.calibration_curve_ptr->GetX(metric);
+  if(saveit) SaveDebug("gdconc",conc_prediction);
+  if(saveit) SaveDebug("metric",metric);
   
   // debug: detect steps
   /*
@@ -478,6 +507,10 @@ std::string MatthewAnalysisStrikesBack::GetCurrentTimestamp(){
 
 bool MatthewAnalysisStrikesBack::Finalise(){
   if(fdebug){
+  
+    TTree* t=(TTree*)fdebug->Get("t");
+    fdebug->cd();
+    if(t!=nullptr) t->Write("t",TObject::kOverwrite);
     fdebug->Close();
     delete fdebug;
     fdebug=nullptr;

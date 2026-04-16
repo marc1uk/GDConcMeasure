@@ -39,10 +39,23 @@ bool LoadOldFiles::Execute(){
 		filename = next_file_iter->filename;
 		treename = next_file_iter->treename;
 		int runnum = next_file_iter->runnum;
-		Log("LoadOldFiles: processing file "+filename+", tree "+treename+", run "+std::to_string(runnum),v_debug,verbosity);
+		int measnum = next_file_iter->measnum +1; // previous method started counting from 1. :/
+		Log("LoadOldFiles: processing file "+filename+", tree "+treename+", run "+std::to_string(runnum)+", measurement "+std::to_string(measnum),v_debug,verbosity);
 		
 		// set run number to use in database
 		m_data->CStore.Set("dbrunnum",runnum);
+		
+		// arbitrary measurement number to uniquely identify a measurement
+		// take it from the filename so that subsequent toolchains on the same run
+		// won't write multiple DB entries with the same run and measurement number
+		// FIXME we should probably retrieve this from the database when re-analysing old data
+		// so that we can match the new results to the old results.... TODO is that the same as the file name?
+		if(measnum<0 || measnum<measurementnum){
+			++measurementnum;
+		} else {
+			measurementnum = measnum;
+		}
+		m_data->CStore.Set("dbmeasurementnum",measurementnum);
 		
 		++next_file_iter;
 		if(next_file_iter==files.end()){
@@ -86,11 +99,6 @@ bool LoadOldFiles::Execute(){
 	// check we managed to load a file successfully
 	if(!got_file) return false;
 	
-	// arbitrary measurement number to uniquely identify a measurement
-	// we should probably retrieve this from the database when re-analysing old data
-	// so that we can match the new results to the old results.... TODO
-	++measurementnum;
-	get_ok = m_data->CStore.Get("dbmeasurementnum",measurementnum);
 	
 	// while each LED gets saved to a different file, the dark traces for all LED measurements are currently saved
 	// in one common file. It is also the case that several unused dark traces are taken between measurements
@@ -242,7 +250,7 @@ int LoadOldFiles::ParseFileList(std::string file_list, int max_files){
 		if(line[0]=='#') continue;
 		linestream.clear();
 		linestream.str(line);
-		if(!(linestream >> anoldfile.filename >> anoldfile.treename >> anoldfile.runnum)){
+		if(!(linestream >> anoldfile.filename >> anoldfile.treename >> anoldfile.runnum >> anoldfile.measnum)){
 			Log("LoadOldFiles failure parsing line "+line,v_error,verbosity);
 			continue;
 		}

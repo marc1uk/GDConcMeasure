@@ -198,6 +198,11 @@ bool SaveToDB::Execute(){
 		get_ok = NewMatthewAnalysis();
 	} catch(std::exception& e){ std::cerr<<"caught "<<e.what()<<" trying to save newmatthewanalyse"<<std::endl; all_ok = false; }
 	if(!get_ok) { std::cerr<<"failed to save newmatthewanalyse"<<std::endl; all_ok = false; }
+	try{
+		Log(m_unique_name+" checking CorrectStepChanges for DB results",v_debug,verbosity);
+		get_ok = CorrectStepChanges();
+	} catch(std::exception& e){ std::cerr<<"failed to save correctstepchanges "<<e.what()<<std::endl; all_ok = false; }
+	if(!get_ok) { std::cerr<<"failed to save correctstepchanges"<<std::endl; all_ok = false; }
 	
 	return get_ok;
 }
@@ -1561,6 +1566,8 @@ bool SaveToDB::NewMatthewAnalysis(){
 		    +std::to_string(measurementnum),v_debug,verbosity);
 		m_data->CStore.Set("last_measurement_num",measurementnum);
 		
+		std::string meas_info = "{\"run\":"+std::to_string(runnum)+", \"measurement\":"+std::to_string(measurementnum)+", \"ledname\":\""+ledname+"\"}";
+		
 		// make the DB entry that maps the measurement number to root file and tree entry numbers
 		std::string rawfile_json = "{\"rawfile\": \""+rawfilename+"\", "
 		                           +"\"ledEntry\":" +std::to_string(treeentrynums.first)+", "
@@ -1692,7 +1699,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "dark_subtracted_data_in",   // name
 			                                 gd_data_inside_absregion,    // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert dark subtracted data withinin "
 				    "absorption region into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1705,7 +1712,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "dark_subtracted_data_out",  // name
 			                                 gd_data_outside_absregion,   // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert dark subtracted data outside "
 				    "absorption region into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1854,7 +1861,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "pure_scaled",               // name
 			                                 pure_scaled_json,            // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert new scaled pure data "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
@@ -1968,7 +1975,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "absorbance_trace",          // name
 			                                 absorbance_json,             // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert absorbance trace "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
@@ -2013,7 +2020,7 @@ bool SaveToDB::NewMatthewAnalysis(){
 			                                 dbtimestamp,                 // timestamp
 			                                 "absfit",                    // name
 			                                 absfit_json,                 // values (jsonb)
-			                                 ledname);                    // data (bytea)
+			                                 meas_info);                  // data (bytea)
 			if(!get_ok){
 				Log("SaveToDB::NewMatthewAnalysis failed to insert new absorption fit data "
 				    "into database with error '"+error_ret+"'",v_error,verbosity);
@@ -2780,6 +2787,78 @@ bool SaveToDB::MarcusScheduler(){
 	}
 	
 	return all_ok;
+}
+
+
+bool SaveToDB::CorrectStepChanges(){
+	
+	std::string ledname="";
+	get_ok = m_data->CStore.Get("NewCorrectedConc",ledname);
+	if(!get_ok || ledname!=""){
+		return true;
+	}
+	
+	get_ok = m_data->CStore.Get("dbrunnum",runnum);
+	
+	std::string dbtimestamp; // e.g "2020-09-16 15:54:00"
+	get_ok = m_data->CStore.Get("corr_conc_timestamp",dbtimestamp);
+	if(!get_ok){
+		Log(m_unique_name+" Error! No 'corr_conc_timestamp' in data model!",v_error,verbosity);
+		// we could take the current time, but this is not a good fallback
+		// as corrected values should be delayed, so this may not maintain monotonicity
+		return false;
+	}
+	
+	int measurementnum=-1;
+	get_ok = m_data->CStore.Get("corr_conc_meas_num",measurementnum);
+	if(not get_ok){
+		Log(m_unique_name+" Error! No 'corr_conc_meas_num' in data model!",v_error,verbosity);
+		// i mean, we could try to get the CorrectStepChanges Tool configuration
+		// and backtrack the current measurement number by the size of the buffers
+		// but it's kinda overkill??
+		return false;
+	}
+	
+	// get results
+	bool step_vetoed=0, step_found=0;
+	double new_corrected_conc=0, step_applied=0, accum_step_changes=0;
+	get_ok  = m_data->CStore.Get("conc_and_err_corr",new_corrected_conc);
+	if(!get_ok){ Log(m_unique_name+" no 'conc_and_err_corr' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("step_vetoed",step_vetoed);
+	if(!get_ok){ Log(m_unique_name+" no 'step_vetoed' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("step_found", step_found);
+	if(!get_ok){ Log(m_unique_name+" no 'step_found' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("step_applied",step_applied);
+	if(!get_ok){ Log(m_unique_name+" no 'step_applied' in datamodel",v_error,verbosity); return false; }
+	get_ok &= m_data->CStore.Get("accum_step_changes", accum_step_changes);
+	if(!get_ok){ Log(m_unique_name+" no 'accum_step_changes' in datamodel",v_error,verbosity); return false; }
+	
+	// TODO
+	std::string datajson = "";
+	
+	if(get_ok){
+		
+		std::vector<std::string> field_names{"run","measurement","timestamp","ledname","tool","name","values"};
+		error_ret="";
+		get_ok = m_data->postgres.Insert("data",                      // table name
+		                                 field_names,                 // field names
+		                                 &error_ret,                  // error return string
+		                                 // variadic argument list of field values
+		                                 runnum,                      // run
+		                                 measurementnum,              // measurement
+		                                 dbtimestamp,                 // timestamp
+		                                 ledname,                     // ledname
+		                                 "CorrectStepChanges",        // tool
+		                                 "gdconccorrected",           // name
+		                                 datajson);                   // values (jsonb)
+		if(!get_ok){
+			Log("SaveToDB::NewMatthewAnalysis failed to insert fit results "
+			    "for led "+ledname+" into database with error '"+error_ret+"'",v_error,verbosity);
+		}
+	}
+	
+	return get_ok;
+	
 }
 
 bool SaveToDB::RoutineCalibration(){

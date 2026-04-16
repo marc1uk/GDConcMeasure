@@ -130,7 +130,7 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive, boo
     c1.Update();
     gSystem->ProcessEvents();
     gPad->WaitPrimitive();
-    res = data.Fit(&fit_funct, "NRS"); // keep this one
+    res = data.Fit(&fit_funct, "MENRSQ"); // keep this one
     while(gROOT->FindObject("fiddle_canv") != 0){
       c1.Modified();
       c1.Update();
@@ -146,7 +146,7 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive, boo
       data.Write("absgraph_beingfit");
       fit_funct.Write("fitfunc_beforefit");
     }
-    res = data.Fit(&fit_funct, "NRSQ"); // keep this one
+    res = data.Fit(&fit_funct, "MENRSQ"); // keep this one
     if(fsav){
       fit_funct.Write("fitfunc_afterfit");
       fsav->Close();
@@ -161,6 +161,13 @@ TFitResultPtr FunctionalFit::PerformFitOnData(TGraph data, bool interactive, boo
   
   fitted = true;
   return res;
+}
+
+// accept TGraphErrors; ensures weights are used based on errors
+TFitResultPtr FunctionalFit::PerformFitOnData(TGraphErrors& data){
+  fit_funct.SetNpx(1000);
+  fitted = true;
+  return data.Fit(&fit_funct, "NRSQ");
 }
 
 void FunctionalFit::SetExampleGraph(const TGraph& e){
@@ -356,6 +363,11 @@ TGraph PWRatio(const TGraph& n, const TGraph& d){
                            double ny = y;
                            _d.GetPoint(_i, x, y);
                            double dy = y;
+                           // diving by zero sometimes gives 'inf', but if we try to pass that
+                           // into the database, postgres chokes with invalid value.
+                           if(dy==0){
+                             return std::numeric_limits<double>::max();
+                           }
                            return ny / dy;});
 }
 
@@ -367,6 +379,11 @@ TGraph PWLogRatio(const TGraph& n, const TGraph& d){
                            double ny = y;
                            _d.GetPoint(_i, x, y);
                            double dy = y;
+                           // diving by zero sometimes gives 'inf', but if we try to pass that
+                           // into the database, postgres chokes with invalid value.
+                           if(dy==0){
+                             return log10(std::numeric_limits<double>::max());
+                           }
                            return log10(ny / dy);});
 }
 

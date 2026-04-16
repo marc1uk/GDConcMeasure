@@ -9,15 +9,15 @@
 
 # tl;dr - only analyse one LED at a time
 
-# LED A
 myLoadOldFiles LoadOldFiles configfiles/AnalyseOldFiles/LoadOldFilesConfig
+
+# LED A
 #myMarcusAnalyse MarcusAnalysis configfiles/AnalyseOldFiles/MarcusAnalysisConfig
+# LED B
+#myMarcusAnalyse MarcusAnalysis configfiles/AnalyseOldFiles/MarcusAnalysisConfig2
+
+# matthewanalyse does both, so only need one config
 newMatthewAnalyse MatthewAnalysisStrikesBack configfiles/AnalyseOldFiles/NewMatthewAnalysisConfig
 
-# LED B
-#myLoadOldFiles2 LoadOldFiles configfiles/AnalyseOldFiles/LoadOldFilesConfig2
-#myMarcusAnalyse2 MarcusAnalysis configfiles/AnalyseOldFiles/MarcusAnalysisConfig2
-#newMatthewAnalyse MatthewAnalysisStrikesBack configfiles/AnalyseOldFiles/NewMatthewAnalysisConfig2
-
 # DB
-#mySaveToDB SaveToDB configfiles/AnalyseOldFiles/SaveToDBConfig
+mySaveToDB SaveToDB configfiles/AnalyseOldFiles/SaveToDBConfig
