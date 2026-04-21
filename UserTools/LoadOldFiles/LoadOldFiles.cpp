@@ -67,12 +67,13 @@ bool LoadOldFiles::Execute(){
 		Log("LoadOldFiles: opening file",v_debug,verbosity);
 		if(nextfile) nextfile->Close();
 		if(darkTreeNew) delete darkTreeNew;
+		darkTreeNew=nullptr;
 		nextfile = TFile::Open(filename.c_str(),"READ");
 		if(nextfile==nullptr || nextfile->IsZombie()){
 			Log(std::string("LoadOldFiles failed to open file '")+filename+"'",v_error,verbosity);
 			continue;
 		}
-	
+		
 		// get the led-on tree
 		Log("LoadOldFiles: getting ledtree",v_debug,verbosity);
 		ledTree = (TTree*)nextfile->Get(treename.c_str());
@@ -243,16 +244,40 @@ int LoadOldFiles::ParseFileList(std::string file_list, int max_files){
 	std::stringstream linestream;
 	std::string filename;
 	std::string treename;
+	std::string runstr;
 	int runnum;
+	char* ptr;
 	oldfile anoldfile;
 	while(getline(files_list,line)){
 		if(line.empty()) continue;
 		if(line[0]=='#') continue;
 		linestream.clear();
 		linestream.str(line);
-		if(!(linestream >> anoldfile.filename >> anoldfile.treename >> anoldfile.runnum >> anoldfile.measnum)){
+		if(!(linestream >> anoldfile.filename >> anoldfile.treename)){
 			Log("LoadOldFiles failure parsing line "+line,v_error,verbosity);
 			continue;
+		}
+		// try to get run num from file list
+		if(!(linestream >> anoldfile.runnum)){
+			// if not includeed, fall back to filename BUT add 10k as it's a reprocess
+			anoldfile.runnum = std::strtol(&line[0]+line.find_last_of('/')+1,&ptr,10) + 10000;
+			if(anoldfile.runnum==0){
+				Log("LoadOldFiles failure getting run num from filename in line "+line,v_error,verbosity);
+				std::cerr<<"pos of last /: "<<line.find_last_of('/')<<", string at there: '"<<(&line[0]+line.find_last_of('/')+1)
+				         <<", ptr: '"<<ptr<<"'"<<std::endl;
+				continue;
+			}
+		}
+		// try to get measurement num from file list in cast we want to override it?
+		if(!(linestream >> anoldfile.measnum)){
+			// if not included, try to fall back to filename
+			anoldfile.measnum = std::strtol(&line[0]+line.find(".root")-5,&ptr,10);
+			if(strncmp(ptr,".root",5)!=0){
+				std::cerr<<"pos of .root: "<<line.find(".root")<<", string at there: '"<<(&line[0]+line.find(".root")-5)
+				         <<"', measnum: "<<anoldfile.measnum<<", ptr: '"<<ptr<<"'"<<std::endl;
+				Log("LoadOldFiles failure getting measurement num from filename in line "+line,v_error,verbosity);
+				continue;
+			}
 		}
 		files.push_back(anoldfile);
 		if(max_files>0 && files.size()==max_files) break;

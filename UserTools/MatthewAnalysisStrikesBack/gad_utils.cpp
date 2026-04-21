@@ -337,6 +337,28 @@ TGraph RemoveRegion(const TGraph& g, const double& low, const double& high){
   return result;
 }
 
+TGraph ExtractRegion(const TGraph& g, const double& low, const double& high){
+  int npts= g.GetN();
+  if(npts==0){
+    throw std::invalid_argument("ExtractRegion: EMPTY INPUT GRAPH!!!\n");
+  }
+  double* xarr = g.GetX();
+  double* yarr = g.GetY();
+  if (xarr[npts-1] < low || xarr[0] > high){
+    throw std::invalid_argument("ExtractRegion: INVALID REGION BOUNDS!!!\n");
+  }
+  
+  std::vector<double> xvec, yvec;
+  for (int i = 0; i<npts; ++i){
+    if( (xarr[i] > low) && (xarr[i] < high) ){
+      xvec.push_back(xarr[i]);
+      yvec.push_back(yarr[i]);
+    }
+  }
+  TGraph result(xvec.size(), xvec.data(), yvec.data());
+  return result;
+}
+
 template<class L>
 TGraph BinaryOperation(const TGraph& a, const TGraph& b, const std::string& name, const L& op){
   if (a.GetN() != b.GetN()){

@@ -145,6 +145,8 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     led_info.combined_fit.SetFitParameters(pars);
     limits = std::vector<std::pair<double,double>>{ {0.1,50},{-0.5,0.5},{0.7,1.1},{0,1.1},{0.002,0.002}, {-0.1,0.1}, {-1,1} };
     led_info.combined_fit.SetFitParameterRanges(limits);
+    // the way the 'zeroth order background' parameter is implemented, it's redundant with the pure scaling (parameter 0)
+    led_info.combined_fit.fit_funct.FixParameter(6,0);
     
     // ===================== absorption fitting part ======================= //
     
@@ -156,7 +158,8 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     // if this instead goes to 90%, scale goes up to 10.
     // ------------------------------------
     // old method, based on high conc and pure refs
-    const TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);  // NOT normalised!
+    const TGraph ratio_absorbance = PWLogRatio(simple_fit_result, high_conc_ds);  // NOT normalised!
+    //const TGraph ratio_absorbance = PWRatio(simple_fit_result, high_conc_ds);  // NOT normalised!
     // end old method
     // ------------------------------------
     // new method, uh, from file. this isn't quite the same as it's not un-normalised?
@@ -170,9 +173,9 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     // end new method
     // ------------------------------------
     
-    SaveDebug(&ratio_absorbance, std::string{"g_ratio_abs_ref_"}+led_name);
     // remove offset of 1
-    //for(int i=0; i<ratio_absorbance.GetN(); ++i){ ratio_absorbance.GetY()[i] -= 1.; }
+    //for(int i=0; i<ratio_absorbance.GetN(); ++i){ ratio_absorbance.GetY()[i] -= 1.; }  // DISABLEE IF USING PWLOGRATIO
+    SaveDebug(&ratio_absorbance, std::string{"g_ratio_abs_ref_"}+led_name);
     
     // either this reference must have been used for the calibration mapping,
     // or as a crude hack, it must be renormalised to the same magnitude as that used
@@ -214,6 +217,12 @@ bool MatthewAnalysisStrikesBack::Initialise(std::string configfile, DataModel &d
     limits = std::vector<std::pair<double,double>>{ {0.01,100},{-10,10},{-2,2},{10,10},{-100,100},{-1000,1000} };
     led_info.absorbtion_fit.SetFitParameterRanges(limits);
     led_info.absorbtion_fit.fit_funct.FixParameter(5,0);  // tendency to trade-off scaling with baseline offset
+    
+    // you know most of these seems to do more harm than good
+    led_info.absorbtion_fit.fit_funct.FixParameter(1,0);
+    led_info.absorbtion_fit.fit_funct.FixParameter(2,0);
+    led_info.absorbtion_fit.fit_funct.FixParameter(3,0);
+    led_info.absorbtion_fit.fit_funct.FixParameter(4,0);
     
   }
   
@@ -288,6 +297,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   Log(m_unique_name+" getting dark & LED tree "+current_led, v_debug,m_verbose);
   GetDarkAndLEDTrees();
 
+  // for tracking stability of the system
   double dark_mean=0, dark_sigma=0;
   Log(m_unique_name+" getting dark trace parameters", v_debug,m_verbose);
   GetDarkTraceParams(dark_mean, dark_sigma);
@@ -329,24 +339,11 @@ bool MatthewAnalysisStrikesBack::Execute(){
   // y_scaling, x_translation, x_scaling, absorbance_scaling, 2nd order bg, 1st order bg, constant bg
   //TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
   
-  /* -- nah this still doesn't work
-  // fix the pure parts
-  std::vector<int> parstofix{0,1,2,4,5,6};
-  for(int& pari : parstofix){
-    curr_comb_fit.fit_funct.FixParameter(pari,curr_comb_fit.fit_funct.GetParameter(pari));
-  }
-  // release the absorbance and try to fit just that component
-  curr_comb_fit.fit_funct.ReleaseParameter(3);
-  curr_comb_fit.fit_funct.SetParLimits(3,0,1.1);
-  TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,true);
-  */
   
   // FIXME HACK: the fit's not working, so mask out the absorbance region and just fit the sidebands
-  curr_comb_fit.fit_funct.FixParameter(3,0);
-  // also the way the 'zeroth order background' parameter is implemented, it's redundant with the pure
-  // scaling (parameter 0)
-  curr_comb_fit.fit_funct.FixParameter(7,0);
+  //curr_comb_fit.fit_funct.FixParameter(3,0);
   
+  // sometimes the fits are bad, but strangely enough simply redoing them improves it.
   // we'll repeat the fit multiple times, this seems to be the easiest and most robust
   // way to prevent misfits! stop once the chi2 stabilises.
   int mintries=2; // defining a chi2 threshold is difficult but try at least twice to see if it goes down
@@ -354,14 +351,14 @@ bool MatthewAnalysisStrikesBack::Execute(){
   double lastchi2=0;
   for(int numtries=0; numtries<maxtries; ++numtries){
     
-    TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(RemoveRegion(current_dark_sub, abs_region_low, abs_region_high),false);
+    //TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(RemoveRegion(current_dark_sub, abs_region_low, abs_region_high),false);
+    TFitResultPtr datafitresptr = curr_comb_fit.PerformFitOnData(current_dark_sub,false);
     
     double thischi2 = datafitresptr->Chi2();
     bool badfit = (thischi2 > 10E3);
     double deltachi2pc = std::abs(thischi2-lastchi2) / lastchi2;
     lastchi2 = thischi2;
     
-    // sometimes the fits are bad, but strangely enough simply redoing them improves it.
     // redo the fit if it was bad, if we've made less than maxtries fit attempts,
     // and if the change in the chi2 was more than 10%
     if( (badfit && numtries<(maxtries-1) && deltachi2pc>0.1) || (numtries<mintries) ) continue;
@@ -373,6 +370,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
                            ((datafitresptr->Chi2()/datafitresptr->Ndf()) < 10.) &&
                            !TMath::IsNaN(datafitresptr->GetParams()[0]) &&
                            (datafitresptr->GetErrors()[0] < 0.5);
+    
     // update the datamodel
     m_data->CStore.Set("datafit_success",datafit_success);
     datafitresp = TFitResultPtr((TFitResult*)datafitresptr->Clone());
@@ -393,10 +391,9 @@ bool MatthewAnalysisStrikesBack::Execute(){
   m_data->CStore.Set("purefit", tmp_ptr_t);
   if(saveit) SaveDebug(&purefitgraph, std::string{"purefit_"}+current_led+"_"+std::to_string(measurementnum));
   
-  // doesn't this need a log10???
-  //current_ratio_absorbtion = PWLogRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);  -- the resulting concentrations from this are way off... did the calibration curve use log10?
-  current_ratio_absorbtion = PWRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);
-  // remove offset of 1
+  current_ratio_absorbtion = PWLogRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);
+  //current_ratio_absorbtion = PWRatio(curr_comb_fit.GetGraphExcluding({current_led_info.combined_func->ABS_SCALING}), current_dark_sub);
+  // remove offset of 1 // XXX ONE OR THE OTHER NOT BOTH
   //for(int i=0; i<current_ratio_absorbtion.GetN(); ++i){ current_ratio_absorbtion.GetY()[i] -= 1.; }
   if(saveit) SaveDebug(&current_ratio_absorbtion, std::string{"ratioabs_"}+current_led+"_"+std::to_string(measurementnum));
   
@@ -490,7 +487,7 @@ bool MatthewAnalysisStrikesBack::Execute(){
   
   std::string file;
   m_data->CStore.Get("Filename",file);
-  //std::cerr<<file<<" : "<<current_led<<" : "<<metric<<std::endl;
+  std::cerr<<file<<" : "<<current_led<<" : "<<metric<<std::endl;
   
   
   return true;

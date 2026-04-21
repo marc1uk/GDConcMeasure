@@ -25,9 +25,6 @@ verbosity 1
 #file_list configfiles/AnalyseOldFiles/oct_2024_aftercalib_B.txt
 #max_files 1000
 
-
-####################################
-
 #file_list datasets/2024_jun_aug_A.txt
 #file_list datasets/2024_jun_aug_B.txt
 #file_list datasets/2024_aug_nov_A.txt
@@ -35,4 +32,10 @@ verbosity 1
 #file_list datasets/2024_nov_2025_may_A.txt
 #file_list datasets/2024_nov_2025_may_B.txt
 
-file_list redo.txt
+#file_list redo.txt
+
+#file_list configfiles/AnalyseOldFiles/Feb_2026_calib_files.txt
+file_list configfiles/AnalyseOldFiles/mar2026_unstable.txt
+#file_list configfiles/AnalyseOldFiles/oct2024calibcheck.txt
+
+

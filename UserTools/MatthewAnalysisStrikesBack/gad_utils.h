@@ -175,6 +175,7 @@ class LEDInfo {
 TGraph DarkSubtractFromTreePtrs(TTree*, TTree*, const int);
 TGraph GetDarkSubtractFromFile(const std::string, const std::string, const int&);
 TGraph RemoveRegion(const TGraph&, const double&, const double&);
+TGraph ExtractRegion(const TGraph&, const double&, const double&);
 
 template<class L>
 TGraph BinaryOperation(const TGraph&, const TGraph&, const std::string&, const L&);

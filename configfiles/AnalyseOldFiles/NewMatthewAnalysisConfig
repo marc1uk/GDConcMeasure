@@ -8,22 +8,22 @@ savedebug 1
 #highconc_offset 9
 
 # used online until oct 2024 calibration
-pureref_ver 3
-highconcref_ver 0
+#pureref_ver 3
+#highconcref_ver 0
 #calibcurve_ver 3
 
 # updated versions after fixing code and redoing calibration data extraction (w/ April data)
 # used with pureref 3 and highconc 0
-calib_curve_275_A cal_a_new.root
-cal_tf1_name_275_A led_a_calcurve
-calib_curve_275_B cal_b_new.root
-cal_tf1_name_275_B led_b_calcurve
+#calib_curve_275_A cal_a_new.root
+#cal_tf1_name_275_A led_a_calcurve
+#calib_curve_275_B cal_b_new.root
+#cal_tf1_name_275_B led_b_calcurve
 
 # something still missing from above Jun-Oct data though:
 # re-analysis does not reproduce online data (from EGADS weekly meet 8 oct 2024)
 # or re-analysis of data for nov 2024 collab meeting...
 
-switch to these after oct 2024 calib
+# switch to these after oct 2024 calib
 #pureref_ver 4
 #highconcref_ver 3
 
@@ -52,8 +52,13 @@ switch to these after oct 2024 calib
 # below from oct2024 after AAS alignment
 #calib_curve_275_A calcurve_oct2024_AAS_corrected.root
 #calib_curve_275_B calcurve_oct2024_AAS_corrected.root
+cal_tf1_name_275_A 275_A
+cal_tf1_name_275_B 275_B
 
-#cal_tf1_name_275_A 275_A
-#cal_tf1_name_275_B 275_B
+calib_curve_275_A feb2026_cal_curves.root
+calib_curve_275_B feb2026_cal_curves.root
 
-
+pure_fname /mnt/data/2026/02/00408_Feb_2026_EGADS_calibration_00000.root
+pure_offset 9
+highconc_fname /mnt/data/2026/02/00408_Feb_2026_EGADS_calibration_00074.root # 0.05% gdconc
+highconc_offset 9
